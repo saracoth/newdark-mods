@@ -1,0 +1,18 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to detect whether the base mod has been applied or not. If it
+// adds a property to a vanilla game object, we can maybe look for that.
+// But we can't check whether the base mod's new CreateArch objects exist or
+// not, since we don't necessarily know what IDs they'll end up with.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+	// This was added in Thief 2
+	!NAME -5333 MechCherub
+}
+
+// These targets work best for Thief 1/Gold.
+
++MetaProp "Key" "J4FRadarEquipPingable"
++MetaProp "RopeArrow" "J4FRadarEquipPingable"

@@ -1,0 +1,162 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to detect whether the base mod has been applied or not. If it
+// adds a property to a vanilla game object, we can maybe look for that.
+// But we can't check whether the base mod's new CreateArch objects exist or
+// not, since we don't necessarily know what IDs they'll end up with.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+/*
+================================================================================
+== New Stims ===================================================================
+================================================================================
+*/
+
+// Interesting note, but the "stimulate object" receptron effect is limited to
+// stim names of 15 characters or less. Otherwise, I might call this
+// J4FRadarDevicePongStim.
+
+CreateArch "Stimulus" "J4FR_DeviceStim"
+
+/*
+================================================================================
+== Polo! =======================================================================
+================================================================================
+*/
+
+// Define a visible radar puff. Let's make these purple.
+
+CreateArch "J4FRadarPuffPolo" "J4FRadarPuffDevicePolo"
+{
+	+ObjProp "ParticleGroup"
+	{
+		"Active" true
+		"Particle Render Type" Single-colored disk
+		"Particle Animation" Launched one-shot
+		"Particle Group Motion" Immobile
+		"number of particles" 25
+		"size of particle" 0.33
+		"velocity" 0.0, 0.0, 5.0
+		"gravity vector" 0.0, 0.0, 0.0
+		"color (palettized)" 157
+		"2nd color" 0
+		"3rd color" 0
+		"alpha" 128
+		"fixed-group radius" 0.5
+		"spin / pulse group" false
+		"spin speed" 6.0, 5.0, 3.0
+		"pulse magnitude" 0.1
+		"pulse cycle time ms" 1000
+		"particle fade time" 0.5
+		"launch period" 0.0
+		"animation offset ms" 0
+		"Group-scale velocity" 0.0
+		"bm-disk flags" "[None]"
+		"bm-disk birth time" 0.0
+		"bm-disk rot (vel, offs, rand)" 0.0, 0.0, 0.0
+		"bm-disk ani frame time" 0.0
+		"bm-disk grow speed" 0.0
+		"bm-disk rgb" 0.0, 0.0, 0.0
+		"bm-disk 2nd rgb" 0.0, 0.0, 0.0
+		"bm-disk 3rd rgb" 0.0, 0.0, 0.0
+		"always simulate (slow)" false
+		"always simulate group" true
+		"particles start launched" true
+		"alpha subpixel particles" false
+		"skip subpixel particles" false
+		"ignore attachment refs" false
+		"force matching unrefs" false
+	}
+	
+	+ObjProp "PGLaunchInfo"
+	{
+		"Launch Type" Sphere
+		"Box Min" -1.0, -1.0, -1.0
+		"Box Max" 1.0, 1.0, 1.0
+		"Min Radius" 0.0
+		"Max Radius" 0.0
+		"Loc unrotated?" false
+		"Velocity Min" -8.0, -8.0, -8.0
+		"Velocity Max" 8.0, 8.0, 8.0
+		"Vel unrotated?" false
+		"Min time" 1.0
+		"Max time" 1.0
+	}
+}
+
+/*
+================================================================================
+== Pinging and Ponging =========================================================
+================================================================================
+*/
+
+// When these items receive a J4FRadarPingStim, they'll acknowledge it by
+// sending a pong stim right back where it came from (the Marco puff). Then that
+// marco puff will use scripts to spawn a visible puff effect.
+
+CreateArch "MetaProperty" "J4FRadarDevicePingable"
+
+++Receptron "J4FRadarDevicePingable" "J4FRadarPingStim"
+{
+	Min None
+	Max None
+	
+	Target Source
+	Agent Me
+
+	Effect "stimulate"
+	{
+		"Stimulus" "J4FR_DeviceStim"
+		"Multiply By" 0.00
+		"Then Add" 1.00
+	}
+}
+
+/*
+================================================================================
+== What Responds to Pings ======================================================
+================================================================================
+*/
+
++MetaProp "Lockboxes" "J4FRadarDevicePingable"
++MetaProp "Switches" "J4FRadarDevicePingable"
++MetaProp "PressPlate" "J4FRadarDevicePingable"
+
+/*
+================================================================================
+== Attach Script to Marco Puff =================================================
+================================================================================
+*/
+
+// Both to work around the limited number of scripts per archetype, and to
+// avoid risk of sub-mods clashing with one another, we'll attach our new script
+// to the J4FRadarPuffMarco effect through a metaproperty.
+
+CreateArch "MetaProperty" "J4FDeviceMarco"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FSpawnDevicePolo"
+		"Don't Inherit" FALSE
+	}
+}
+
+++Receptron "J4FDeviceMarco" "J4FR_DeviceStim"
+{
+	Min None
+	Max None
+	
+	Target Me
+	Agent Source
+	
+	Effect "stim_script_msg"
+	{
+		"Flags" "[None]"
+	}
+}
+
++MetaProp "J4FRadarPuffMarco" "J4FDeviceMarco"
