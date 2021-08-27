@@ -94,7 +94,7 @@ If you don't see similar lines in dbmod.log, then the game never even tried to l
 
 ## The Mods
 
-Each mod lists the files it requires. Be sure to put the dml files in the dbmods directory and the nut files in the sq_scripts directory. Refer to installation instructions for more details.
+Each mod lists the files it requires, and possibly optional files you can include or skip. Be sure to put the dml files in the dbmods directory and the nut files in the sq_scripts directory. Refer to installation instructions for more details.
 
 It is not necessary to install every mod, but you can if you'd like. Feel free to pick and choose any combination of mods you wish.
 
@@ -113,7 +113,7 @@ This mod demonstrates adding and removing metaproperties, as well as copying spe
 
 When this mod is installed, a silent gong will be put in your inventory during every mission. Using this item from your inventory will toggle ghost mode on and off. When in ghost mode, everything should ignore you, the same as they ignore rats and other neutral NPCs. Your footsteps will be muffled and your light gem will darken. You won't be able to fly or walk through walls, but you can walk through NPCs, doors, and most objects.
 
-You also lose the ability to climb ropes and ladders, and can fall through elevator platforms to your death. Have fun with that.
+You also lose the ability to climb ropes and ladders, and can fall through elevator platforms to your death. Have fun with that. Ghost mode includes a low-gravity effect that might help a bit. It works much like slow-fall potions.
 
 This is not perfect invisibility, since NPCs can retroactively notice you after you leave ghost mode. In reality, they always noticed you, but didn't care until you returned to normal mode. Either way, you can't pick the pockets of NPCs that are aware of you, whether hostile or ignoring you.
 
@@ -123,9 +123,16 @@ Required files:
 * dbmods\just4fun_summoner.dml
 * sq_scripts\just4fun_summoner.nut
 
+Optional extras:
+* dbmods\just4fun_summoner_modmod.dml (fire element variant)
+
 This mod demonstrates creating new objects in the game world. In this case, a tiny shadow minion that will fight for you. They should be able to blow apart zombies and smash most robots to bits.
 
-When this mod is installed, a golden skull will be put in your inventory during every mission. Use this inventory item to spawn your minions.
+If you install the just4fun_summoner_modmod.dml in addition to the other files, your minion will be an ordinary fire elemental instead. This is intended to demonstrate how one mod could alter another mod.
+
+Minions have a time limit. About five seconds for the default shadow minion, and about thirty for the slower fire elemental version. Since minions don't follow the player and can clutter up the level, the limited duration helps keep them from getting in your way or distracting you.
+
+When this mod is installed, a golden skull will be put in your inventory during every mission. Use this inventory item to spawn a minion.
 
 ### Radar
 
@@ -153,13 +160,13 @@ All scripts, stims, metaproperties, and archetypes have a "J4F" prefix. Using ge
 
 This repository was created to demonstrate how to work around a limitation in the DML file format. When CreateArch was first introduced, it was not possible to use those object names in the Agent and Target fields of a receptron. Those fields accept only integer ID numbers, the "Me" keyword, and the "Source" keyword.
 
-In general, this limitation can be completely bypassed through use of squirrel script files. These mods show how to mimic adding and removing metaproperties, spawning objects, and cloning properties from one object to another. I hope this helps modders who are not comfortable with squirrel scripts to see how they can be used for simple effects like this, without straying too far from the act/react system they may be more familiar with.
+In general, this limitation can be completely bypassed through use of squirrel script files. These mods show how to mimic adding and removing metaproperties, spawning objects, and cloning properties from one object to another.
 
-However, see notes about Safely Assigning Scripts. There are still some very narrow corner cases where even this work-around is not 100% compatible with all possible mods and FMs.
+I hope this helps modders who are not comfortable with squirrel scripts to see how they can be used for simple effects like this. The [original versions](https://github.com/saracoth/newdark-mods/tree/1.0) of these mods stick closer to act/react-based systems, and only use scripts where absolutely necessary. The current versions of these scripts take advantage of scripting to simplify things where possible. Feel free to take a look at either or both versions of these mods to see how they work.
 
 ### Safely Assigning Scripts
 
-Several comments in the DML files cover this, but it's worth repeating. It's perfectly safe to assign scripts to brand new archetypes and metaproperties you define yourself, with CreateArch DML commands. For anything else, you run the risk of conflicts with other mods or FMs.
+It's perfectly safe to assign scripts to brand new archetypes and metaproperties you define yourself, with CreateArch DML commands. For anything else, you run the risk of conflicts with other mods or FMs.
 
 For example, the Garrett archetype in the vanilla game already has a Sanctifier script attached to him, in script #0. Some random fan mission might attach its own special Garrett script as well, in script #1. If your mod also assigns script #1 to Garrett, either the FM or your mod will stop working correctly.
 

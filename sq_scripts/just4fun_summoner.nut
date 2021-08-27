@@ -1,30 +1,53 @@
-// This script goes on the player. When receiving the appropriate stimulus,
-// spawn a minion a short distance in front of the player.
+// This script goes on the summoning object itself. When used from inventory,
+// it spawns a minion a short distance in front of the user/player.
 class J4FSpawnJustAhead extends SqRootScript
 {
-	function OnJ4FSummonStimStimulus()
+	function OnFrobInvEnd()
 	{
-		// This On<stim>Stimulus function will be called when the player
-		// receives that kind of stim.
-		
 		// Create a new instance of J4FSummonedSwordGuy in the game world,
 		// then immediately teleport it. It will be placed 5 units in front
 		// of the player/user/frobber, and will have the same facing and
-		// orientation as the player/user/frobber. This is equivalent to
-		// the commented-out create_obj receptron in the DML file.
+		// orientation as the player/user/frobber.
+		//
+		// Rather than hard-code the "J4FSummonedSwordGuy" string, we
+		// refer to the userparams(), which come from the summoning
+		// item's "Design Notes" property. This allows mods of this mod
+		// to change what kind of minion the token spawns.
 		
 		// Start the creation process. This may be better than using just
 		// Object.Create() in some cases.
-		local summon = Object.BeginCreate("J4FSummonedSwordGuy");
+		local summon = Object.BeginCreate(userparams().J4FMinionType);
 		// Here we use that to set the new object's position before we
 		// finish creating it.
-		Object.Teleport(summon, vector(5, 0, 0), vector(0), self);
+		Object.Teleport(summon, vector(5, 0, 0), vector(0), message().Frobber);
 		// Now we're done.
 		Object.EndCreate(summon);
 		
 		// NOTE: In practice, the following one-liner worked equally well.
-		// Object.Teleport(Object.Create("J4FSummonedSwordGuy"), vector(5, 0, 0), vector(0), self);
+		// Object.Teleport(Object.Create(userparams().J4FMinionType), vector(5, 0, 0), vector(0), message().Frobber);
 	}
+}
+
+// This script goes on the minion to give it a time limit.
+class J4FTimedSummon extends SqRootScript
+{
+	// We only need this script to fire once, when the minion is first spawned.
+    function OnCreate()
+	{
+		// Give it however many seconds to live.
+		SetOneShotTimer("J4FSummonExpire", userparams().J4FMinionDuration);
+    }
+	
+	// This will fire for any timer event on the object this script is attached to.
+    function OnTimer()
+	{
+		// So let's make sure it's an event from the timer we actually care about.
+        if (message().name == "J4FSummonExpire")
+		{
+			// The minion's time limit has expired, and it's time to go.
+			Object.Destroy(self);
+        }
+    }
 }
 
 // This script goes on the player with the ability to summon stuff.

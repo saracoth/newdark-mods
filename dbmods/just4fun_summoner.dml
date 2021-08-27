@@ -16,20 +16,6 @@ FINGERPRINT
 
 /*
 ================================================================================
-== New Stims ===================================================================
-================================================================================
-*/
-
-// While this mod could be done without any use of the act/react system, as a
-// starting point I implemented as much as possible without the use of
-// scripting. Currently, squirrel scripts are only used to add items to the
-// player's inventory and to emulate receptron effects that DML alone cannot
-// reliably handle.
-
-CreateArch "Stimulus" "J4FSummonStim"
-
-/*
-================================================================================
 == Summoning Token =============================================================
 ================================================================================
 */
@@ -48,26 +34,24 @@ CreateArch "Tulz" "J4FSummoningToken"
 	+ObjProp "FrobInfo"
 	{
 		"World Action" "Move, FocusScript"
-		"Inv Action" "[None]"
+		// When using it from our inventory, it should spawn a minion.
+		"Inv Action" "Script"
 		"Tool Action" "[None]"
 	}
-}
 
-// Stimulate the player when used from inventory.
-
-++StimSource "J4FSummoningToken" "J4FSummonStim"
-{
-	Intensity 1.0
-	
-	Propagator "Contact"
+	// This script will create the minions when this item is used.
+	+ObjProp "Scripts"
 	{
-		Shape
-		{
-			"Contact Types" Frob in Inv
-			"Velocity Coeff" 0.0
-			"Frob Time Coeff" 0.0
-		}
+		"Script 0" "J4FSpawnJustAhead"
+		"Don't Inherit" FALSE
 	}
+	
+	// This is a semicolon-delimited list of key=value pairs for the scripts.
+	// We use it here to define which minion the summon item creates.
+    +ObjProp "DesignNote"
+    {
+        "" J4FMinionType=J4FSummonedSwordGuy
+    }
 }
 
 /*
@@ -88,7 +72,6 @@ CreateArch "MetaProperty" "J4FSummoner"
 	+ObjProp "Scripts"
 	{
 		"Script 0" "J4FSummoner"
-		"Script 1" "J4FSpawnJustAhead"
 		"Don't Inherit" FALSE
 	}
 }
@@ -111,6 +94,15 @@ CreateArch "MetaProperty" "J4FSummoner"
 
 CreateArch "MetaProperty" "J4FFearlessSummon"
 {
+	// This script will be used to impose a time limit on the summon.
+	// Note that we define the actual time limit elsewhere, on the
+	// minion archetype itself, through its "design notes" property.
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FTimedSummon"
+		"Don't Inherit" FALSE
+	}
+	
 	+ObjProp "AI_Team" = Good
 	
 	+ObjProp "AI_Vision" = Well Above Average
@@ -335,6 +327,13 @@ CreateArch "Haunt" "J4FSummonedSwordGuy"
 	
 	// And change their AI voice/sounds to that of an Apparition.
 	+ObjProp "SpchVoice" = vappar
+	
+	// This is a semicolon-delimited list of key=value pairs for the scripts.
+	// We use it here to define how long the minion lasts before vanishing.
+    +ObjProp "DesignNote"
+    {
+        "" J4FMinionDuration=5.0
+    }
 }
 
 // Give them the fearless-summon metaproperty we set up earlier. This includes
@@ -344,74 +343,4 @@ CreateArch "Haunt" "J4FSummonedSwordGuy"
 // And arm them with the new sword.
 ++Link "J4FSummonedSwordGuy" "J4FHolySummonSword" "Weapon"
 {
-}
-
-/*
-================================================================================
-== Attaching Extra Scripts =====================================================
-================================================================================
-*/
-
-// This script was written purely to emulate certain receptron effects we
-// cannot do directly in DML. It wouldn't be necessary if DML receptrons could
-// specify Agent and Target values by string names. Currently, however, they are
-// limited to object IDs (which we don't necessarily know), the "Me" keyword,
-// and the "Source" keyword.
-
-// We already have a player metaproperty, so let's add a second script to it.
-+ObjProp "J4FSummoner" "Scripts"
-{
-	"Script 1" "J4FSpawnJustAhead"
-}
-
-/*
-================================================================================
-== Wiring Up Functionality =====================================================
-================================================================================
-*/
-
-// In a pure DML-based mod, we would ideally use the create_obj receptron effect
-// directly. However, because we don't know the ID of the J4FSummonedSwordGuy,
-// and can't reference them by name, we'll use the stim_script_msg effect. That
-// will send a J4FSummonStimStimulus message to our J4FSpawnJustAhead script.
-
-/*
-++Receptron "J4FSummoner" "J4FSummonStim"
-{
-	Min 1.0
-	Max None
-	
-	// This fails with a DML syntax error. As of NewDark v1.27, only integers,
-	// Me, and Source are permitted as Target and Agent values. Unfortunately,
-	// we can't control nor reliably predict the ID numbers of our CreateArch
-	// statements. Other mods, patches, etc. can all create archetypes of
-	// their own, which can affect the ID numbers we end up with. This is why
-	// the spawning effect is implemented through squirrel scripts.
-	Target "J4FSummonedSwordGuy"
-	
-	Agent Me
-	
-	Effect "create_obj"
-	{
-		"Position" 5.0, 0.0, 0.0
-		"Heading" 0.0
-		"Pitch" 0.0
-		"Bank" 0.0
-	}
-}
-//*/
-
-++Receptron "J4FSummoner" "J4FSummonStim"
-{
-	Min 1.0
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	// Instead of using a create_obj effect directly, we'll do it through scripts.
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
 }
