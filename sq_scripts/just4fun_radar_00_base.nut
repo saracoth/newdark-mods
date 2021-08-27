@@ -1,54 +1,27 @@
-// This script goes on the player. When receiving the appropriate stimulus,
-// spawn a marco puff on the scripted object. In this case, the player.
+// This script goes on the summoning object itself. When used from inventory,
+// it spawns a "marco" ping a short at the player's location.
 class J4FSpawnMarco extends SqRootScript
 {
-	function OnJ4FRadarStimStimulus()
+	function OnFrobInvEnd()
 	{
-		// This On<stim>Stimulus function will be called when the player
-		// receives that kind of stim.
+		// Several example .nut scripts do something similar. This should be
+		// slightly more efficient than creating two zero vectors later.
+		local zeros = vector(0);
 		
 		// Create a new instance of our puff in the game world,
-		// then immediately teleport it. This is equivalent to
-		// the commented-out create_obj receptron in the DML file.
+		// then immediately teleport it.
 		
 		// Start the creation process. This may be better than using just
 		// Object.Create() in some cases.
-		local summon = Object.BeginCreate("J4FLootPuffMarco");
+		local summon = Object.BeginCreate("J4FRadarPuffMarco");
 		// Here we use that to set the new object's position before we
 		// finish creating it.
-		Object.Teleport(summon, vector(0, 0, 0), vector(0), self);
+		Object.Teleport(summon, zeros, zeros, message().Frobber);
 		// Now we're done.
 		Object.EndCreate(summon);
 		
 		// NOTE: In practice, the following one-liner worked equally well.
-		// Object.Teleport(Object.Create("J4FLootPuffMarco"), vector(0, 0, 0), vector(0), self);
-	}
-}
-
-// This script goes on the player. When receiving the appropriate stimulus,
-// spawn a marco puff on the scripted object. In this case, the loot.
-class J4FSpawnPolo extends SqRootScript
-{
-	function OnJ4FRadarStimStimulus()
-	{
-		// This On<stim>Stimulus function will be called when the player
-		// receives that kind of stim.
-		
-		// Create a new instance of our puff in the game world,
-		// then immediately teleport it. This is equivalent to
-		// the commented-out create_obj receptron in the DML file.
-		
-		// Start the creation process. This may be better than using just
-		// Object.Create() in some cases.
-		local summon = Object.BeginCreate("J4FLootPuffPolo");
-		// Here we use that to set the new object's position before we
-		// finish creating it.
-		Object.Teleport(summon, vector(0, 0, 0), vector(0), self);
-		// Now we're done.
-		Object.EndCreate(summon);
-		
-		// NOTE: In practice, the following one-liner worked equally well.
-		// Object.Teleport(Object.Create("J4FLootPuffPolo"), vector(0, 0, 0), vector(0), self);
+		// Object.Teleport(Object.Create("J4FRadarPuffMarco"), vector(0), vector(0), message().Frobber);
 	}
 }
 

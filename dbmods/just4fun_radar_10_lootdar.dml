@@ -1,0 +1,97 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to detect whether the base mod has been applied or not. If it
+// adds a property to a vanilla game object, we can maybe look for that.
+// But we can't check whether the base mod's new CreateArch objects exist or
+// not, since we don't necessarily know what IDs they'll end up with.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+/*
+================================================================================
+== New Stims ===================================================================
+================================================================================
+*/
+
+// Interesting note, but the "stimulate object" receptron effect is limited to
+// stim names of 15 characters or less. Otherwise, I might call this
+// J4FRadarLootPongStim.
+
+CreateArch "Stimulus" "J4FR_LootStim"
+
+/*
+================================================================================
+== Polo! =======================================================================
+================================================================================
+*/
+
+// Define a visible radar puff. We don't need to change any properties here,
+// since the base J4FRadarPuffPolo already looks good enough for our purposes.
+
+CreateArch "J4FRadarPuffPolo" "J4FRadarPuffLootPolo"
+
+/*
+================================================================================
+== Pinging and Ponging =========================================================
+================================================================================
+*/
+
+// The vanilla game already has an IsLoot metaproperty we can piggyback onto.
+
+// When these items receive a J4FRadarPingStim, they'll acknowledge it by
+// sending a pong stim right back where it came from (the Marco puff). Then that
+// marco puff will use scripts to spawn a visible puff effect.
+
+++Receptron "IsLoot" "J4FRadarPingStim"
+{
+	Min None
+	Max None
+	
+	Target Source
+	Agent Me
+
+	Effect "stimulate"
+	{
+		"Stimulus" "J4FR_LootStim"
+		"Multiply By" 0.00
+		"Then Add" 1.00
+	}
+}
+
+/*
+================================================================================
+== Attach Script to Marco Puff =================================================
+================================================================================
+*/
+
+// Both to work around the limited number of scripts per archetype, and to
+// avoid risk of sub-mods clashing with one another, we'll attach our new script
+// to the J4FRadarPuffMarco effect through a metaproperty.
+
+CreateArch "MetaProperty" "J4FLootMarco"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FSpawnLootPolo"
+		"Don't Inherit" FALSE
+	}
+}
+
+++Receptron "J4FLootMarco" "J4FR_LootStim"
+{
+	Min None
+	Max None
+	
+	Target Me
+	Agent Source
+	
+	Effect "stim_script_msg"
+	{
+		"Flags" "[None]"
+	}
+}
+
++MetaProp "J4FRadarPuffMarco" "J4FLootMarco"
