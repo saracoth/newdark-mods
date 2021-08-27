@@ -1,0 +1,417 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to prevent multiple copies of this mod from being applied, if
+// the user copies files to multiple valid folders. If we change a property
+// of a specific pre-existing object in a unique way, we can look for that.
+// However, we can't use NAME checks for the (non)existance of new CreateArch
+// archetypes, since we won't reliably know their IDs.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+// This allow us to use our .nut files.
+#script "squirrel"
+
+/*
+================================================================================
+== New Stims ===================================================================
+================================================================================
+*/
+
+// While this mod could be done without any use of the act/react system, as a
+// starting point I implemented as much as possible without the use of
+// scripting. Currently, squirrel scripts are only used to add items to the
+// player's inventory and to emulate receptron effects that DML alone cannot
+// reliably handle.
+
+CreateArch "Stimulus" "J4FSummonStim"
+
+/*
+================================================================================
+== Summoning Token =============================================================
+================================================================================
+*/
+
+// Create an item that can be used to summon minions.
+
+CreateArch "Tulz" "J4FSummoningToken"
+{
+	// Good joke. Everybody laugh. Roll on snare drum.
+	+ObjProp "GameName" = name_j4f_shadow_summon: "Deadly Shadows"
+	
+	// Spoooky skulls!
+	+ObjProp "ModelName" = gskull
+	
+	// Allow using the item.
+	+ObjProp "FrobInfo"
+	{
+		"World Action" "Move, FocusScript"
+		"Inv Action" "[None]"
+		"Tool Action" "[None]"
+	}
+}
+
+// Stimulate the player when used from inventory.
+
+++StimSource "J4FSummoningToken" "J4FSummonStim"
+{
+	Intensity 1.0
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Frob in Inv
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+/*
+================================================================================
+== Summoner Metaproperty =======================================================
+================================================================================
+*/
+
+// We'll use this to put the summoning item directly into the player inventory.
+// It's not safe for generic gameplay mods to add scripts directly to the
+// Garrett archetype. Doing so could clash with other mods and FMs. So instead,
+// we create a brand new metaproperty with a single script, then give the
+// metaproperty to Garrett. This safely puts the new script on the player,
+// without risk of interfering with other mods and behaviors.
+
+CreateArch "MetaProperty" "J4FSummoner"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FSummoner"
+		"Script 1" "J4FSpawnJustAhead"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Assign the new metaproperty to the Garrett object, which is the usual Avatar
+// type used in missions. As a bonus, mods of this mod could *remove* this
+// metaproperty to prevent automatically giving the item to the player!
+
++MetaProp "Garrett" "J4FSummoner"
+
+/*
+================================================================================
+== Fearless-Summon Metaproperty ================================================
+================================================================================
+*/
+
+// This is just a bundle of properties to "beef up" the summon itself (and put
+// it on the player's team). It should allow them to more-or-less instantly
+// notice any hostiles and fight them to the death.
+
+CreateArch "MetaProperty" "J4FFearlessSummon"
+{
+	+ObjProp "AI_Team" = Good
+	
+	+ObjProp "AI_Vision" = Well Above Average
+	+ObjProp "AI_Hearing" = Well Above Average
+	+ObjProp "AI_Aggression" = Well Above Average
+	+ObjProp "AI_Defensive" = Well Below Average
+	+ObjProp "AI_Dodginess" = Well Below Average
+	+ObjProp "AI_Verbosity" = Well Below Average
+
+	+ObjProp "AI_FleeConds"
+	{
+		"Condition" Never
+		"Pct Hitpoints" 0
+		"Not if # of friends >=" 0
+	}
+
+	+ObjProp "AI_VisDesc"
+	{
+		"Z Offset" 3.0
+		"Cone 1: Flags" Active, Night vision
+		"Cone 1: Angle" 359
+		"Cone 1: Z angle" 359
+		"Cone 1: Range" 5
+		"Cone 1: Acuity" 6000
+		"Cone 2: Flags" Active, Night vision
+		"Cone 2: Angle" 359
+		"Cone 2: Z angle" 359
+		"Cone 2: Range" 15
+		"Cone 2: Acuity" 6000
+		"Cone 3: Flags" Active, Night vision
+		"Cone 3: Angle" 359
+		"Cone 3: Z angle" 359
+		"Cone 3: Range" 125
+		"Cone 3: Acuity" 6000
+		"Cone 4: Flags" Active, Night vision
+		"Cone 4: Angle" 359
+		"Cone 4: Z angle" 359
+		"Cone 4: Range" 125
+		"Cone 4: Acuity" 6000
+		"Cone 5: Flags" Active, Night vision
+		"Cone 5: Angle" 359
+		"Cone 5: Z angle" 359
+		"Cone 5: Range" 125
+		"Cone 5: Acuity" 6000
+		"Cone 6: Flags" Active, Night vision
+		"Cone 6: Angle" 359
+		"Cone 6: Z angle" 359
+		"Cone 6: Range" 125
+		"Cone 6: Acuity" 6000
+		"Cone 7: Flags" Active, Night vision
+		"Cone 7: Angle" 359
+		"Cone 7: Z angle" 359
+		"Cone 7: Range" 125
+		"Cone 7: Acuity" 5
+		"Cone 8: Flags" Active, Night vision
+		"Cone 8: Angle" 359
+		"Cone 8: Z angle" 359
+		"Cone 8: Range" 125
+		"Cone 8: Acuity" 1
+		"Cone 9: Flags" Active, Night vision
+		"Cone 9: Angle" 359
+		"Cone 9: Z angle" 359
+		"Cone 9: Range" 50
+		"Cone 9: Acuity" 15000
+		"Cone 10: Flags" Active, Night vision
+		"Cone 10: Angle" 359
+		"Cone 10: Z angle" 359
+		"Cone 10: Range" 50
+		"Cone 10: Acuity" 6000
+	}
+}
+
+/*
+================================================================================
+== Holy Bashing, Slashing Sword, Batman! =======================================
+================================================================================
+*/
+
+// To change the minion's damage types, we're going to give it a different
+// weapon. We start by inheriting from Sword, which gives us the usual slashing
+// damage.
+
+// Physical/Weapon/Swords/Sword
+CreateArch "Sword" "J4FHolySummonSword"
+
+// In addition to that, we'll add on some holy damage, so they can explode
+// any pesky zombies.
+
+++StimSource "J4FHolySummonSword" "HolyStim"
+{
+	Intensity 2.0
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Weapon Swing Low
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+++StimSource "J4FHolySummonSword" "HolyStim"
+{
+	Intensity 4.0
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Weapon Swing Med
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+++StimSource "J4FHolySummonSword" "HolyStim"
+{
+	Intensity 6.0
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Weapon Swing High
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+// For the heck of it, we can also add bashing damage similar to a
+// Hammerite. This will be useful for damaging sturdy robots.
+
+++StimSource "J4FHolySummonSword" "BashStim"
+{
+	Intensity 2.5
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Weapon Swing Low
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+++StimSource "J4FHolySummonSword" "BashStim"
+{
+	Intensity 5.0
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Weapon Swing Med
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+++StimSource "J4FHolySummonSword" "BashStim"
+{
+	Intensity 7.5
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Weapon Swing High
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+// NOTE: The sword deals all three types of damage at once. For anything
+// vulnerable to multiple of these damage types, that can add up fast!
+
+/*
+================================================================================
+== Malicious Little Imps =======================================================
+================================================================================
+*/
+
+// This defines the minions themselves. We'll base them off of Haunts, but with
+// various visual and other changes.
+
+CreateArch "Haunt" "J4FSummonedSwordGuy"
+{
+	// Stay wary of potential threats.
+	+ObjProp "AI_AlertCap"
+	{
+		"Max level" (3) High
+		"Min level" (2) Moderate
+		"Min relax after peak" (2) Moderate
+	}
+	
+	// They're so cute and tiny!
+	+ObjProp "CretScale" = 0.5
+	
+	// So maybe they should get in closer before hitting things? Best effort.
+	+ObjProp "HTHCombatDist" = 1.75, 2.75, 5.00
+	
+	// Speed them up! 3x speed.
+	+ObjProp "TimeWarp" = 0.33
+	
+	// Make them permanently dark, regardless of light level.
+	+ObjProp "ExtraLight"
+	{
+		"Amount (-1..1)" 0.0
+		"Additive?" false
+	}
+	
+	// And see-through, like a spooky ghost!
+	+ObjProp "RenderAlpha" = 0.75
+	
+	// And change their AI voice/sounds to that of an Apparition.
+	+ObjProp "SpchVoice" = vappar
+}
+
+// Give them the fearless-summon metaproperty we set up earlier. This includes
+// the expiration script that deletes them after a time.
++MetaProp "J4FSummonedSwordGuy" "J4FFearlessSummon"
+
+// And arm them with the new sword.
+++Link "J4FSummonedSwordGuy" "J4FHolySummonSword" "Weapon"
+{
+}
+
+/*
+================================================================================
+== Attaching Extra Scripts =====================================================
+================================================================================
+*/
+
+// This script was written purely to emulate certain receptron effects we
+// cannot do directly in DML. It wouldn't be necessary if DML receptrons could
+// specify Agent and Target values by string names. Currently, however, they are
+// limited to object IDs (which we don't necessarily know), the "Me" keyword,
+// and the "Source" keyword.
+
+// We already have a player metaproperty, so let's add a second script to it.
++ObjProp "J4FSummoner" "Scripts"
+{
+	"Script 1" "J4FSpawnJustAhead"
+}
+
+/*
+================================================================================
+== Wiring Up Functionality =====================================================
+================================================================================
+*/
+
+// In a pure DML-based mod, we would ideally use the create_obj receptron effect
+// directly. However, because we don't know the ID of the J4FSummonedSwordGuy,
+// and can't reference them by name, we'll use the stim_script_msg effect. That
+// will send a J4FSummonStimStimulus message to our J4FSpawnJustAhead script.
+
+/*
+++Receptron "J4FSummoner" "J4FSummonStim"
+{
+	Min 1.0
+	Max None
+	
+	// This fails with a DML syntax error. As of NewDark v1.27, only integers,
+	// Me, and Source are permitted as Target and Agent values. Unfortunately,
+	// we can't control nor reliably predict the ID numbers of our CreateArch
+	// statements. Other mods, patches, etc. can all create archetypes of
+	// their own, which can affect the ID numbers we end up with. This is why
+	// the spawning effect is implemented through squirrel scripts.
+	Target "J4FSummonedSwordGuy"
+	
+	Agent Me
+	
+	Effect "create_obj"
+	{
+		"Position" 5.0, 0.0, 0.0
+		"Heading" 0.0
+		"Pitch" 0.0
+		"Bank" 0.0
+	}
+}
+//*/
+
+++Receptron "J4FSummoner" "J4FSummonStim"
+{
+	Min 1.0
+	Max None
+	
+	Target Me
+	Agent Source
+	
+	// Instead of using a create_obj effect directly, we'll do it through scripts.
+	Effect "stim_script_msg"
+	{
+		"Flags" "[None]"
+	}
+}

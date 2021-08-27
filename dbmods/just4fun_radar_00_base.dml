@@ -1,0 +1,494 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to prevent multiple copies of this mod from being applied, if
+// the user copies files to multiple valid folders. If we change a property
+// of a specific pre-existing object in a unique way, we can look for that.
+// However, we can't use NAME checks for the (non)existance of new CreateArch
+// archetypes, since we won't reliably know their IDs.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+// This allow us to use our .nut files.
+#script "squirrel"
+
+/*
+================================================================================
+== New Stims ===================================================================
+================================================================================
+*/
+
+// While this mod could be done without any use of the act/react system, as a
+// starting point I implemented as much as possible without the use of
+// scripting. Currently, squirrel scripts are only used to add items to the
+// player's inventory and to emulate receptron effects that DML alone cannot
+// reliably handle.
+
+CreateArch "Stimulus" "J4FRadarStim"
+
+/*
+================================================================================
+== Radar Pinging Item ==========================================================
+================================================================================
+*/
+
+// Create an item the player can use to send a radar blip (ie, "Marco!")
+// Basing it off of Compass2 because we're going to use the old/unused compass
+// model anyway, so may a well make it behave like a proper compass item.
+
+CreateArch "Compass2" "J4FRadarMarcoItem"
+{
+	+ObjProp "GameName" = name_j4f_radar_pinger: "Radar"
+	
+	+ObjProp "ModelName" = compass
+	
+	// Permit using from inventory.
+	+ObjProp "FrobInfo"
+	{
+		"World Action" "Move, FocusScript"
+		"Inv Action" "[None]"
+		"Tool Action" "[None]"
+	}
+}
+
+// Stimulate the player when used from inventory.
+
+++StimSource "J4FRadarMarcoItem" "J4FRadarStim"
+{
+	Intensity 1.0
+	
+	Propagator "Contact"
+	{
+		Shape
+		{
+			"Contact Types" Frob in Inv
+			"Velocity Coeff" 0.0
+			"Frob Time Coeff" 0.0
+		}
+	}
+}
+
+/*
+================================================================================
+== Radar Giver =================================================================
+================================================================================
+*/
+
+// It's not safe for generic gameplay mods to add scripts directly to the
+// Garrett archetype. Doing so could clash with other mods and FMs. So instead,
+// we create a brand new metaproperty with a single script, then give the
+// metaproperty to Garrett. This safely puts the new script on the player,
+// without risk of interfering with other mods and behaviors.
+
+CreateArch "MetaProperty" "J4FRadarItemGiver"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FGiveRadarItem"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Assign the new metaproperty to the Garrett object, which is the usual Avatar
+// type used in missions. As a bonus, mods of this mod could *remove* this
+// metaproperty to prevent automatically giving the item to the player!
+
++MetaProp "Garrett" "J4FRadarItemGiver"
+
+/*
+================================================================================
+== Radar Enabled Player Metaproperty ===========================================
+================================================================================
+*/
+
+// We'll attach some receptrons to this metaproperty to help wire up the
+// marco/polo ping system later.
+
+CreateArch "MetaProperty" "J4FRadarCoordinator"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FGiveRadarItem"
+		"Don't Inherit" FALSE
+	}
+}
+
++MetaProp "Garrett" "J4FRadarCoordinator"
+
+/*
+================================================================================
+== LootPingPuff Parent SFX =====================================================
+================================================================================
+*/
+
+// Define some particle effects and junk once, so that we can easily make
+// variations from it.
+
+CreateArch "SFX" "J4FLootPingPuff"
+{
+	// These aren't our .nut scripts, but just some vanilla game scripts for SFX
+	+ObjProp "Scripts"
+	{
+		"Script 0" StdParticleGroup
+		"Don't Inherit" false
+	}
+
+	+ObjProp "Position"
+	{
+		"Location" 0.0, 0.0, 0.0
+		"Heading" 0
+		"Pitch" 0
+		"Bank" 0
+	}
+
+	+ObjProp "RenderAlpha" = 0.5
+
+	+ObjProp "ParticleGroup"
+	{
+		"Active" true
+		"Particle Render Type" Single-colored disk
+		"Particle Animation" Launched one-shot
+		"Particle Group Motion" Immobile
+		"number of particles" 1
+		"size of particle" 0.33
+		"velocity" 0.0, 0.0, 5.0
+		"gravity vector" 0.0, 0.0, 0.0
+		"color (palettized)" 226
+		"2nd color" 0
+		"3rd color" 0
+		"alpha" 0
+		"fixed-group radius" 0.5
+		"spin / pulse group" false
+		"spin speed" 6.0, 5.0, 3.0
+		"pulse magnitude" 0.1
+		"pulse cycle time ms" 1000
+		"particle fade time" 0.5
+		"launch period" 0.0
+		"animation offset ms" 0
+		"Group-scale velocity" 1.25
+		"bm-disk flags" "[None]"
+		"bm-disk birth time" 0.0
+		"bm-disk rot (vel, offs, rand)" 0.0, 0.0, 0.0
+		"bm-disk ani frame time" 0.0
+		"bm-disk grow speed" 0.0
+		"bm-disk rgb" 0.0, 0.0, 0.0
+		"bm-disk 2nd rgb" 0.0, 0.0, 0.0
+		"bm-disk 3rd rgb" 0.0, 0.0, 0.0
+		"always simulate (slow)" false
+		"always simulate group" true
+		"particles start launched" false
+		"alpha subpixel particles" false
+		"skip subpixel particles" false
+		"ignore attachment refs" false
+		"force matching unrefs" false
+	}
+
+	+ObjProp "PGLaunchInfo"
+	{
+		"Launch Type" Bounding Box
+		"Box Min" -0.5, -0.5, -0.5
+		"Box Max" 0.5, 0.5, 0.5
+		"Min Radius" 0.0
+		"Max Radius" 0.0
+		"Loc unrotated?" false
+		"Velocity Min" -1.0, -1.0, -1.0
+		"Velocity Max" 1.0, 1.0, 1.0
+		"Vel unrotated?" false
+		"Min time" 1.5
+		"Max time" 2.5
+	}
+
+	+ObjProp "ModelName" = FX_Particles
+
+	+ObjProp "StTweqDelete"
+	{
+		"AnimS" On
+		"MiscS" "[None]"
+		"Cur Time" 0
+		"Frame #" 0
+	}
+
+	+ObjProp "CfgTweqDelete"
+	{
+		"Halt" Destroy Obj
+		"AnimC" Sim
+		"MiscC" "[None]"
+		"CurveC" "[None]"
+		"Rate" 3000
+	}
+}
+
+/*
+================================================================================
+== Marco! ======================================================================
+================================================================================
+*/
+
+// This will burst at various distances. We'll use it to stimulate items of
+/ interest. Later on, those items will generate their own "polo" puff that we
+// can actually see.
+
+CreateArch "J4FLootPingPuff" "J4FLootPuffMarco"
+
+// A this close distance, the effect will even go through walls.
+
+++StimSource "J4FLootPuffMarco" "J4FRadarStim"
+{
+	Intensity -1.0
+	
+	Propagator "Radius"
+	{
+		Shape
+		{
+			"Radius" 75.0
+			"Flags" "[None]"
+			"Dispersion" None
+		}
+		Life
+		{
+			"Flags" "[None]"
+			"Period" 5000
+			"Max Firings" 1
+			"Intensity Slope" 0.0
+		}
+	}
+}
+
+// Also hit stuff at a greater distance, but only if we can see it.
+
+++StimSource "J4FLootPuffMarco" "J4FRadarStim"
+{
+	Intensity -1.0
+	
+	Propagator "Radius"
+	{
+		Shape
+		{
+			"Radius" 125.0
+			"Flags" "Line of Sight (raycast)"
+			"Dispersion" None
+		}
+		Life
+		{
+			"Flags" "[None]"
+			"Period" 5000
+			"Max Firings" 1
+			"Intensity Slope" 0.0
+		}
+	}
+}
+
+/*
+================================================================================
+== Polo! =======================================================================
+================================================================================
+*/
+
+// This is the visible puff. We tweak it's appearance a bit from J4FLootPingPuff.
+
+CreateArch "J4FLootPingPuff" "J4FLootPuffPolo"
+{
+	+ObjProp "ParticleGroup"
+	{
+		"Active" true
+		"Particle Render Type" Single-colored disk
+		"Particle Animation" Launched one-shot
+		"Particle Group Motion" Immobile
+		"number of particles" 80
+		"size of particle" 0.33
+		"velocity" 0.0, 0.0, 5.0
+		"gravity vector" 0.0, 0.0, 0.0
+		"color (palettized)" 226
+		"2nd color" 0
+		"3rd color" 0
+		"alpha" 128
+		"fixed-group radius" 0.5
+		"spin / pulse group" false
+		"spin speed" 6.0, 5.0, 3.0
+		"pulse magnitude" 0.1
+		"pulse cycle time ms" 1000
+		"particle fade time" 0.5
+		"launch period" 0.0
+		"animation offset ms" 0
+		"Group-scale velocity" 0.0
+		"bm-disk flags" "[None]"
+		"bm-disk birth time" 0.0
+		"bm-disk rot (vel, offs, rand)" 0.0, 0.0, 0.0
+		"bm-disk ani frame time" 0.0
+		"bm-disk grow speed" 0.0
+		"bm-disk rgb" 0.0, 0.0, 0.0
+		"bm-disk 2nd rgb" 0.0, 0.0, 0.0
+		"bm-disk 3rd rgb" 0.0, 0.0, 0.0
+		"always simulate (slow)" false
+		"always simulate group" true
+		"particles start launched" true
+		"alpha subpixel particles" false
+		"skip subpixel particles" false
+		"ignore attachment refs" false
+		"force matching unrefs" false
+	}
+
+	+ObjProp "PGLaunchInfo"
+	{
+		"Launch Type" Sphere
+		"Box Min" -1.0, -1.0, -1.0
+		"Box Max" 1.0, 1.0, 1.0
+		"Min Radius" 0.0
+		"Max Radius" 0.0
+		"Loc unrotated?" false
+		"Velocity Min" -20.0, -20.0, -20.0
+		"Velocity Max" 20.0, 20.0, 20.0
+		"Vel unrotated?" false
+		"Min time" 1.0
+		"Max time" 1.0
+	}
+}
+
+/*
+================================================================================
+== Attaching Extra Scripts =====================================================
+================================================================================
+*/
+
+// These scripts were written purely to emulate certain receptron effects we
+// cannot do directly in DML. It wouldn't be necessary if DML receptrons could
+// specify Agent and Target values by string names. Currently, however, they are
+// limited to object IDs (which we don't necessarily know), the "Me" keyword,
+// and the "Source" keyword.
+
+// We already have a player metaproperty, so let's add a second script to it.
++ObjProp "J4FRadarCoordinator" "Scripts"
+{
+	"Script 1" "J4FSpawnMarco"
+}
+
+// Well, isn't this awkward? We'd like to affect anything with the IsLoot
+// metaproperty. However, we can't assign metaproperties to metaproperties.
+// And as noted earlier, attaching scripts to archetypes not created by the
+// mod itself is dangerous. If any other mod wanted to define script #1 for
+// IsLoot, this mod and that mod will clash. One or the other will break.
+// Still, for demonstration purposes, let's give it a try anyway.
+//
+// For this particular mod, it may be possible to avoid this as follows:
+// 1. Remove the script from the loot items.
+// 2. Add it to the J4FLootPuffMarco instead.
+// 3. Add a J4FRadarStim Recptron to IsLoot that will stimulate the source of
+//	the stimulation with another J4FRadarStim, multiplied by -1 to make it
+//	positive.
+// 4. Add a J4FRadarStim Receptron to J4FLootPuffMarco, reacting to positive
+//	values only. Send the result to scripts.
+// 5. Modify the J4FSpawnPolo script. Instead of spawning the puff centered on
+//	"self", we'll want to spawn it centered on the message().source object.
+// 6. Consider tweaking the J4FLootPuffMarco Sources as well. If a loot object
+//	is hit with both of them, the end result will be that we spawn *two* Polo
+//	puffs. These extra particle effects aren't helpful and may make lag
+//	spikes more common when using the radar in certain areas. Reducing the
+//	Marco puff to a single Source would avoid this issue.
+//
+// With this setup, the Marco puff pings the loot, which pongs right back to
+// the Marco puff. Then the Marco puff will spawn a Polo puff for each piece
+// of loot that responded to the ping. Now we've worked around both the DML
+// receptron limitation and avoided attaching scripts to objects in potentially
+// dangerous ways. The main reason I didn't write that into this mod is that
+// it would overcomplicate the concept, which is to show a mod that sticks as
+// close as possible to how I might implement this purely in the act/react
+// system, without any scripts at all. Second, it would add extra complexity
+// and moving pieces to what is meant to be an educational example. Consider
+// the above tweaks an exercise for the reader if you'd like to try making such
+// a change yourself! I haven't yet tested this approach, but it seems sound.
+
++ObjProp "IsLoot" "Scripts"
+{
+	// Script #0 is reserved for a loot sound effects script, so we'll use #1
+	"Script 1" "J4FSpawnPolo"
+}
+
+/*
+================================================================================
+== Wiring Up Functionality =====================================================
+================================================================================
+*/
+
+// In a pure DML-based mod, we would ideally use the create_obj receptron effect
+// directly. However, because we don't know the IDs of the J4FLootPuffPolo or
+// J4FLootPuffMarco and can't reference them by name, we'll use the
+// stim_script_msg effect. That will send a J4FRadarStimStimulus message to our
+// squirrel scripts.
+// 
+// In either case, a positive J4FRadarStim value will be used to cause the player
+// to spawn a Marco! effect. It will generate negative J4FRadarStim values, which
+// will cause items of interest to emit a Polo! effect.
+
+/*
+++Receptron "J4FRadarCoordinator" "J4FRadarStim"
+{
+	Min 1.0
+	Max None
+	
+	// This fails with a DML syntax error. As of NewDark v1.27, only integers,
+	// Me, and Source are permitted as Target and Agent values. Unfortunately,
+	// we can't control nor reliably predict the ID numbers of our CreateArch
+	// statements. Other mods, patches, etc. can all create archetypes of
+	// their own, which can affect the ID numbers we end up with. This is why
+	// the spawning effect is implemented through squirrel scripts.
+	Target "J4FLootPuffMarco"
+	Agent Me
+	
+	Effect "create_obj"
+	{
+		"Position" 0.0, 0.0, 0.0
+		"Heading" 0.0
+		"Pitch" 0.0
+		"Bank" 0.0
+	}
+}
+
+++Receptron "IsLoot" "J4FRadarStim"
+{
+	Min None
+	Max -0.1
+	
+	Target "J4FLootPuffPolo"
+	Agent Me
+	
+	Effect "create_obj"
+	{
+		"Position" 0.0, 0.0, 0.0
+		"Heading" 0.0
+		"Pitch" 0.0
+		"Bank" 0.0
+	}
+}
+//*/
+
+++Receptron "J4FRadarCoordinator" "J4FRadarStim"
+{
+	Min 1.0
+	Max None
+	
+	Target Me
+	Agent Source
+	
+	// Instead of using a create_obj effect directly, we'll do it through scripts.
+	Effect "stim_script_msg"
+	{
+		"Flags" "[None]"
+	}
+}
+
+++Receptron "IsLoot" "J4FRadarStim"
+{
+	Min None
+	Max -0.1
+	
+	Target Me
+	Agent Source
+	
+	// Instead of using a create_obj effect directly, we'll do it through scripts.
+	Effect "stim_script_msg"
+	{
+		"Flags" "[None]"
+	}
+}
