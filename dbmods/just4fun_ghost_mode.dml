@@ -16,20 +16,6 @@ FINGERPRINT
 
 /*
 ================================================================================
-== New Stims ===================================================================
-================================================================================
-*/
-
-// While this mod could be done without any use of the act/react system, as a
-// starting point I implemented as much as possible without the use of
-// scripting. Currently, squirrel scripts are only used to add items to the
-// player's inventory and to emulate receptron effects that DML alone cannot
-// reliably handle.
-
-CreateArch "Stimulus" "J4FGhostModeStim"
-
-/*
-================================================================================
 == Ghost Mode Toggle Item ======================================================
 ================================================================================
 */
@@ -47,59 +33,17 @@ CreateArch "Tulz" "J4FGhostToggler"
 	+ObjProp "FrobInfo"
 	{
 		"World Action" "Move, FocusScript"
-		"Inv Action" "[None]"
+		// When used from inventory, trigger the script defined below.
+		"Inv Action" "Script"
 		"Tool Action" "[None]"
 	}
-}
 
-// Using the toggle item should give a J4FGhostModeStim to the player.
-// The exact amount may be modified by the arSrcScale property.
-
-++StimSource "J4FGhostToggler" "J4FGhostModeStim"
-{
-	Intensity 1.0
-	
-	Propagator "Contact"
+	// This script will toggle our ghost mode status.
+	+ObjProp "Scripts"
 	{
-		Shape
-		{
-			"Contact Types" Frob in Inv
-			"Velocity Coeff" 0.0
-			"Frob Time Coeff" 0.0
-		}
+		"Script 0" "J4FGhostModeToggle"
+		"Don't Inherit" FALSE
 	}
-}
-
-// Also creating two variations, so we can apply their properties later.
-
-CreateArch "MetaProperty" "J4FGhostTogglerOn"
-{
-	+ObjProp "GameName" = name_j4f_ghost_toggle_on: "Ghost On"
-	
-	// Normal scale / no multiplier.
-	+ObjProp "arSrcScale" = 1.0
-}
-
-CreateArch "MetaProperty" "J4FGhostTogglerOff"
-{
-	+ObjProp "GameName" = name_j4f_ghost_toggle_off: "Ghost Off"
-	
-	// At one time I tried to invert the value in a variety of ways.
-	// Using Amplify receptrons on the player when in ghost mode had issues
-	// in that, due to the order in which receptrons fired off, the net
-	// result was that the player removed then added the ghost metaproperty,
-	// or had both a ghost and non-ghost metaproperty when I took the
-	// approach of two metaproperties to control behaviors. And when I used
-	// the arSrcScale on the toggle item to negate the value, it worked for
-	// the player, but the toggler applied the multiplier both for its
-	// outgoing stims and its incoming stims. So it always received a
-	// positive value. Even now, the end result is that a value of 1.0
-	// activates ghost mode for the player and the toggler. When turning
-	// ghost mode off, the player is receiving a J4FGhostModeStim of 2.0,
-	// but the toggle item processes a J4FGhostModeStim of 1*2*2 = 4.0!
-	// In any case, altering the arSrcScale on the toggler gives us some
-	// protection against some of those order-of-operations issues.
-	+ObjProp "arSrcScale" = 2.0
 }
 
 /*
@@ -114,7 +58,7 @@ CreateArch "MetaProperty" "J4FGhostTogglerOff"
 // our scripts, then give the metaproperty to Garrett. This safely puts the new
 // script on the player, without risk of interfering with anything else.
 
-CreateArch "MetaProperty" "J4FGhostablePlayer"
+CreateArch "MetaProperty" "J4FGiveGhostModeItem"
 {
 	+ObjProp "Scripts"
 	{
@@ -123,31 +67,11 @@ CreateArch "MetaProperty" "J4FGhostablePlayer"
 	}
 }
 
-// Allow J4FGhostModeStim to affect this player's inventory items. We use this
-// so that we can alter both the player and the toggle item. Perhaps it would
-// be simpler or easier to just have the player's receptrons modify the toggle
-// item instead. I originally took the approach of splitting things up so for
-// organizational purposes.
-
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	Min None
-	Max None
-
-	Target Me
-
-	Effect "permeate"
-	{
-		"Coefficient" 1.00
-		"Minimum Magnitude" 0.00
-	}
-}
-
 // Assign the new metaproperty to the Garrett object, which is the usual Avatar
 // type used in missions. As a bonus, mods of this mod could *remove* this
 // metaproperty to prevent automatically giving the item to the player!
 
-+MetaProp "Garrett" "J4FGhostablePlayer"
++MetaProp "Garrett" "J4FGiveGhostModeItem"
 
 /*
 ================================================================================
@@ -208,315 +132,3 @@ CreateArch "MetaProperty" "J4FGhostMode"
 // flag. And unless I explicitly give something the false flag, I couldn't
 // copy that property to disable it later.
 +ObjProp "Garrett" "Fungus" = false
-
-/*
-================================================================================
-== Attaching Extra Scripts =====================================================
-================================================================================
-*/
-
-// These scripts were written purely to emulate certain receptron effects we
-// cannot do directly in DML. None of these metaproperties or their scripts
-// would be necessary if DML receptrons could specify Agent and Target values
-// by string names. Currently, however, they are limited to object IDs (which
-// we don't necessarily know), the "Me" keyword, and the "Source" keyword.
-
-// We already have a player metaproperty, so let's add a second script to it.
-+ObjProp "J4FGhostablePlayer" "Scripts"
-{
-	"Script 1" "J4FGhostPlayerController"
-}
-
-// And this will be the first and only script needed by the toggler item.
-+ObjProp "J4FGhostToggler" "Scripts"
-{
-	"Script 0" "J4FGhostTogglerController"
-	"Don't Inherit" FALSE
-}
-
-/*
-================================================================================
-== Wiring Up Functionality =====================================================
-================================================================================
-*/
-
-// What we'd like to happen is that when the toggle is used (frobbed), it gives
-// the user one of two J4FGhostModeStim values. We then allow that stimulus to
-// propagate into contained items, so that both the player and the toggle item
-// itself receives the stimulation.
-// 
-// When the player receives a 1.0 stimulus, they add the J4FGhostMode to
-// themselves. When they receive a 2.0 one, they remove it instead. In
-// addition, we need to manually manage some specific properties, copying a
-// reference archetype's values to the player.
-// 
-// The toggle item itself swaps properties in a similar way. Given the way
-// arSrcScale works, a 1.0 stimulus prepares the toggle item to deactivate
-// ghost mode the next time it's used. A 4.0 stimulus prepares the toggle item
-// to activeate ghost mode next time it's used.
-
-// Note that a lot of this is doubled up, to show two different ways of
-// accomplishing the effect. The commented out sections are not currently
-// possible, and are for reference only. If we could write effects that way, we
-// could cut down the squirrel scripting. In fact, the only script we'd have
-// would be the one to add the toggle item to the player's inventory! Even that
-// could go away if we wanted to give the toggle item to the player in some
-// other fashion.
-
-/*
--------------------------------
--- Restore Player Properties --
--------------------------------
-*/
-
-// When leaving ghost mode, restore normal collision settings.
-// Note that this one is used directly and not commented out, because the DML
-// Target/Agent limitation isn't an issue in this case.
-
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	Min 2.0
-	Max None
-	
-	Target Me
-	// We know the object ID for the Garrett archetype, because it's part of
-	// the vanilla gamesys files for the dark engine Thief games.
-	Agent -2099
-	
-	Effect "add_prop"
-	{
-		"Prop Name" CollisionType
-	}
-}
-
-// Also restore fungus state.
-
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	Min 2.0
-	Max None
-	
-	Target Me
-	// We know the object ID for the Garrett archetype, because it's part of
-	// the vanilla gamesys files for the dark engine Thief games.
-	Agent -2099
-	
-	Effect "add_prop"
-	{
-		"Prop Name" "Fungus"
-	}
-}
-
-/*
-----------------------
--- Remove Collision --
-----------------------
-*/
-
-// When entering ghost mode, remove collision settings.
-
-/*
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	Min 1.0
-	Max 1.1
-	
-	Target Me
-	// This fails with a DML syntax error. As of NewDark v1.27, only integers,
-	// Me, and Source are permitted as Target and Agent values. Unfortunately,
-	// we can't control nor reliably predict the ID numbers of our CreateArch
-	// statements. Other mods, patches, etc. can all create archetypes of
-	// their own, which can affect the ID numbers we end up with. This is why
-	// most of this mod is implemented through squirrel scripts.
-	Agent "J4FGhostMode"
-	
-	Effect "add_prop"
-	{
-		"Prop Name" CollisionType
-	}
-}
-
-// Also grant fungus state.
-
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	Min 1.0
-	Max 1.1
-	
-	Target Me
-	Agent "J4FGhostMode"
-	
-	Effect "add_prop"
-	{
-		"Prop Name" "Fungus"
-	}
-}
-//*/
-
-/*
-----------------------------
--- Add Ghost Metaproperty --
-----------------------------
-*/
-
-/*
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	Min 1.0
-	Max 1.1
-	
-	Target Me
-	Agent "J4FGhostMode"
-	
-	Effect "add_metaprop"
-}
-//*/
-
-/*
--------------------------------
--- Remove Ghost Metaproperty --
--------------------------------
-*/
-
-/*
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	Min 2.0
-	Max None
-	
-	Target Me
-	Agent "J4FGhostMode"
-	
-	Effect "rem_metaprop"
-}
-//*/
-
-
-/*
---------------------
--- Player Scripts --
---------------------
-*/
-
-++Receptron "J4FGhostablePlayer" "J4FGhostModeStim"
-{
-	// We'll use one script to handle all values.
-	Min None
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	// Instead of using an add_prop and add_metaprop effect directly, we'll do it
-	// indirectly through any scripts on Garrett. Note that this stimulus message
-	// could get delivered to all scripts running on Garrett, not just the
-	// J4FGhostPlayerController we assigned. In theory, however, no other scripts
-	// will care or react to that message.
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
-}
-
-/*
--------------------------
--- Change Toggler Name --
--------------------------
-*/
-
-// Copy the item name properties from reference objects to change them. Adds
-// another visual indicator as to whether the player is in ghost mode or not.
-
-// A 1.0 stimulation means the player is entering ghost mode, and the
-// next time the togger is used we'll turn it off. 4.0 means the reverse.
-
-/*
-++Receptron "J4FGhostToggler" "J4FGhostModeStim"
-{
-	Min 1.0
-	Max 2.1
-	
-	Target Me
-	Agent "J4FGhostTogglerOff"
-	
-	Effect "add_prop"
-	{
-		"Prop Name" GameName
-	}
-}
-
-++Receptron "J4FGhostToggler" "J4FGhostModeStim"
-{
-	Min 4.0
-	Max None
-	
-	Target Me
-	Agent "J4FGhostTogglerOn"
-	
-	Effect "add_prop"
-	{
-		"Prop Name" GameName
-	}
-}
-//*/
-
-/*
--------------------------------
--- Change Toggler Stim Scale --
--------------------------------
-*/
-
-// Similarly to the name, change the arSrcScale.
-
-/*
-++Receptron "J4FGhostToggler" "J4FGhostModeStim"
-{
-	Min 1.0
-	Max 2.1
-	
-	Target Me
-	Agent "J4FGhostTogglerOff"
-	
-	Effect "add_prop"
-	{
-		"Prop Name" "arSrcScale"
-	}
-}
-
-++Receptron "J4FGhostToggler" "J4FGhostModeStim"
-{
-	Min 4.0
-	Max None
-	
-	Target Me
-	Agent "J4FGhostTogglerOn"
-	
-	Effect "add_prop"
-	{
-		"Prop Name" "arSrcScale"
-	}
-}
-//*/
-
-
-/*
----------------------
--- Toggler Scripts --
----------------------
-*/
-
-++Receptron "J4FGhostToggler" "J4FGhostModeStim"
-{
-	// We'll use one script to handle all values.
-	Min None
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	// Instead of using an add_prop effect directly, we'll do it through scripts.
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
-}

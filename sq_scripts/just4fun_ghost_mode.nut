@@ -1,95 +1,76 @@
-// This script adds or removes the ghost mode metaproperty and related effects.
-// It's used to work around some receptron limitations in DML files.
-class J4FGhostPlayerController extends SqRootScript
+// This script adds or removes the ghost mode metaproperty. When adding it,
+// we also change the player's gravity in a similar fashion as a slow-fall
+// potion.
+class J4FGhostModeToggle extends SqRootScript
 {
-	function OnJ4FGhostModeStimStimulus()
+	function OnFrobInvEnd()
 	{
-		// Used for debugging purposes. These messages show up in the THIEF.LOG
-		// or THIEF2.LOG files.
-		//print(format("Player stimulated %g!", message().intensity));
+		// Grab some stuff for very minor efficiency boost.
+		local ghostMetaproperty = ObjID("J4FGhostMode");
+		local frobber = message().Frobber;
 		
-		// NOTE: The self keyword/variable refers to the player the script is
-		// attached to. It's similar to the "Me" keyword in the receptrons we're
-		// emulating. We also have access to a message().source and
-		// message().sensor value if we need them.
+		// NOTE: Because this script is attached to the toggle item
+		// itself, "self" refers to that item. The frobber is the player
+		// who used this item. So this one function can alter both
+		// the player and the toggle item in one go.
 		
-		if (message().intensity < 2.0)
+		// Is the player already in ghost mode?
+		if (Object.HasMetaProperty(frobber, ghostMetaproperty))
 		{
-			// Smaller stim values means entering ghost mode.
+			// Change the toggle item name so it's clearer what will happen when we use it next.
+			Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_on: \"Ghost On\"");
 			
-			// Add the ghost mode metaproperty. This is emulating an add_metaprop
-			// receptron effect.
-			Object.AddMetaProperty(self, "J4FGhostMode");
+			// Back to normal, by means of removing the metaproperty.
+			// If we somehow ended up with multiple copies, remove them all.
+			// This is pure paranoia / defensive coding, vs just calling
+			// RemoveMetaProperty once without the loop.
+			while (Object.HasMetaProperty(frobber, ghostMetaproperty))
+			{
+				Object.RemoveMetaProperty(frobber, ghostMetaproperty);
+			}
 			
-			// Copy the collision type metaproperty from the metaproperty. This
-			// emulates an add_prop receptron effect.
-			Property.CopyFrom(self, "CollisionType", "J4FGhostMode")
+			// Back to normal gravity. It may be possible the player's gravity
+			// should go back to some other weird value, but standard slow-fall
+			// potions also assume 100% gravity when they expire. In any case,
+			// this ghost mode mod allows players to break levels in all kinds
+			// of ways already.
+			Physics.SetGravity(frobber, 1.0);
 			
-			// Same for the fungus flag.
-			Property.CopyFrom(self, "Fungus", "J4FGhostMode")
+			// For some reason, setting physics collision types with a
+			// metaproperty seems to have no effect. So we're managing that
+			// by hand instead.
+			Property.CopyFrom(frobber, "CollisionType", "Garrett");
+			// Same for the Fungus property.
+			Property.CopyFrom(frobber, "Fungus", "Garrett");
 		}
 		else
 		{
-			// Larger stim values means leaving ghost mode.
+			// Change the toggle item name so it's clearer what will happen when we use it next.
+			Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_off: \"Ghost Off\"");
 			
-			// Remove the ghost mode metaproperty. This is emulating a rem_metaprop
-			// receptron effect.
-			Object.RemoveMetaProperty(self, "J4FGhostMode");
+			// Add the ghost mode metaproperty.
+			Object.AddMetaProperty(frobber, ghostMetaproperty);
 			
-			// NOTE: We currently do this with plain old receptrons and don't need
-			// the script. See the DML file for details. If DML files supported
-			// names in Agent and Target keywords, we could eliminate the entire
-			// J4FGhostPlayerController script and use receptrons for all of this.
-			// Property.CopyFrom(self, "CollisionType", "Garrett");
+			// Halve gravity.
+			Physics.SetGravity(frobber, 0.5);
 			
-			// Same for the fungus flag.
-			// Property.CopyFrom(self, "Fungus", "Garrett")
-		}
-	}
-}
-
-// This script changes the ghost toggler item itself, which changes names and
-// behaviors back-and-forth each time it's used. This script is used to work
-// around some receptron limitations in DML files.
-class J4FGhostTogglerController extends SqRootScript
-{
-	function OnJ4FGhostModeStimStimulus()
-	{
-		// Used for debugging purposes. These messages show up in the THIEF.LOG
-		// or THIEF2.LOG files.
-		//print(format("Toggler stimulated %g!", message().intensity));
-		
-		// Similar to the J4FGhostPlayerController, self refers to the object
-		// the script is attached to. In this case, the toggler item.
-		
-		if (message().intensity < 4.0)
-		{
-			// Small stims mean the player is entering ghost mode. Next time the
-			// item is used, we want it to take the player out of ghost mode.
+			// Halve the current falling velocity, if already falling.
+			local velocity = vector(0);
+			// This function does not return a value, but instead changes the velocity variable we pass in.
+			Physics.GetVelocity(frobber, velocity);
+			// Negative Z-axis velocity means we're moving down (falling).
+			if (velocity.z < 0)
+			{
+				velocity.z /= 2;
+				Physics.SetVelocity(frobber, velocity);
+			}
 			
-			// Copy the name property. This emulates an add_prop receptron.
-			Property.CopyFrom(self, "GameName", "J4FGhostTogglerOff");
-			// Granted, we could skip directly to the intended end result and do
-			// this instead:
-			//Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_off: \"Ghost Off\"");
-			
-			// Also copy the Act/React: Source Scale property.
-			Property.CopyFrom(self, "arSrcScale", "J4FGhostTogglerOff");
-		}
-		else
-		{
-			print("Toggler negative!");
-			// Larger stims mean the player is leaving ghost mode. Next time the
-			// item is used, we want it to put the player into ghost mode.
-			
-			// Copy the name property. This emulates an add_prop receptron.
-			Property.CopyFrom(self, "GameName", "J4FGhostTogglerOn");
-			// Granted, we could skip directly to the intended end result and do
-			// this instead:
-			//Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_on: \"Ghost On\"");
-			
-			// Also copy the Act/React: Source Scale property.
-			Property.CopyFrom(self, "arSrcScale", "J4FGhostTogglerOn");
+			// For some reason, setting physics collision types with a
+			// metaproperty seems to have no effect. So we're managing that
+			// by hand instead.
+			Property.CopyFrom(frobber, "CollisionType", ghostMetaproperty);
+			// Same for the Fungus property.
+			Property.CopyFrom(frobber, "Fungus", ghostMetaproperty);
 		}
 	}
 }
