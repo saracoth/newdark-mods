@@ -140,11 +140,29 @@ Required files:
 * dbmods\just4fun_radar_00_base.dml
 * sq_scripts\just4fun_radar_00_base.nut
 
-This mod demonstrates creating new objects in the game world. In this case, particle effects to spot nearby loot. Helpful for noticing things hidden just out of sight, or those pesky little coins.
+Optional loot detection:
+* dbmods\just4fun_radar_10_lootdar.dml
+* sq_scripts\just4fun_radar_10_lootdar.nut
 
-When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to "ping" nearby loot. You should see a golden particle effect explode out from each individual piece of loot. Expect a few moments of poor game performance if there happen to be a lot of individual loot items near you.
+Optional equipment detection (arrows, potions, keys, etc.):
+* dbmods\just4fun_radar_10_equipdar.dml
+* dbmods\just4fun_radar_11_T1_equip.dml
+* dbmods\just4fun_radar_11_T2_equip.dml
+* sq_scripts\just4fun_radar_10_equipdar.nut
 
-_**WARNING**_: While highly unlikely, the radar mod can potentially conflict with FMs or other modifications. It attaches a new script directly to the "IsLoot" metaproperty. All FMs and mods are limited to three numbered slots for scripts on that object, and one mod's script might replace another's. If NewDark ever allows specifying receptron Agent and Target values by name instead of by number, a 100% conflict-free version of this mod can easily be created.
+Optional device detection (switches, pressure plates, etc.):
+* dbmods\just4fun_radar_10_devicedar.dml
+* sq_scripts\just4fun_radar_10_devicedar.nut
+
+Optional container detection (chests, lockboxes, etc.):
+* dbmods\just4fun_radar_10_containerdar.dml
+* dbmods\just4fun_radar_11_T1_containers.dml
+* dbmods\just4fun_radar_11_T2_containers.dml
+* sq_scripts\just4fun_radar_10_containerdar.nut
+
+This mod demonstrates creating new objects in the game world. In this case, particle effects to spot nearby loot. Helpful for noticing things hidden just out of sight, or those pesky little coins. The kinds of items which are detected depends on which of the optional extras you include. Install as many as you want, or even all of them. If you don't install at least one of the optional detectors, this mod is pretty well useless.
+
+When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to "ping" nearby loot, equipment, or other items. You should see a particle effect explode out from each individual item. Expect lag spikes if there are lots of detectable items nearby.
 
 ## Notes to Modders
 
