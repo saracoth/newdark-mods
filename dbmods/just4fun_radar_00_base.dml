@@ -227,7 +227,7 @@ CreateArch "SFX" "J4FLootPingPuff"
 */
 
 // This will burst at various distances. We'll use it to stimulate items of
-/ interest. Later on, those items will generate their own "polo" puff that we
+// interest. Later on, those items will generate their own "polo" puff that we
 // can actually see.
 
 CreateArch "J4FLootPingPuff" "J4FLootPuffMarco"
