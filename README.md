@@ -155,7 +155,7 @@ This repository was created to demonstrate how to work around a limitation in th
 
 In general, this limitation can be completely bypassed through use of squirrel script files. These mods show how to mimic adding and removing metaproperties, spawning objects, and cloning properties from one object to another. I hope this helps modders who are not comfortable with squirrel scripts to see how they can be used for simple effects like this, without straying too far from the act/react system they may be more familiar with.
 
-However, see notes above Safely Assigning Scripts. There are still some very narrow corner cases where even this work-around is not 100% compatible with all possible mods and FMs.
+However, see notes about Safely Assigning Scripts. There are still some very narrow corner cases where even this work-around is not 100% compatible with all possible mods and FMs.
 
 ### Safely Assigning Scripts
 
@@ -169,4 +169,4 @@ Unfortunately, it's not possible to assign a metaproperty to another metapropert
 
 ## Licensing
 
-This project is provided under a permissive MIT license, to encourage modification, reuse, and free distribution of these files. You're welcome to repurpose parts of these files for your own work, subject to the minimal requirements of the MIT license itself. You needn't ask for permission to do so.
+This project is provided under a permissive MIT license, to encourage modification, reuse, and free distribution of these files. You're welcome to repurpose parts of these files for your own work, subject to the minimal requirements of the MIT license itself. You needn't ask for permission to do so, nor wait for a response if you do ask.
