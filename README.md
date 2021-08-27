@@ -99,9 +99,9 @@ Each mod lists the files it requires, and possibly optional files you can includ
 It is not necessary to install every mod, but you can if you'd like. Feel free to pick and choose any combination of mods you wish.
 
 For curious modders, I'd rank these mods from least complex to most complex, in terms of figuring out the moving pieces and how they work together:
-1. Minion Summoner
-2. Radar
-3. Ghost Mode
+1. Ghost Mode
+2. Minion Summoner
+3. Radar
 
 ### Ghost Mode
 
@@ -190,7 +190,7 @@ For example, the Garrett archetype in the vanilla game already has a Sanctifier 
 
 Instead, I recommend creating a new metaproperty, assigning your script to that, then assigning the metaproperty to your target object. An object can have any number of scripts safely assigned to it in this way.
 
-Unfortunately, it's not possible to assign a metaproperty to another metaproperty. I'm not aware of a 100% safe workaround to assign additional scripts to pre-existing metaproperties. The loot Radar mod was created to demonstrate and comment on this risk, since it assigns a script to the vanilla IsLoot metaproperty.
+Unfortunately, it's not possible to assign a metaproperty to another metaproperty. I'm not aware of a 100% safe workaround to assign additional scripts to pre-existing metaproperties.
 
 ## Licensing
 
