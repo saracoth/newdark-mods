@@ -1,0 +1,49 @@
+DML1
+
+// Here's a mod of a mod! Changes the summoning token to spawn a different
+// minion altogether.
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to detect whether the base mod has been applied or not. If it
+// adds a property to a vanilla game object, we can maybe look for that.
+// But we can't check whether the base mod's new CreateArch objects exist or
+// not, since we don't necessarily know what IDs they'll end up with.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+/*
+================================================================================
+== Summoning Token =============================================================
+================================================================================
+*/
+
+// Rather than create a new type of summoning token object, let's just alter
+// the one we've already got, just to see how that works.
+
++ObjProp "J4FSummoningToken" "DesignNote"
+{
+    "" J4FMinionType=J4FSummonedFireElemental
+}
+
+/*
+================================================================================
+== Friendly Fire Elementals! ... Wait, is that a good thing or not? ============
+================================================================================
+*/
+
+// Create a variation on FireElemental.
+
+CreateArch "FireElement" "J4FSummonedFireElemental"
+{
+	// Let's allow them to last for 30 seconds.
+    +ObjProp "DesignNote"
+    {
+        "" J4FMinionDuration=30.0
+    }
+}
+
+// Give them the fearless-summon metaproperty from the base mod, so that they
+// can expire when their time is up.
++MetaProp "J4FSummonedFireElemental" "J4FFearlessSummon"
