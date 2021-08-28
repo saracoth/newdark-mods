@@ -6,13 +6,9 @@ object that follows the player's gaze. Probably as close as I'll get to a
 "flashlight" type of mod.
 
 Core Features:
-* Glowy flying AI that follows a mobile patrol point.
-* Portal raycasting to periodically move that patrol point.
-* This creates smooth motion instead of abrupt teleporting, but what about
-	pathfinding/etc. issues? Let's also have the ability to teleport them.
+* Glowy flying object that roughly follows the player's gaze.
 * Allow the player to switch between three modes/behaviors: stay where you
-	are (teleport the patrol point to them to stop motion?), gradually
-	follow your eyeline, and instantly teleport to your eyeline.
+	are, follow your gaze, and attach to nearby creature (including you).
 
 Semi-core features:
 * Inventory item that accepts click and double click. Click for move/halt,
@@ -23,44 +19,13 @@ Make it Pretty:
 * What does the fairy look like?
 * Can we create a bobbing appearance? Ie, make the NPC invisible, constantly
 	rotating on all three axis, and attach the visible/glowy part to it?
+	The base implementation seems to have some funky wobbly movement as a
+	side effect, which is nice. Also look into the Thief2 wisp object(s).
 * Dingling bell sound when interacting with fairy controller.
-* Puff when teleporting. Visual indicator that the teleport happened, even if
-	the distance traveled was small.
-* Teleporting sound. On the bell, the fairy, or both?
-
-TODO: Figuring out how to make the NPC move gradually to a point is another
-core feature, so let's figure that out next. If we can't get that working, then
-we can avoid spending time on now-unnecessary features. We'll continue with the
-assumption of gaze tracking being the only feature for now.
-	And here we find the first big setback. Fire elementals are not true flying
-creatures. Rather, they're as ground-based as any other creature, but with
-a Z-offset property that makes them float above the ground. They have no
-ability to pathfind to aerial locations.
-	So, checkpoint: where do we go from here? We can settle for the simple and
-direct teleporting method, which will look janky unless we speed up the timer.
-Or we can look into other forms of object locomotion. Unfortunately, we will not
-have neat pathfinding, like the ability to stand at the edge of a dividing wall
-and watch the fairy intelligently move from one side to the other. Or if we do,
-we'll lose the ability for them to do lots of other things.
-	I think before giving up on smooth motion, we'll look into other object
-movement features. Perhaps something like elevator platforms/etc. will yield
-some interesting insights. A downside is that if they work, the fairy will now
-pass through solid walls.... Maybe we'll repurpose it from a fairy into a ghost.
-	The basic elevator stuff seems to work, except that it'll need some tweaks
-for best results. It should be more responsive, which may be possible by
-turning the moving terrain flag off and on again, or calling it to both markers.
-Additionally, we should adjust the speed of each data link so that it moves
-faster when the destination is farther away.
-
-
-++Link "TP1" "TP2" "TPath"
-{
-	"Speed" 5.00
-	"Pause (ms)" 0
-	"Path Limit?" FALSE
-}
-
-
+* Is it remotely possible that while following an NPC, the fairy behavior
+	can change? Maybe it douses its light and spews a colored particle
+	effect based on stuff like alert level? Or it keeps the light, but
+	colors it?
 
 TODO: Implement controllable stop, gaze-follow, and teleport functionality.
 
@@ -115,7 +80,8 @@ CreateArch "Tulz" "J4FFairyControlBell"
 	// TODO: implement
     +ObjProp "DesignNote"
     {
-        "" DoubleClickTime=100;MaxRange=100
+		// NOTE: Windows's default double-click interval is 500ms
+        "" DoubleClickTime=0.5;MaxRange=100
     }
 }
 

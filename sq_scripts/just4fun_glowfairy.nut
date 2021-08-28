@@ -13,8 +13,11 @@ class J4FFairyController extends SqRootScript
 	// Link IDs
 	homeToMarkerId = 0;
 	markerToHomeId = 0;
+	// Timer handles
+	doubleClickTimer = 0;
 	// userparams() data
 	maxRange = 100;
+	doubleClickTime = 0.5;
 	
 	function OnBeginScript()
 	{
@@ -38,41 +41,14 @@ class J4FFairyController extends SqRootScript
 			homeId = GetData("homeId");
 		}
 		
+		if (IsDataSet("doubleClickTimer"))
+		{
+			homeId = GetData("doubleClickTimer");
+		}
+		
 		maxRange = userparams().MaxRange;
+		doubleClickTime = userparams().DoubleClickTime;
 	}
-	
-	/*
-What events can we expect to see? From what I can tell, we get these on creation:
-: OSM: SQUIRREL> Fairy controller: BeginScript
-: OSM: SQUIRREL> Fairy controller: Create
-: OSM: SQUIRREL> Fairy controller: Contained
-
-Contained seems ideal to me, since we can get a reference to the avatar we're
-contained by. However, if we associate any setup or behavior with this, we'll
-want to be wary of anything that takes us out of the inventory or puts us back.
-For example, there was a demo that allowed a player to swap between two
-characters, and I think it did it through a combination of teleporting and also
-shifting inventory around.
-
-And these on game load:
-: OSM: SQUIRREL> Fairy controller: Sim
-: OSM: SQUIRREL> Fairy controller: EndScript
-: Loaded script module "miss01.osm" [FileModDate=1999-Sep-28]
-: OSM: SQUIRREL> Fairy controller: EndScript
-: OSM: SQUIRREL> Fairy controller: BeginScript
-
-Is the second EndScript happening after the load or before? Judging by the fact
-it happens twice at all, and the second one seems to come after mission files
-have been loaded again, I'm tempted to assume it happens after the reload.
-
-In any case, BeginScript might be handy after a reload, provided we keep track
-of whether we've ever had Create or Contained fire off.
-
-	function OnMessage()
-	{
-		print(format("Fairy controller: %s", message().message));
-	}
-	*/
 	
 	function OnContained()
 	{
@@ -90,9 +66,8 @@ of whether we've ever had Create or Contained fire off.
 		
 		// Spawn stuff well above the player to avoid their light giving
 		// away our position at the start of a mission.
-		// TODO: switch back to 200 above once we implement teleporting.
-		//local farAway = vector(0, 0, 200);
-		local farAway = vector(5, 0, 0);
+		// TODO: Initial mode should be "stop" or we'll still be screwed
+		local farAway = vector(0, 0, 200);
 		local zeros = vector(0);
 		
 		// For all the objects, rather than use Object.Create() directly,
@@ -109,9 +84,7 @@ of whether we've ever had Create or Contained fire off.
 		
 		// Now we can the second marker.
 		local marker = Object.BeginCreate("TerrPt");
-		// TODO: testing
-		//Object.Teleport(marker, farAway, zeros, playerId);
-		Object.Teleport(marker, vector(5, 0, 20), zeros, playerId);
+		Object.Teleport(marker, farAway, zeros, playerId);
 		Object.EndCreate(marker);
 		
 		SetData("markerId", marker);
@@ -310,13 +283,51 @@ of whether we've ever had Create or Contained fire off.
 				SetOneShotTimer("J4FFairyGaze", 0.25);
 				
 				break;
+			case "J4FDoubleClick":
+				// If this timer goes off, it's because we failed to click a second
+				// time. So this is where our single-click functionality goes.
+				
+				// For starters, forget the whole timer thing. It's gone off and the
+				// handle is useless now.
+				doubleClickTimer = 0;
+				SetData("doubleClickTimer", doubleClickTimer);
+				
+				// TODO: switch between gaze and halt mode
+				print("Fairy controller single clicked");
+				
+				break;
 		}
 	}
 	
 	function OnFrobInvEnd()
 	{
-		print("Fairy controller frobbed");
-		// TODO: teleport or toggle between modes
+		// We can't necessarily take immediate action, because we need to detect
+		// whether this is a click or a double click (frob or double frob).
+		
+		if (doubleClickTimer == 0)
+		{
+			// No timer exists, so this is our first (and possibly only) click.
+			// We have to either wait for a second click, or for the window of
+			// opportunity to expire.
+			doubleClickTimer = SetOneShotTimer("J4FDoubleClick", doubleClickTime);
+			SetData("doubleClickTimer", doubleClickTimer);
+			return;
+		}
+		
+		// If we made it this far, it's because there's already a timer going.
+		// So we've clicked a second time before it ran out. Now we want to
+		// stop that timer before it goes off, or else we'll process both
+		// the single- and double-click functionality.
+		
+		KillTimer(doubleClickTimer);
+		doubleClickTimer = 0;
+		SetData("doubleClickTimer", doubleClickTimer);
+		
+		// NOTE: The single-click functionality is in the OnTimer message
+		// insetad. Everything below this point is for double-clicking.
+		
+		// TODO: find the nearest valid target and follow them
+		print("Fairy controller double clicked");
 	}
 }
 
