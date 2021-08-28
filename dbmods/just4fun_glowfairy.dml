@@ -46,6 +46,21 @@ we'll lose the ability for them to do lots of other things.
 movement features. Perhaps something like elevator platforms/etc. will yield
 some interesting insights. A downside is that if they work, the fairy will now
 pass through solid walls.... Maybe we'll repurpose it from a fairy into a ghost.
+	The basic elevator stuff seems to work, except that it'll need some tweaks
+for best results. It should be more responsive, which may be possible by
+turning the moving terrain flag off and on again, or calling it to both markers.
+Additionally, we should adjust the speed of each data link so that it moves
+faster when the destination is farther away.
+
+
+++Link "TP1" "TP2" "TPath"
+{
+	"Speed" 5.00
+	"Pause (ms)" 0
+	"Path Limit?" FALSE
+}
+
+
 
 TODO: Implement controllable stop, gaze-follow, and teleport functionality.
 
@@ -111,7 +126,7 @@ CreateArch "Tulz" "J4FFairyControlBell"
 */
 
 // We'll use this script to give the player the item, as well as create the
-// fairy NPC and any links/attachments/etc. we need to keep track of it.
+// fairy object and any links/attachments/etc. we need to keep track of it.
 //
 // It's not safe for generic gameplay mods to add scripts directly to the
 // Garrett archetype. Doing so could clash with other mods and FMs. So instead,
@@ -135,31 +150,39 @@ CreateArch "MetaProperty" "J4FPlayerFairySetup"
 
 /*
 ================================================================================
-== Fairy NPC ===================================================================
+== Fairy Core Object ===========================================================
 ================================================================================
 */
 
-// While developing some proof-of-concept stuff, we'll settle for a neutral
-// fire elemental. It already flies and glows, so we can focus on figuring out
-// the movement behavior instead.
-// TODO: We need a different NPC for lots of reasons. Unwanted particles
-// and radius fire damage being among them.
+// While developing some proof-of-concept stuff, we'll settle for a dynamic-lit
+// cloud platform.
+// TODO: create a more appropriate object; in particular, I think cloud lifts
+// are Thief Gold only, rather than Thief 1 and above. In any case, I can't
+// seem to remove its collision.
 
-CreateArch "FireElement" "J4FFairy"
+CreateArch "CloudLift" "J4FFairy"
 {
-	+ObjProp "AI_Team" = Neutral
+	+ObjProp "SelfLit" = 50
+	//+ObjProp "SelfLitRad" = 12.0
 	
-	// Prevent the fairy from opening doors for you. While I personally found
-	// that amusing, it's not really the intended behavior.
-	// TODO: Elementals already have this behavior, yet the open Bafford's
-	// front gates without issue. Anything else we can limit them with?
-	+ObjProp "AI_UsesDoors" "FALSE"
+	+ObjProp "FairyThing" "Scale"
+	{
+		"" 0.50, 0.60, 1.00
+	}
 	
-	// Speed it up. 3x speed.
-	+ObjProp "TimeWarp" = 0.33
+	+ObjProp "PhysAIColl" = false
+	+ObjProp "CollisionType"
+	{
+		"" "[None]"
+	}
 	
-	// Smaller = more maneuverable.
-	+ObjProp "CretScale" = 0.5
+	// TODO: probably only needed due to my choice of CloudLift
+	+ObjProp "PhysType"
+	{
+		"Type" "None"
+		"# Submodels" 6
+		"Remove on Sleep" FALSE
+		"Special" FALSE
+	}
 }
-
 

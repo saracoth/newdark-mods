@@ -8,6 +8,7 @@ class J4FFairyController extends SqRootScript
 	playerId = 0;
 	fairyId = 0;
 	markerId = 0;
+	homeId = 0;
 	maxRange = 100;
 	
 	function OnBeginScript()
@@ -25,6 +26,11 @@ class J4FFairyController extends SqRootScript
 		if (IsDataSet("markerId"))
 		{
 			markerId = GetData("markerId");
+		}
+		
+		if (IsDataSet("homeId"))
+		{
+			homeId = GetData("homeId");
 		}
 		
 		maxRange = userparams().MaxRange;
@@ -84,25 +90,45 @@ of whether we've ever had Create or Contained fire off.
 		local farAway = vector(5, 0, 0);
 		local zeros = vector(0);
 		
-		// Start the creation process. This may be better than using just
-		// Object.Create() in some cases.
-		local fairy = Object.BeginCreate("J4FFairy");
-		// Here we use that to set the new object's position before we
-		// finish creating it.
-		Object.Teleport(fairy, farAway, zeros, playerId);
-		// Now we're done.
-		Object.EndCreate(fairy);
+		// For all the objects, rather than use Object.Create() directly,
+		// we will use BeginCreate() and EndCreate() to allow us to set up
+		// any necessary properties before the creation process finishes.
 		
-		SetData("fairyId", fairy);
-		fairyId = fairy;
+		// Create the home marker.
+		local home = Object.BeginCreate("TerrPt");
+		Object.Teleport(home, farAway, zeros, playerId);
+		Object.EndCreate(home);
 		
-		// Do the same for the marker.
-		local marker = Object.BeginCreate("Marker");
-		Object.Teleport(marker, farAway, zeros, playerId);
+		SetData("homeId", home);
+		homeId = home;
+		
+		// Now we can the second marker.
+		local marker = Object.BeginCreate("TerrPt");
+		// TODO: testing
+		//Object.Teleport(marker, farAway, zeros, playerId);
+		Object.Teleport(marker, vector(5, 0, 20), zeros, playerId);
 		Object.EndCreate(marker);
 		
 		SetData("markerId", marker);
 		markerId = marker;
+		
+		// With both markers on the map, we can create a loop between them.
+		local homeToMarker = Link.Create("TPath", home, marker);
+		local markerToHome = Link.Create("TPath", marker, home);
+		// The default data for these kinds of links is 0 speed, no pause,
+		// and allow nice curving paths. We need to change the "Speed"
+		// property from its default value.
+		LinkTools.LinkSetData(homeToMarker, "Speed", 5.0);
+		LinkTools.LinkSetData(markerToHome, "Speed", 5.0);
+		
+		// Now create the fairy and link it to the home marker.
+		local fairy = Object.BeginCreate("J4FFairy");
+		Object.Teleport(fairy, farAway, zeros, playerId);
+		local fairyToHome = Link.Create("TPathInit", fairy, home);
+		Object.EndCreate(fairy);
+		
+		SetData("fairyId", fairy);
+		fairyId = fairy;
 		
 		// Begin following gaze.
 		SetOneShotTimer("J4FFairyGaze", 0.25);
@@ -233,16 +259,24 @@ of whether we've ever had Create or Contained fire off.
 				// facing, if any.
 				Object.Teleport(markerId, gazeTarget, Object.Facing(markerId));
 				
-				// Now that the marker has been moved, instruct the fairy to chase.
-				// TODO: Choose among kSlow, kNormalSpeed, and kFast based on dist
-				// between fairy and target.
-
-				// TODO: can we take advantage of any of the following?
-// ObjProp "AI_MoveZOffset"     : float                     // flags 0x0000 , editor name: "AI: AI Core: Movement: z offset"
-// ObjProp "AI_MoveSpeed"       : float                     // flags 0x0000 , editor name: "AI: AI Core: Movement: max speed"
-// ObjProp "AI_TurnRate"        : float                     // flags 0x0000 , editor name: "AI: AI Core: Movement: turn rate"
+				// TODO: testing
+				Object.Teleport(homeId, gazeTarget, Object.Facing(homeId));
 				
-				AI.MakeGotoObjLoc(fairyId, markerId, eAIScriptSpeed.kFast);
+				// Now that the marker has been moved, instruct the fairy to chase.
+				// TODO: how to kick off an elevator via script?
+				
+				// Not sure if this is safe, since the NewDark squirrel documentation
+				// says to not use vanilla message types for SendMessage()/PostMessage()
+				// and I expect this is basically the same kind of thing under the hood.
+				// However, I do see the SS2_samples.nut file also uses this approach
+				// to generate TurnOn messages.
+				//
+				// In any case, the homeId should have exactly one TPath link, to the
+				// marker. When a TerrPt is turned on, the vanilla StdTerrpoint
+				// script will receive that message. In turn, it will Call the
+				// moving terrain object (our fairy) to the location of that marker.
+				// So: home links -> TurnOn marker -> Call fairy
+				//Link.BroadcastOnAllLinks(homeId, "TurnOn", "TPath");
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyGaze", 0.25);
