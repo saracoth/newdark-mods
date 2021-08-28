@@ -92,7 +92,7 @@ CreateArch "Tulz" "J4FFairyControlBell"
 	// TODO: implement
     +ObjProp "DesignNote"
     {
-        "" DoubleClickTime=100
+        "" DoubleClickTime=100;MaxRange=100
     }
 }
 

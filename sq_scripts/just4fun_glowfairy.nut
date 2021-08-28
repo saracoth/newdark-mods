@@ -7,6 +7,7 @@ class J4FFairyController extends SqRootScript
 	// GetData() by giving us a spot to store that info.
 	playerId = 0;
 	fairyId = 0;
+	maxRange = 100;
 	
 	function OnBeginScript()
 	{
@@ -19,6 +20,8 @@ class J4FFairyController extends SqRootScript
 		{
 			fairyId = GetData("fairyId");
 		}
+		
+		maxRange = userparams().MaxRange;
 	}
 	
 	/*
@@ -145,7 +148,7 @@ of whether we've ever had Create or Contained fire off.
 					sin(-1 * camPitch)
 					);
 				
-				// For our raycasting test, let's pick a point up to 100 units
+				// For our raycasting test, let's pick a point up to MaxRange units
 				// away. Or however many units we'd like. The point is, the fairy
 				// can't be controlled outside whatever distance we pick here.
 				// To get these coordinates, we multiply the directional vector
@@ -153,7 +156,7 @@ of whether we've ever had Create or Contained fire off.
 				// instead of being 100 units away from 0,0,0 we pick a point
 				// 100 units away from wherever the camera happens to be.
 				
-				local targetPos = (direction * 100) + camPos;
+				local targetPos = (direction * maxRange) + camPos;
 				
 				// Assuming PortalRaycast() returns true, this contains our
 				// point of impact.
@@ -161,12 +164,43 @@ of whether we've ever had Create or Contained fire off.
 				
 				if (Engine.PortalRaycast(camPos, targetPos, gazeTarget))
 				{
-					// TODO: We need to adjust gazeTarget to be a little bit closer
-					// to the camera, or we'll put the fairy partially inside
-					// whatever surface we're looking at.
+					// The gazeTarget is touching some piece of level geometry.
+					// So if we place the center point of our object right at
+					// that spot, it will be partly inside and partly outside
+					// the level boundaries.
+					//
+					// So we'd like to pull the target point back a little closer
+					// to the camera. To do that, we first figure out what
+					// distance gazeTarget is from the camera. We'll use the
+					// https://gamedev.stackexchange.com/a/92521 approach.
+					
+					local displacement = gazeTarget - camPos;
+					// Per https://en.wikipedia.org/wiki/Dot_product , the
+					// dot product of any vector with itself is a non-negative
+					// number. So sqrt() is safe in this context, and will always
+					// give us a positive distance value.
+					local impactDistance = sqrt(displacement.Dot(displacement));
+					
+					// If the player is hugging a wall or something, going a few
+					// units backwards could target a location behind the camera.
+					// So let's cam the shortened distance to non-negative values
+					// to prevent that.
+					if (impactDistance <= 2)
+					{
+						// Center on the camera instead of behind it.
+						gazeTarget = camPos;
+					}
+					else
+					{
+						// Here's that directional vector again, doing the same
+						// job as before but with a smaller distance.
+						gazeTarget = (direction * (impactDistance - 2)) + camPos;
+					}
 				}
 				else
 				{
+					// Ray tracing said there are no obstacles in our way.
+					//
 					// I don't see where it's defined what the PortalRaycast()
 					// function does to the third parameter when there is no
 					// impact. So to be on the safe side, we'll explicitly say
