@@ -11,7 +11,7 @@ FINGERPRINT
 	NAME -2099 Garrett
 }
 
-// This allow us to use our .nut files.
+// This allows us to use our .nut files.
 #script "squirrel"
 
 /*
@@ -107,13 +107,6 @@ CreateArch "MetaProperty" "J4FRadarItemGiver"
 // marco/polo ping system later.
 
 CreateArch "MetaProperty" "J4FRadarCoordinator"
-{
-	+ObjProp "Scripts"
-	{
-		"Script 0" "J4FGiveRadarItem"
-		"Don't Inherit" FALSE
-	}
-}
 
 +MetaProp "Garrett" "J4FRadarCoordinator"
 

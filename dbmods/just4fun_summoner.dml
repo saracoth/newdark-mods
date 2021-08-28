@@ -11,7 +11,7 @@ FINGERPRINT
 	NAME -2099 Garrett
 }
 
-// This allow us to use our .nut files.
+// This allows us to use our .nut files.
 #script "squirrel"
 
 /*
