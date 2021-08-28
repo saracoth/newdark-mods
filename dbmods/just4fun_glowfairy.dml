@@ -32,6 +32,20 @@ TODO: Figuring out how to make the NPC move gradually to a point is another
 core feature, so let's figure that out next. If we can't get that working, then
 we can avoid spending time on now-unnecessary features. We'll continue with the
 assumption of gaze tracking being the only feature for now.
+	And here we find the first big setback. Fire elementals are not true flying
+creatures. Rather, they're as ground-based as any other creature, but with
+a Z-offset property that makes them float above the ground. They have no
+ability to pathfind to aerial locations.
+	So, checkpoint: where do we go from here? We can settle for the simple and
+direct teleporting method, which will look janky unless we speed up the timer.
+Or we can look into other forms of object locomotion. Unfortunately, we will not
+have neat pathfinding, like the ability to stand at the edge of a dividing wall
+and watch the fairy intelligently move from one side to the other. Or if we do,
+we'll lose the ability for them to do lots of other things.
+	I think before giving up on smooth motion, we'll look into other object
+movement features. Perhaps something like elevator platforms/etc. will yield
+some interesting insights. A downside is that if they work, the fairy will now
+pass through solid walls.... Maybe we'll repurpose it from a fairy into a ghost.
 
 TODO: Implement controllable stop, gaze-follow, and teleport functionality.
 
@@ -134,6 +148,18 @@ CreateArch "MetaProperty" "J4FPlayerFairySetup"
 CreateArch "FireElement" "J4FFairy"
 {
 	+ObjProp "AI_Team" = Neutral
+	
+	// Prevent the fairy from opening doors for you. While I personally found
+	// that amusing, it's not really the intended behavior.
+	// TODO: Elementals already have this behavior, yet the open Bafford's
+	// front gates without issue. Anything else we can limit them with?
+	+ObjProp "AI_UsesDoors" "FALSE"
+	
+	// Speed it up. 3x speed.
+	+ObjProp "TimeWarp" = 0.33
+	
+	// Smaller = more maneuverable.
+	+ObjProp "CretScale" = 0.5
 }
 
 

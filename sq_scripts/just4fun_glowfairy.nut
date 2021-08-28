@@ -7,6 +7,7 @@ class J4FFairyController extends SqRootScript
 	// GetData() by giving us a spot to store that info.
 	playerId = 0;
 	fairyId = 0;
+	markerId = 0;
 	maxRange = 100;
 	
 	function OnBeginScript()
@@ -19,6 +20,11 @@ class J4FFairyController extends SqRootScript
 		if (IsDataSet("fairyId"))
 		{
 			fairyId = GetData("fairyId");
+		}
+		
+		if (IsDataSet("markerId"))
+		{
+			markerId = GetData("markerId");
 		}
 		
 		maxRange = userparams().MaxRange;
@@ -71,19 +77,32 @@ of whether we've ever had Create or Contained fire off.
 		SetData("playerId", containerId);
 		playerId = containerId;
 		
+		// Spawn stuff well above the player to avoid their light giving
+		// away our position at the start of a mission.
+		// TODO: switch back to 200 above once we implement teleporting.
+		//local farAway = vector(0, 0, 200);
+		local farAway = vector(5, 0, 0);
+		local zeros = vector(0);
+		
 		// Start the creation process. This may be better than using just
 		// Object.Create() in some cases.
-		local summon = Object.BeginCreate("J4FFairy");
+		local fairy = Object.BeginCreate("J4FFairy");
 		// Here we use that to set the new object's position before we
-		// finish creating it. We'll spawn it well above the player to
-		// avoid their light giving the player away at the start of a
-		// mission.
-		Object.Teleport(summon, vector(0, 0, 200), vector(0), playerId);
+		// finish creating it.
+		Object.Teleport(fairy, farAway, zeros, playerId);
 		// Now we're done.
-		Object.EndCreate(summon);
+		Object.EndCreate(fairy);
 		
-		SetData("fairyId", summon);
-		fairyId = summon;
+		SetData("fairyId", fairy);
+		fairyId = fairy;
+		
+		// Do the same for the marker.
+		local marker = Object.BeginCreate("Marker");
+		Object.Teleport(marker, farAway, zeros, playerId);
+		Object.EndCreate(marker);
+		
+		SetData("markerId", marker);
+		markerId = marker;
 		
 		// Begin following gaze.
 		SetOneShotTimer("J4FFairyGaze", 0.25);
@@ -210,9 +229,20 @@ of whether we've ever had Create or Contained fire off.
 				// object. So the gazeTarget coordinates will be treated as absolute
 				// game-world coordinates, instead of coordinates relative to some
 				// reference object.
-				// We use Object.Facing() to get and preserve the fairy's current
+				// We use Object.Facing() to get and preserve the object's current
 				// facing, if any.
-				Object.Teleport(fairyId, gazeTarget, Object.Facing(fairyId));
+				Object.Teleport(markerId, gazeTarget, Object.Facing(markerId));
+				
+				// Now that the marker has been moved, instruct the fairy to chase.
+				// TODO: Choose among kSlow, kNormalSpeed, and kFast based on dist
+				// between fairy and target.
+
+				// TODO: can we take advantage of any of the following?
+// ObjProp "AI_MoveZOffset"     : float                     // flags 0x0000 , editor name: "AI: AI Core: Movement: z offset"
+// ObjProp "AI_MoveSpeed"       : float                     // flags 0x0000 , editor name: "AI: AI Core: Movement: max speed"
+// ObjProp "AI_TurnRate"        : float                     // flags 0x0000 , editor name: "AI: AI Core: Movement: turn rate"
+				
+				AI.MakeGotoObjLoc(fairyId, markerId, eAIScriptSpeed.kFast);
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyGaze", 0.25);
