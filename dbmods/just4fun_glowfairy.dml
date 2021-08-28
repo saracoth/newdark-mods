@@ -154,21 +154,18 @@ CreateArch "MetaProperty" "J4FPlayerFairySetup"
 ================================================================================
 */
 
-// While developing some proof-of-concept stuff, we'll settle for a dynamic-lit
-// cloud platform.
-// TODO: create a more appropriate object; in particular, I think cloud lifts
-// are Thief Gold only, rather than Thief 1 and above. In any case, I can't
-// seem to remove its collision.
+// This is the object our scripts will actually control. It needs to be a
+// moving terrain object so that it can follow from one point to another.
 
-CreateArch "CloudLift" "J4FFairy"
+CreateArch "Object" "J4FFairy"
 {
-	+ObjProp "SelfLit" = 50
-	//+ObjProp "SelfLitRad" = 12.0
+	+ObjProp "MovingTerrain" = true
 	
-	+ObjProp "FairyThing" "Scale"
-	{
-		"" 0.50, 0.60, 1.00
-	}
+	// TODO: better model, or just attach a particle effect and turn off render
+	+ObjProp "ModelName" = skull
+	
+	+ObjProp "SelfLit" = 50
+	+ObjProp "SelfLitRad" = 12.0
 	
 	+ObjProp "PhysAIColl" = false
 	+ObjProp "CollisionType"
@@ -176,13 +173,10 @@ CreateArch "CloudLift" "J4FFairy"
 		"" "[None]"
 	}
 	
-	// TODO: probably only needed due to my choice of CloudLift
-	+ObjProp "PhysType"
+	// This is a vanilla game script that shuffles moving terrain around.
+	+ObjProp "Scripts"
 	{
-		"Type" "None"
-		"# Submodels" 6
-		"Remove on Sleep" FALSE
-		"Special" FALSE
+		"Script 0" "StdElevator"
+		"Don't Inherit" FALSE
 	}
 }
-

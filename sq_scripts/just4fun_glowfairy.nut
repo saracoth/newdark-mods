@@ -5,10 +5,15 @@ class J4FFairyController extends SqRootScript
 	// Given the way the NewDark squirrel documentation is written, feels like
 	// everything is slow and expensive. So let's preemptively limit our use of
 	// GetData() by giving us a spot to store that info.
+	// Object IDs
 	playerId = 0;
 	fairyId = 0;
 	markerId = 0;
 	homeId = 0;
+	// Link IDs
+	homeToMarkerId = 0;
+	markerToHomeId = 0;
+	// userparams() data
 	maxRange = 100;
 	
 	function OnBeginScript()
@@ -120,6 +125,11 @@ of whether we've ever had Create or Contained fire off.
 		// property from its default value.
 		LinkTools.LinkSetData(homeToMarker, "Speed", 5.0);
 		LinkTools.LinkSetData(markerToHome, "Speed", 5.0);
+		
+		SetData("markerToHomeId", markerToHome);
+		markerToHomeId = markerToHome;
+		SetData("homeToMarkerId", homeToMarker);
+		homeToMarkerId = homeToMarker;
 		
 		// Now create the fairy and link it to the home marker.
 		local fairy = Object.BeginCreate("J4FFairy");
@@ -258,25 +268,43 @@ of whether we've ever had Create or Contained fire off.
 				// We use Object.Facing() to get and preserve the object's current
 				// facing, if any.
 				Object.Teleport(markerId, gazeTarget, Object.Facing(markerId));
-				
-				// TODO: testing
 				Object.Teleport(homeId, gazeTarget, Object.Facing(homeId));
 				
-				// Now that the marker has been moved, instruct the fairy to chase.
-				// TODO: how to kick off an elevator via script?
+				// Doing some more vector math to get another distance. This time,
+				// the distance between the fairy and its target. Refer to the above
+				// comments for details on what this math is doing and where it
+				// came from.
+				local fairyDisplacement = gazeTarget - Object.Position(fairyId);
+				local fairyDistance = sqrt(fairyDisplacement.Dot(fairyDisplacement));
+				// Scale the distance so that we'll cover it in roughly X seconds.
+				// The number of seconds is the divisor here, like 0.5 for 0.5 secs.
+				// Note, however, that we're updating this speed over and over again
+				// throughout its journey. So the actual journey will take more than
+				// that time, because we keep slowing it down along the way.
+				local fairySpeed = fairyDistance / 0.75;
+				// Maintain a minimum speed
+				if (fairySpeed < 5.0)
+				{
+					fairySpeed = 5.0;
+				}
+				// Enforce a maximum speed to reduce overshooting targets.
+				if (fairySpeed > 1000.0)
+				{
+					fairySpeed = 1000.0;
+				}
 				
-				// Not sure if this is safe, since the NewDark squirrel documentation
-				// says to not use vanilla message types for SendMessage()/PostMessage()
-				// and I expect this is basically the same kind of thing under the hood.
-				// However, I do see the SS2_samples.nut file also uses this approach
-				// to generate TurnOn messages.
+				
+				LinkTools.LinkSetData(homeToMarkerId, "Speed", fairySpeed);
+				LinkTools.LinkSetData(markerToHomeId, "Speed", fairySpeed);
+				
+				// Turning this property off and on again is enough for the engine to
+				// recalculate its path. Otherwise, even after we teleport the markers
+				// away, the fairy will continue moving towards its last-known location
+				// until it reaches its destination.
 				//
-				// In any case, the homeId should have exactly one TPath link, to the
-				// marker. When a TerrPt is turned on, the vanilla StdTerrpoint
-				// script will receive that message. In turn, it will Call the
-				// moving terrain object (our fairy) to the location of that marker.
-				// So: home links -> TurnOn marker -> Call fairy
-				//Link.BroadcastOnAllLinks(homeId, "TurnOn", "TPath");
+				// Toggling this also allows it to see the changed speed values above.
+				Property.SetSimple(fairyId, "MovingTerrain", false);
+				Property.SetSimple(fairyId, "MovingTerrain", true);
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyGaze", 0.25);
