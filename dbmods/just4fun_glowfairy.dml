@@ -1,0 +1,145 @@
+DML1
+
+/*
+Dunno if any of this is achievable yet, but let's try it out. A remote light
+object that follows the player's gaze. Probably as close as I'll get to a
+"flashlight" type of mod.
+
+Core Features:
+* Glowy flying AI that follows a mobile patrol point.
+* Portal raycasting to periodically move that patrol point.
+* This creates smooth motion instead of abrupt teleporting, but what about
+	pathfinding/etc. issues? Let's also have the ability to teleport them.
+* Allow the player to switch between three modes/behaviors: stay where you
+	are (teleport the patrol point to them to stop motion?), gradually
+	follow your eyeline, and instantly teleport to your eyeline.
+
+Semi-core features:
+* Inventory item that accepts click and double click. Click for move/halt,
+	doubleclick for insta-teleport. I think implementing an inventory item
+	doubleclick feature at all would be interesting, and broadly useful.
+
+Make it Pretty:
+* What does the fairy look like?
+* Can we create a bobbing appearance? Ie, make the NPC invisible, constantly
+	rotating on all three axis, and attach the visible/glowy part to it?
+* Dingling bell sound when interacting with fairy controller.
+* Puff when teleporting. Visual indicator that the teleport happened, even if
+	the distance traveled was small.
+* Teleporting sound. On the bell, the fairy, or both?
+
+TODO: Let's start with the simplest implementation. Implement only the gaze-
+following mode, but skip the patrol point and teleport the NPC directly. This
+allows us to figure out the raycasting stuff and have visual confirmatino that
+we're relocating the object in question. It also requires us to figure out how
+to keep track of specific objects from the controller item's script.
+
+TODO: Figuring out how to make the NPC move gradually to a point is another
+core feature, so let's figure that out next. If we can't get that working, then
+we can avoid spending time on now-unnecessary features. We'll continue with the
+assumption of gaze tracking being the only feature for now.
+
+TODO: Implement controllable stop, gaze-follow, and teleport functionality.
+
+*/
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to prevent multiple copies of this mod from being applied, if
+// the user copies files to multiple valid folders. If we change a property
+// of a specific pre-existing object in a unique way, we can look for that.
+// However, we can't use NAME checks for the (non)existance of new CreateArch
+// archetypes, since we won't reliably know their IDs.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+// This allows us to use our .nut files.
+#script "squirrel"
+
+/*
+================================================================================
+== Fairy Control Item ==========================================================
+================================================================================
+*/
+
+// Create an item that can be used to control the fairy's behavior.
+
+CreateArch "Tulz" "J4FFairyControlBell"
+{
+	+ObjProp "GameName" = name_j4f_fairy_controller: "Tinker's Bell"
+	
+	+ObjProp "ModelName" = rbell
+	
+	// Allow using the item.
+	+ObjProp "FrobInfo"
+	{
+		"World Action" "Move, FocusScript"
+		// When using it from our inventory, trigger our script.
+		"Inv Action" "Script"
+		"Tool Action" "[None]"
+	}
+
+	// This script will create the minions when this item is used.
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FFairyController"
+		"Don't Inherit" FALSE
+	}
+	
+	// This is a semicolon-delimited list of key=value pairs for the scripts.
+	// We use it here to define doubleclick behavior/timing.
+	// TODO: implement
+    +ObjProp "DesignNote"
+    {
+        "" DoubleClickTime=100
+    }
+}
+
+/*
+================================================================================
+== Setup Script ================================================================
+================================================================================
+*/
+
+// We'll use this script to give the player the item, as well as create the
+// fairy NPC and any links/attachments/etc. we need to keep track of it.
+//
+// It's not safe for generic gameplay mods to add scripts directly to the
+// Garrett archetype. Doing so could clash with other mods and FMs. So instead,
+// we create a brand new metaproperty with a single script, then give the
+// metaproperty to Garrett. This safely puts the new script on the player,
+// without risk of interfering with other mods and behaviors.
+
+CreateArch "MetaProperty" "J4FPlayerFairySetup"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FFairySetup"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Assign the new metaproperty to the Garrett object, which is the usual Avatar
+// type used in missions.
+
++MetaProp "Garrett" "J4FPlayerFairySetup"
+
+/*
+================================================================================
+== Fairy NPC ===================================================================
+================================================================================
+*/
+
+// While developing some proof-of-concept stuff, we'll settle for a neutral
+// fire elemental. It already flies and glows, so we can focus on figuring out
+// the movement behavior instead.
+// TODO: We need a different NPC for lots of reasons. Unwanted particles
+// and radius fire damage being among them.
+
+CreateArch "FireElement" "J4FFairy"
+{
+	+ObjProp "AI_Team" = Neutral
+}
+
+
