@@ -1,6 +1,6 @@
 # newdark-mods
 
-:warning: You are currently viewing an old version of these mods. The [current version](https://github.com/saracoth/newdark-mods) of this project has updated mods with more feature, and perhaps even additional mods not listed below. The original versions below are kept around for sake of any modders who want to see how these features could be implemented with minimal use of Squirrel scripts.
+:warning: You are currently viewing an old version of these mods. The [current version](https://github.com/saracoth/newdark-mods) of this project has updated mods with more features, and perhaps even additional mods not listed below. The original versions below are kept around for sake of any modders who want to see how these features could be implemented with minimal use of Squirrel scripts.
 
 Collection of example game modifications for NewDark-engine games (Thief 1/Gold, Thief 2, and System Shock 2). These are simple gameplay modifications for demonstration purposes. Only vanilla game assets are used.
 
