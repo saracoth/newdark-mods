@@ -28,12 +28,6 @@ Make it Pretty:
 	the distance traveled was small.
 * Teleporting sound. On the bell, the fairy, or both?
 
-TODO: Let's start with the simplest implementation. Implement only the gaze-
-following mode, but skip the patrol point and teleport the NPC directly. This
-allows us to figure out the raycasting stuff and have visual confirmatino that
-we're relocating the object in question. It also requires us to figure out how
-to keep track of specific objects from the controller item's script.
-
 TODO: Figuring out how to make the NPC move gradually to a point is another
 core feature, so let's figure that out next. If we can't get that working, then
 we can avoid spending time on now-unnecessary features. We'll continue with the

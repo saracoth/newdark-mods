@@ -71,16 +71,14 @@ of whether we've ever had Create or Contained fire off.
 		SetData("playerId", containerId);
 		playerId = containerId;
 		
-		// TODO: who is responsible for creating the NPC and when? How should
-		// we keep track of those things in safe way that persists across
-		// saving/loading games?
-		
 		// Start the creation process. This may be better than using just
 		// Object.Create() in some cases.
 		local summon = Object.BeginCreate("J4FFairy");
 		// Here we use that to set the new object's position before we
-		// finish creating it.
-		Object.Teleport(summon, vector(5, 0, 0), vector(0), playerId);
+		// finish creating it. We'll spawn it well above the player to
+		// avoid their light giving the player away at the start of a
+		// mission.
+		Object.Teleport(summon, vector(0, 0, 200), vector(0), playerId);
 		// Now we're done.
 		Object.EndCreate(summon);
 		
