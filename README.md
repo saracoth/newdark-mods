@@ -82,11 +82,13 @@ For curious modders, I'd rank these mods from least complex to most complex, in 
 
 A controllable, movable light. Probably as close as Thief gets to a flashlight mod, considering the way the lighting engine works and the limitations related to that.
 
+![Fairy lighting distant sign](doc/img/FairyLight-Gazing.png)
+
 When this mod is installed, a Tinker's Bell item will be added to your inventory in every mission. Using it toggles your light fairy from waiting in place to following your gaze. The fairy will fly through walls to accomplish this, and will move faster when it needs to cross greater distances. NPCs ignore the fairy and can't hear its bell, but everyone benefits from the light it gives off.
 
 The further away the fairy, the bigger its glow! However, due to engine limitations, the radius never grows beyond 30 feet or so. The fairy also prefers to stick to walls, floors, and ceilings. If you stare at a door, the fairy will probably light up the room on the other side rather than the door itself.
 
-You can also "double-click" the Tinker's Bell (use it twice in quick succession) to make the fairy tail someone nearby. This can be any creature, including the player. If they fail to find a close enough creature, the fairy will give up and wait in place. Otherwise, they will tail their target until you use the Tinker's Bell again.
+You can also "double-click" the Tinker's Bell (use it twice in quick succession) to make the fairy tail someone nearby. ([Screenshot](doc/img/FairyLight-Tailing.png)) This can be any creature, including the player. If they fail to find a close enough creature, the fairy will give up and wait in place. Otherwise, they will tail their target until you use the Tinker's Bell again.
 
 **Required files**:
 * dbmods\just4fun_glowfairy.dml
@@ -127,7 +129,9 @@ Minions have a time limit. About five seconds for the default shadow minion, and
 
 ### Radar (Thief 1/Gold/2)
 
-When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to "ping" nearby items of interest. Can be useful in finding hidden things, or those pesky little coins.
+When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to "ping" nearby items of interest. Can be useful in finding hidden things, or those [pesky little coins](doc/img/Radar-Coins.png).
+
+![Particle effects emanating from the ground, a distant wall, and a nearby window.](doc/img/Radar-Puff.png)
 
 When an item is detected, a particle effect will explode out from it. Lag spikes can happen if there are lots and lots of items detected nearby.
 
