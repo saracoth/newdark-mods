@@ -332,7 +332,7 @@ CreateArch "Haunt" "J4FSummonedSwordGuy"
 	// We use it here to define how long the minion lasts before vanishing.
     +ObjProp "DesignNote"
     {
-        "" J4FMinionDuration=15.0
+        "" J4FMinionDuration=5.0
     }
 }
 
