@@ -124,15 +124,46 @@ CreateArch "Tulz" "J4FFairy"
 {
 	+ObjProp "MovingTerrain" = true
 	
-	+ObjProp "ModelName" = skull
+	// Choose a long or stick-like model so we can attach particles to one end
+	// and rotate the whole works. This is similar to what's done in Thief 2's
+	// Will O'Wisp objects. It works best if the object has sub-models, and one
+	// of them is offset from the object's center point enough to give a range
+	// of motion that is noticeable, but not extreme. This little tibia bone
+	// happens to fit the bill, and exist in both games. Thief 2 has a special
+	// wisp_arm model it uses for its Will O' Wisp objects.
+	+ObjProp "ModelName" = bone1
 	
-	+ObjProp "SelfLit" = 50
-	+ObjProp "SelfLitRad" = 12.0
+	// This part of the fairy isn't meant to be visible. We'll attach the
+	// visible parts to it later, with links.
+	+ObjProp "RenderAlpha" = 0.0
 	
 	+ObjProp "PhysAIColl" = false
 	+ObjProp "CollisionType"
 	{
 		"" "[None]"
+	}
+	
+	// Tweq->Rotate
+	+ObjProp "CfgTweqRotate"
+	{
+		"Halt" "Continue"
+		"AnimC" "[None]"
+		"MiscC" "[None]"
+		"CurveC" "[None]"
+		"Primary Axis" 0
+		"x rate-low-high" 5.00, 0.00, 360.00
+		"y rate-low-high" 7.50, 0.00, 360.00
+		"z rate-low-high" 0.00, 0.00, 0.00
+	}
+
+	// Tweq->RotateState
+	+ObjProp "StTweqRotate"
+	{
+		"AnimS" "On"
+		"MiscS" "[None]"
+		"Axis 1AnimS" "On"
+		"Axis 2AnimS" "On"
+		"Axis 3AnimS" "[None]"
 	}
 	
 	+ObjProp "Scripts"
@@ -193,6 +224,169 @@ CreateArch "Tulz" "J4FFairy"
 			"Intensity Slope" 0.0
 		}
 	}
+}
+
+/*
+================================================================================
+== Fairy Visible Body ==========================================================
+================================================================================
+*/
+
+// Much of this uses Thief 2's WispBody for reference.
+
+CreateArch "FireFX" "J4FFairyBody"
+{
+	// Renderer->Dynamic Light
+	+ObjProp "SelfLit" = 80
+	// TODO: need to update the dynamic self-lit radius code as well
+	+ObjProp "SelfLitRad" = 12.0
+	
+	// SFX->Particle Launch Info
+	+ObjProp "PGLaunchInfo"
+	{
+		"Launch Type" "Sphere"
+		"Box Min" 0.00, -0.25, -0.25
+		"Box Max" 0.00, 0.25, 0.25
+		"Min Radius" 0.05
+		"Max Radius" 0.10
+		"Loc unrotated?" FALSE
+		"Velocity Min" 0.00, 0.00, 0.00
+		"Velocity Max" 0.00, 0.00, 0.00
+		"Vel unrotated?" FALSE
+		"Min time" 2.00
+		"Max time" 2.50
+	}
+
+	// SFX->Particles
+	+ObjProp "ParticleGroup"
+	{
+		"Active" TRUE
+		"Particle Render Type" "Single-colored disk"
+		"Particle Animation" "Launched continually"
+		"Particle Group Motion" "Immobile"
+		"number of particles" 3
+		"size of particle" 0.50
+		"bitmap name" ""
+		"velocity" 0.00, 0.00, 0.00
+		"gravity vector" 0.00, 0.00, 0.00
+		"color (palettized)" 241
+		"2nd color" 217
+		"3rd color" 241
+		"alpha" 100
+		"fixed-group radius" 0.00
+		"spin / pulse group" FALSE
+		"spin speed" 0.00, 0.00, 0.00
+		"pulse magnitude" 0.00
+		"pulse cycle time ms" 0
+		"particle fade time" 0.75
+		"launch period" 0.50
+		"animation offset ms" 0
+		"Group-scale velocity" 0.00
+		"bm-disk flags" "[None]"
+		"bm-disk birth time" 0.00
+		"bm-disk rot (vel, offs, rand)" 0.00, 0.00, 0.00
+		"bm-disk ani frame time" 0.00
+		"bm-disk grow speed" 0.00
+		"bm-disk rgb" 0, 0, 0
+		"bm-disk 2nd rgb" 0, 0, 0
+		"bm-disk 3rd rgb" 0, 0, 0
+		"always simulate (slow)" FALSE
+		"always simulate group" FALSE
+		"particles start launched" TRUE
+		"alpha subpixel particles" FALSE
+		"skip subpixel particles" FALSE
+		"ignore attachment refs" FALSE
+		"force matching unrefs" FALSE
+	}
+}
+
+++Link "J4FFairyBody" "J4FFairy" "ParticleAttachement"
+{
+	"Type" "Submodel"
+	"vhot #" 0
+	"joint" "N/A"
+	// The bone1 model we use seems to have two sub-models. Between 0 and 1,
+	// submodel 1 gives a larger range of motion.
+	"submod #" 1
+}
+
+/*
+================================================================================
+== Fairy Sparkle Trail =========================================================
+================================================================================
+*/
+
+// Much of this uses Thief 2's WispTail for reference.
+
+CreateArch "FireFX" "J4FFairyTail"
+{
+	// SFX->Particle Launch Info
+	+ObjProp "PGLaunchInfo"
+	{
+		"Launch Type" "Sphere"
+		"Box Min" 0.00, -0.25, -0.25
+		"Box Max" 0.00, 0.25, 0.25
+		"Min Radius" 0.05
+		"Max Radius" 0.10
+		"Loc unrotated?" FALSE
+		"Velocity Min" -0.51, -0.51, -0.51
+		"Velocity Max" 0.51, 0.51, 0.51
+		"Vel unrotated?" FALSE
+		"Min time" 1.00
+		"Max time" 2.50
+	}
+
+	// SFX->Particles
+	+ObjProp "ParticleGroup"
+	{
+		"Active" TRUE
+		"Particle Render Type" "Single-colored disk"
+		"Particle Animation" "Launched continually"
+		"Particle Group Motion" "Trailing object"
+		"number of particles" 50
+		"size of particle" 0.05
+		"bitmap name" ""
+		"velocity" 0.00, 0.00, 0.00
+		"gravity vector" 0.00, 0.00, 0.00
+		"color (palettized)" 241
+		"2nd color" 223
+		"3rd color" 217
+		"alpha" 100
+		"fixed-group radius" 0.00
+		"spin / pulse group" FALSE
+		"spin speed" 0.00, 0.00, 0.00
+		"pulse magnitude" 0.00
+		"pulse cycle time ms" 0
+		"particle fade time" 0.05
+		"launch period" 0.10
+		"animation offset ms" 0
+		"Group-scale velocity" 0.00
+		"bm-disk flags" "[None]"
+		"bm-disk birth time" 0.00
+		"bm-disk rot (vel, offs, rand)" 0.00, 0.00, 0.00
+		"bm-disk ani frame time" 0.00
+		"bm-disk grow speed" 0.00
+		"bm-disk rgb" 0, 0, 0
+		"bm-disk 2nd rgb" 0, 0, 0
+		"bm-disk 3rd rgb" 0, 0, 0
+		"always simulate (slow)" FALSE
+		"always simulate group" FALSE
+		"particles start launched" TRUE
+		"alpha subpixel particles" FALSE
+		"skip subpixel particles" FALSE
+		"ignore attachment refs" FALSE
+		"force matching unrefs" FALSE
+	}
+}
+
+++Link "J4FFairyTail" "J4FFairy" "ParticleAttachement"
+{
+	"Type" "Submodel"
+	"vhot #" 0
+	"joint" "N/A"
+	// The bone1 model we use seems to have two sub-models. Between 0 and 1,
+	// submodel 1 gives a larger range of motion.
+	"submod #" 1
 }
 
 /*

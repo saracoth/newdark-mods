@@ -401,7 +401,8 @@ class J4FFairyController extends SqRootScript
 				}
 				
 				// Apply new light radius.
-				Property.SetSimple(fairyId, "SelfLitRad", newRadius);
+				// TODO: need to apply to visible fairy body instead
+				//Property.SetSimple(fairyId, "SelfLitRad", newRadius);
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyMotion", 0.25);
