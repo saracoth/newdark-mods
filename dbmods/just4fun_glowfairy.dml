@@ -1,52 +1,19 @@
 DML1
 
 /*
-Dunno if any of this is achievable yet, but let's try it out. A remote light
-object that follows the player's gaze. Probably as close as I'll get to a
-"flashlight" type of mod.
-
-Core Features:
-* Glowy flying object that roughly follows the player's gaze.
-* Allow the player to switch between three modes/behaviors: stay where you
-	are, follow your gaze, and attach to nearby creature (including you).
-
-Semi-core features:
-* Inventory item that accepts click and double click. Click for move/halt,
-	doubleclick for insta-teleport. I think implementing an inventory item
-	doubleclick feature at all would be interesting, and broadly useful.
-
-Make it Pretty:
+TODO: Make it Pretty:
 * What does the fairy look like?
 * Can we create a bobbing appearance? Ie, make the NPC invisible, constantly
 	rotating on all three axis, and attach the visible/glowy part to it?
 	The base implementation seems to have some funky wobbly movement as a
 	side effect, which is nice. Also look into the Thief2 wisp object(s).
 * Dingling bell sound when interacting with fairy controller.
+* Ambient sound for the fairy itself.
 * Is it remotely possible that while following an NPC, the fairy behavior
 	can change? Maybe it douses its light and spews a colored particle
 	effect based on stuff like alert level? Or it keeps the light, but
 	colors it?
 * Make the light radius bigger when farther from the player?
-
-TODO: Implement follow nearest creature functionality.
-	Some thoughts on this.... For one, I don't see the ability to enumerate
-through the game world for nearby objects of a particular type, up to a
-range limit. So that means we'll have to use stims and receptrons. But we
-have a scope/reference issue here. Also a timing issue.
-	We need the fairy itself to issue the stim, and to respond to it. We
-also can't settle on the first respondant. Ideally we check for the closest.
-Doing that requires us to wait until we've received all the receptrons.
-	So basically, we need custom messages. I guess that's what SendMessage()
-and PostMessage() are for. So in total, what we need are:
-		Fairy generates its follow stim up to a radius.
-		We've attached a new metaproperty to both the Creature and Avatar
-			archetypes. It has a receptron for this stim.
-		To cut down on scripting, we have the potential target throw the
-			stim right back to the fairy.
-		The fairy responds to its stim coming back at it via script.
-		The fairy posts a custom message to...who? What?
-			I guess we need to give the fairy a message or link on startup,
-			allowing it to know who its controller is.
 */
 
 // Let's limit this to Thief-like games. Note that it's not necessarily

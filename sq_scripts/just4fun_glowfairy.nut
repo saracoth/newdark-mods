@@ -346,6 +346,39 @@ class J4FFairyController extends SqRootScript
 				Property.SetSimple(fairyId, "MovingTerrain", false);
 				Property.SetSimple(fairyId, "MovingTerrain", true);
 				
+				// Make the fairy glow brighter (really, just increase its radius) the
+				// farther from the player it is. That makes its effect more useful at
+				// greater distances.
+				// More vector math. Again, see other comments for more background info.
+				local playerDisplacement = Object.Position(playerId) - fairyPos;
+				local playerDistance = sqrt(playerDisplacement.Dot(playerDisplacement));
+				
+				// Technically, we could safely make the radius just a little smaller
+				// than the player distance. But we need to enforce a minimum for when
+				// it's close.
+				
+				// Start with 90% of the distance to the player.
+				local newRadius = playerDistance * 0.9;
+				// Then, if coming up a few units short of the player is smaller, use that.
+				if (newRadius > (playerDistance - 10))
+				{
+					newRadius = playerDistance - 10;
+				}
+				// Enforce min/max values.
+				if (newRadius < 12.0)
+				{
+					newRadius = 12.0;
+				}
+				// NOTE: As of NewDark 1.27, the engine itself still imposes a limit of
+				// a 30 unit radius for dynamic lights.
+				else if (newRadius > 100.0)
+				{
+					newRadius = 100.0;
+				}
+				
+				// Apply new light radius.
+				Property.SetSimple(fairyId, "SelfLitRad", newRadius);
+				
 				// Repeat.
 				SetOneShotTimer("J4FFairyMotion", 0.25);
 				
