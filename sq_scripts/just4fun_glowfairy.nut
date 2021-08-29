@@ -8,6 +8,7 @@ class J4FFairyController extends SqRootScript
 	// Object IDs
 	playerId = 0;
 	fairyId = 0;
+	fairyLightId = 0;
 	markerId = 0;
 	homeId = 0;
 	// Link IDs
@@ -46,6 +47,11 @@ class J4FFairyController extends SqRootScript
 		if (IsDataSet("fairyId"))
 		{
 			fairyId = GetData("fairyId");
+		}
+		
+		if (IsDataSet("fairyLightId"))
+		{
+			fairyLightId = GetData("fairyLightId");
 		}
 		
 		if (IsDataSet("markerId"))
@@ -137,6 +143,30 @@ class J4FFairyController extends SqRootScript
 		local fairyToHome = Link.Create("TPathInit", fairyId, homeId);
 		Object.EndCreate(fairyId);
 		SetData("fairyId", fairyId);
+		
+		// The game should have created our particle attachments. We'll
+		// be changing some properties of the dynamic light portion of
+		// the fairy later, so grab a reference now to simplify things
+		// later.
+		
+		// Passing a 0 for the second parameter seems to indicate we
+		// either don't know or don't care. Either way, it gave us the
+		// link we needed, despite not yet knowing the fairy body ObjID.
+		foreach (testLinkId in Link.GetAll("ParticleAttachment", 0, fairyId))
+		{
+			local testLink = sLink(testLinkId);
+			
+			// Is this a link to the body?
+			if (Object.GetName(Object.Archetype(testLink.source)) == "J4FFairyBody")
+			{
+				// It is. Keep a reference to the body.
+				fairyLightId = testLink.source;
+				SetData("fairyLightId", fairyLightId);
+				
+				// We're done searching through links and can exit the loop.
+				break;
+			}
+		}
 		
 		// Give the fairy a reference to us.
 		SendMessage(fairyId, "ControllerHello", self);
@@ -401,8 +431,7 @@ class J4FFairyController extends SqRootScript
 				}
 				
 				// Apply new light radius.
-				// TODO: need to apply to visible fairy body instead
-				//Property.SetSimple(fairyId, "SelfLitRad", newRadius);
+				Property.SetSimple(fairyLightId, "SelfLitRad", newRadius);
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyMotion", 0.25);

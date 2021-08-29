@@ -238,7 +238,6 @@ CreateArch "FireFX" "J4FFairyBody"
 {
 	// Renderer->Dynamic Light
 	+ObjProp "SelfLit" = 80
-	// TODO: need to update the dynamic self-lit radius code as well
 	+ObjProp "SelfLitRad" = 12.0
 	
 	// Required in Thief 1/Gold, where FireFX doesn't specify this model for us.
