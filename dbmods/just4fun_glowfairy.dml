@@ -1,14 +1,5 @@
 DML1
 
-/*
-TODO: Make it Pretty:
-* What does the fairy look like? How about some particle effects?
-* Can we create a bobbing appearance? Ie, make the NPC invisible, constantly
-	rotating on all three axis, and attach the visible/glowy part to it?
-	The base implementation seems to have some funky wobbly movement as a
-	side effect, which is nice. Also look into the Thief2 wisp object(s).
-*/
-
 // Let's limit this to Thief-like games. Note that it's not necessarily
 // possible to prevent multiple copies of this mod from being applied, if
 // the user copies files to multiple valid folders. If we change a property
