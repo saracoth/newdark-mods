@@ -7,14 +7,6 @@ TODO: Make it Pretty:
 	rotating on all three axis, and attach the visible/glowy part to it?
 	The base implementation seems to have some funky wobbly movement as a
 	side effect, which is nice. Also look into the Thief2 wisp object(s).
-* Dingling bell sound when interacting with fairy controller.
-	dinner_bell schema; belldinn.WAV
-* Ambient sound for the fairy itself. Maybe a different one when following.
-	m16airhum / humair.wav TG only?
-	pluck_harp: 3 chords; harp1/2/3.wav
-		env_tag (Event Activate) (MachType Harp)
-	bells1/2.wav, BELLS3/4.WAV
-	
 */
 
 // Let's limit this to Thief-like games. Note that it's not necessarily

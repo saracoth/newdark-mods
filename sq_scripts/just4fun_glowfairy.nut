@@ -141,13 +141,6 @@ class J4FFairyController extends SqRootScript
 		// Give the fairy a reference to us.
 		SendMessage(fairyId, "ControllerHello", self);
 		
-		// Attach a sound. We could possibly do this kind of thing
-		// with object properties if we were using schema files, but
-		// in our case we're using raw sound file references.
-		// TODO: do we really want this? likely TG+ or TG-only :(
-		// TODO: doesn't work unless fairy is in a room at the time
-		//Sound.PlayAtObject(fairyId, "humair", fairyId, eSoundSpecial.kSoundLoop);
-		
 		// Begin controlling fairy motion.
 		SetOneShotTimer("J4FFairyMotion", 0.25);
 	}
