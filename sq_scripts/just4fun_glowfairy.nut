@@ -106,25 +106,20 @@ class J4FFairyController extends SqRootScript
 		// any necessary properties before the creation process finishes.
 		
 		// Create the home marker.
-		// TODO: clean up some of these redundant variables; home/homeId, etc.
-		local home = Object.BeginCreate("TerrPt");
-		Object.Teleport(home, farAway, zeros, playerId);
-		Object.EndCreate(home);
-		
-		SetData("homeId", home);
-		homeId = home;
+		homeId = Object.BeginCreate("TerrPt");
+		Object.Teleport(homeId, farAway, zeros, playerId);
+		Object.EndCreate(homeId);
+		SetData("homeId", homeId);
 		
 		// Now we can the second marker.
-		local marker = Object.BeginCreate("TerrPt");
-		Object.Teleport(marker, farAway, zeros, playerId);
-		Object.EndCreate(marker);
-		
-		SetData("markerId", marker);
-		markerId = marker;
+		markerId = Object.BeginCreate("TerrPt");
+		Object.Teleport(markerId, farAway, zeros, playerId);
+		Object.EndCreate(markerId);
+		SetData("markerId", markerId);
 		
 		// With both markers on the map, we can create a loop between them.
-		local homeToMarker = Link.Create("TPath", home, marker);
-		local markerToHome = Link.Create("TPath", marker, home);
+		local homeToMarker = Link.Create("TPath", homeId, markerId);
+		local markerToHome = Link.Create("TPath", markerId, homeId);
 		// The default data for these kinds of links is 0 speed, no pause,
 		// and allow nice curving paths. We need to change the "Speed"
 		// property from its default value.
@@ -137,13 +132,11 @@ class J4FFairyController extends SqRootScript
 		homeToMarkerId = homeToMarker;
 		
 		// Now create the fairy and link it to the home marker.
-		local fairy = Object.BeginCreate("J4FFairy");
-		Object.Teleport(fairy, farAway, zeros, playerId);
-		local fairyToHome = Link.Create("TPathInit", fairy, home);
-		Object.EndCreate(fairy);
-		
-		SetData("fairyId", fairy);
-		fairyId = fairy;
+		fairyId = Object.BeginCreate("J4FFairy");
+		Object.Teleport(fairyId, farAway, zeros, playerId);
+		local fairyToHome = Link.Create("TPathInit", fairyId, homeId);
+		Object.EndCreate(fairyId);
+		SetData("fairyId", fairyId);
 		
 		// Give the fairy a reference to us.
 		SendMessage(fairyId, "ControllerHello", self);
