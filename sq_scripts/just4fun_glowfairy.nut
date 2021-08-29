@@ -19,6 +19,19 @@ class J4FFairyController extends SqRootScript
 	maxRange = 100;
 	doubleClickTime = 0.5;
 	
+	// Other variables. Note that we have to track them with GetData/SaveData
+	// as well, or we'll lose them when reloading a save game.
+	
+	// If a positive value, this refers to a concrete object within the game
+	// level. If a zero, we've halted movement. If a negative value, we're
+	// following the player's gaze.
+	// NOTE: Negative integers are acceptable object IDs in some places, but
+	// because they refer to archetype definitions within a gamesys rather than
+	// actual in-level objects, we don't have to worry about telling the fairy
+	// to follow something with a negative ID.
+	// TODO: auto-stop if our object vanishes; detect invalid/destroyed objects
+	followTarget = 0;
+	
 	function OnBeginScript()
 	{
 		if (IsDataSet("playerId"))
@@ -46,6 +59,11 @@ class J4FFairyController extends SqRootScript
 			homeId = GetData("doubleClickTimer");
 		}
 		
+		if (IsDataSet("followTarget"))
+		{
+			followTarget = GetData("followTarget");
+		}
+		
 		maxRange = userparams().MaxRange;
 		doubleClickTime = userparams().DoubleClickTime;
 	}
@@ -66,7 +84,6 @@ class J4FFairyController extends SqRootScript
 		
 		// Spawn stuff well above the player to avoid their light giving
 		// away our position at the start of a mission.
-		// TODO: Initial mode should be "stop" or we'll still be screwed
 		local farAway = vector(0, 0, 200);
 		local zeros = vector(0);
 		
@@ -113,8 +130,8 @@ class J4FFairyController extends SqRootScript
 		SetData("fairyId", fairy);
 		fairyId = fairy;
 		
-		// Begin following gaze.
-		SetOneShotTimer("J4FFairyGaze", 0.25);
+		// Begin controlling fairy motion.
+		SetOneShotTimer("J4FFairyMotion", 0.25);
 	}
 	
 	function OnTimer()
@@ -122,132 +139,164 @@ class J4FFairyController extends SqRootScript
 		local timerName = message().name;
 		switch (timerName)
 		{
-			case "J4FFairyGaze":
-				// To figure out what part of the level geometry the player is
-				// looking at, we use the PortalRaycast function. It ignores
-				// objects and is therefore a little faster.
-				//
-				// To use it, we can't just pass in a starting point and a
-				// direction. Instead, it wants two points in 3D space. This
-				// means we have to figure out what the second point is
-				// ourselves, based on the direction we're looking and the max
-				// distance we want to project the fairy out to.
-				//
-				// This requires some trigonometry math. I followed along with
-				// https://stackoverflow.com/a/1568687 which says:
-				// x = cos(pitch) * cos(yaw)
-				// y = cos(pitch) * sin(yaw)
-				// z = sin(pitch)
-				//
-				// The pitch is how far up or down the camera is pointing, which
-				// is why it's all that matters for the vertical Z axis. The yaw
-				// comes from turning left or right.
-				//
-				// We can't get these values from the player itself, because
-				// the avatar object only has yaw. There is no pitch. So instead,
-				// we get the current *camera* position and facing.
-				local camPos = Camera.GetPosition();
-				local camFacing = Camera.GetFacing();
+			case "J4FFairyMotion":
+				// We'll need this later, in a few places.
+				local fairyPos = Object.Position(fairyId);
 				
-				// Now, the squirrel sin() and cos() functions work with radians.
-				// However, camFacing is given to us in degrees. So let's convert.
-				local camPitch = PI * camFacing.y / 180;
-				local camYaw = PI * camFacing.z / 180;
+				// This is where we want the fairy to end up. We'll start by
+				// assuming we want it to stay right where it is, until we
+				// decide otherwise. This default value is also what takes
+				// effect when followTarget == 0 (halt mode).
+				local targetPos = fairyPos;
 				
-				// NOTE: camFacing.x exists, but only comes into play for leaning
-				// and similar things we're can ignore. Our pitch is 0 when the
-				// view is centered, and increases up to 90 when looking down.
-				// When looking up, it wraps backwards to 360 degrees and drops
-				// down to as low as 270 for looking directly up. The yaw value
-				// gets bigger and bigger as we turn left, until it would hit
-				// 360 and wraps back around to 0 instead.
-				
-				// Now we can convert our pitch and yaw into what's called a
-				// directional vector. Instead of representing X, Y, and Z
-				// coordinates, it acts as a multiplier. If we multiply its
-				// X, Y, and Z values by 100, the result is a 3D coordinate in
-				// space that is exactly 100 units away from the 0,0,0 position.
-				
-				local direction = vector(
-					cos(camPitch) * cos(camYaw),
-					cos(camPitch) * sin(camYaw),
-					sin(-1 * camPitch)
-					);
-				
-				// For our raycasting test, let's pick a point up to MaxRange units
-				// away. Or however many units we'd like. The point is, the fairy
-				// can't be controlled outside whatever distance we pick here.
-				// To get these coordinates, we multiply the directional vector
-				// by 100 units, then add that to the camera position. This way,
-				// instead of being 100 units away from 0,0,0 we pick a point
-				// 100 units away from wherever the camera happens to be.
-				
-				local targetPos = (direction * maxRange) + camPos;
-				
-				// Assuming PortalRaycast() returns true, this contains our
-				// point of impact.
-				local gazeTarget = vector(0);
-				
-				if (Engine.PortalRaycast(camPos, targetPos, gazeTarget))
+				// So what is the fairy actually doing right now?
+				if (followTarget < 0)
 				{
-					// The gazeTarget is touching some piece of level geometry.
-					// So if we place the center point of our object right at
-					// that spot, it will be partly inside and partly outside
-					// the level boundaries.
+					//print("Following gaze");
+					
+					// Following our gaze. We'll set targetPos to a part of the map
+					// roughly where the player is looking.
+					
+					// To figure out what part of the level geometry the player is
+					// looking at, we use the PortalRaycast function. It ignores
+					// objects and is therefore a little faster.
 					//
-					// So we'd like to pull the target point back a little closer
-					// to the camera. To do that, we first figure out what
-					// distance gazeTarget is from the camera. We'll use the
-					// https://gamedev.stackexchange.com/a/92521 approach.
-					
-					local displacement = gazeTarget - camPos;
-					// Per https://en.wikipedia.org/wiki/Dot_product , the
-					// dot product of any vector with itself is a non-negative
-					// number. So sqrt() is safe in this context, and will always
-					// give us a positive distance value.
-					local impactDistance = sqrt(displacement.Dot(displacement));
-					
-					// If the player is hugging a wall or something, going a few
-					// units backwards could target a location behind the camera.
-					// So let's cam the shortened distance to non-negative values
-					// to prevent that.
-					if (impactDistance <= 2)
+					// To use it, we can't just pass in a starting point and a
+					// direction. Instead, it wants two points in 3D space. This
+					// means we have to figure out what the second point is
+					// ourselves, based on the direction we're looking and the max
+					// distance we want to project the fairy out to.
+					//
+					// This requires some trigonometry math. I followed along with
+					// https://stackoverflow.com/a/1568687 which says:
+					// x = cos(pitch) * cos(yaw)
+					// y = cos(pitch) * sin(yaw)
+					// z = sin(pitch)
+					//
+					// The pitch is how far up or down the camera is pointing, which
+					// is why it's all that matters for the vertical Z axis. The yaw
+					// comes from turning left or right.
+					//
+					// We can't get these values from the player itself, because
+					// the avatar object only has yaw. There is no pitch. So instead,
+					// we get the current *camera* position and facing.
+					local camPos = Camera.GetPosition();
+					local camFacing = Camera.GetFacing();
+				
+					// Now, the squirrel sin() and cos() functions work with radians.
+					// However, camFacing is given to us in degrees. So let's convert.
+					local camPitch = PI * camFacing.y / 180;
+					local camYaw = PI * camFacing.z / 180;
+				
+					// NOTE: camFacing.x exists, but only comes into play for leaning
+					// and similar things we're can ignore. Our pitch is 0 when the
+					// view is centered, and increases up to 90 when looking down.
+					// When looking up, it wraps backwards to 360 degrees and drops
+					// down to as low as 270 for looking directly up. The yaw value
+					// gets bigger and bigger as we turn left, until it would hit
+					// 360 and wraps back around to 0 instead.
+				
+					// Now we can convert our pitch and yaw into what's called a
+					// directional vector. Instead of representing X, Y, and Z
+					// coordinates, it acts as a multiplier. If we multiply its
+					// X, Y, and Z values by 100, the result is a 3D coordinate in
+					// space that is exactly 100 units away from the 0,0,0 position.
+				
+					local direction = vector(
+						cos(camPitch) * cos(camYaw),
+						cos(camPitch) * sin(camYaw),
+						sin(-1 * camPitch)
+						);
+				
+					// For our raycasting test, let's pick a point up to MaxRange units
+					// away. Or however many units we'd like. The point is, the fairy
+					// can't be controlled outside whatever distance we pick here.
+					// To get these coordinates, we multiply the directional vector
+					// by 100 units, then add that to the camera position. This way,
+					// instead of being 100 units away from 0,0,0 we pick a point
+					// 100 units away from wherever the camera happens to be.
+				
+					local testPos = (direction * maxRange) + camPos;
+				
+					// Assuming PortalRaycast() returns true, targetPos contains our
+					// point of impact. Let's re-initialize it to a brand new vector,
+					// as a paranoia measure.
+					targetPos = vector(0);
+				
+					if (Engine.PortalRaycast(camPos, testPos, targetPos))
 					{
-						// Center on the camera instead of behind it.
-						gazeTarget = camPos;
+						// The targetPos is touching some piece of level geometry.
+						// So if we place the center point of our object right at
+						// that spot, it will be partly inside and partly outside
+						// the level boundaries.
+						//
+						// So we'd like to pull the target point back a little closer
+						// to the camera. To do that, we first figure out what
+						// distance targetPos is from the camera. We'll use the
+						// https://gamedev.stackexchange.com/a/92521 approach.
+					
+						local displacement = targetPos - camPos;
+						// Per https://en.wikipedia.org/wiki/Dot_product , the
+						// dot product of any vector with itself is a non-negative
+						// number. So sqrt() is safe in this context, and will always
+						// give us a positive distance value.
+						local impactDistance = sqrt(displacement.Dot(displacement));
+					
+						// If the player is hugging a wall or something, going a few
+						// units backwards could target a location behind the camera.
+						// So let's cam the shortened distance to non-negative values
+						// to prevent that.
+						if (impactDistance <= 2)
+						{
+							// Center on the camera instead of behind it.
+							targetPos = camPos;
+						}
+						else
+						{
+							// Here's that directional vector again, doing the same
+							// job as before but with a smaller distance.
+							targetPos = (direction * (impactDistance - 2)) + camPos;
+						}
 					}
 					else
 					{
-						// Here's that directional vector again, doing the same
-						// job as before but with a smaller distance.
-						gazeTarget = (direction * (impactDistance - 2)) + camPos;
+						// Ray tracing said there are no obstacles in our way.
+						//
+						// I don't see where it's defined what the PortalRaycast()
+						// function does to the third parameter when there is no
+						// impact. So to be on the safe side, we'll explicitly say
+						// the targetPos is max-distance testPos instead.
+						targetPos = testPos;
 					}
 				}
-				else
+				else if (followTarget > 0)
 				{
-					// Ray tracing said there are no obstacles in our way.
-					//
-					// I don't see where it's defined what the PortalRaycast()
-					// function does to the third parameter when there is no
-					// impact. So to be on the safe side, we'll explicitly say
-					// the gazeTarget is max-distance targetPos instead.
-					gazeTarget = targetPos;
+					//print("Following target");
+					
+					// Following a specific ingame creature.
+					// TODO: implement
 				}
+				//else
+				//{
+				//	print("Doing nothing");
+				//}
+				
+				//print(format("Targeting %g / %g / %g", targetPos.x, targetPos.y, targetPos.z));
 				
 				// Teleport() with only three parameters has no frame-of-reference
-				// object. So the gazeTarget coordinates will be treated as absolute
+				// object. So the targetPos coordinates will be treated as absolute
 				// game-world coordinates, instead of coordinates relative to some
 				// reference object.
 				// We use Object.Facing() to get and preserve the object's current
 				// facing, if any.
-				Object.Teleport(markerId, gazeTarget, Object.Facing(markerId));
-				Object.Teleport(homeId, gazeTarget, Object.Facing(homeId));
+				Object.Teleport(markerId, targetPos, Object.Facing(markerId));
+				Object.Teleport(homeId, targetPos, Object.Facing(homeId));
 				
 				// Doing some more vector math to get another distance. This time,
 				// the distance between the fairy and its target. Refer to the above
 				// comments for details on what this math is doing and where it
 				// came from.
-				local fairyDisplacement = gazeTarget - Object.Position(fairyId);
+				local fairyDisplacement = targetPos - fairyPos;
 				local fairyDistance = sqrt(fairyDisplacement.Dot(fairyDisplacement));
 				// Scale the distance so that we'll cover it in roughly X seconds.
 				// The number of seconds is the divisor here, like 0.5 for 0.5 secs.
@@ -260,12 +309,11 @@ class J4FFairyController extends SqRootScript
 				{
 					fairySpeed = 5.0;
 				}
-				// Enforce a maximum speed to reduce overshooting targets.
-				if (fairySpeed > 1000.0)
-				{
-					fairySpeed = 1000.0;
-				}
-				
+				// Enforce a maximum speed to reduce overshooting targets?
+				//else if (fairySpeed > 1000.0)
+				//{
+				//	fairySpeed = 1000.0;
+				//}
 				
 				LinkTools.LinkSetData(homeToMarkerId, "Speed", fairySpeed);
 				LinkTools.LinkSetData(markerToHomeId, "Speed", fairySpeed);
@@ -280,7 +328,7 @@ class J4FFairyController extends SqRootScript
 				Property.SetSimple(fairyId, "MovingTerrain", true);
 				
 				// Repeat.
-				SetOneShotTimer("J4FFairyGaze", 0.25);
+				SetOneShotTimer("J4FFairyMotion", 0.25);
 				
 				break;
 			case "J4FDoubleClick":
@@ -292,8 +340,26 @@ class J4FFairyController extends SqRootScript
 				doubleClickTimer = 0;
 				SetData("doubleClickTimer", doubleClickTimer);
 				
-				// TODO: switch between gaze and halt mode
-				print("Fairy controller single clicked");
+				// If we're not following the player's gaze, then start doing so.
+				if (followTarget >= 0)
+				{
+					followTarget = -1;
+					
+					// Update the controller item name for extra clarity.
+					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_gaze: \"Tinker's Bell (Gazing)\"");
+				}
+				else
+				{
+					// If we were already following their gaze, we stop moving.
+					followTarget = 0;
+					
+					// Update the controller item name for extra clarity.
+					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
+				}
+				
+				// In either case, we want to remember the follow target between
+				// saving/loading, so store it.
+				SetData("followTarget", followTarget);
 				
 				break;
 		}

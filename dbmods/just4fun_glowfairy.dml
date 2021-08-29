@@ -80,8 +80,9 @@ CreateArch "Tulz" "J4FFairyControlBell"
 	// TODO: implement
     +ObjProp "DesignNote"
     {
-		// NOTE: Windows's default double-click interval is 500ms
-        "" DoubleClickTime=0.5;MaxRange=100
+		// NOTE: Windows's default double-click interval is 500ms, but we can
+		// tweak our value here as needed.
+        "" DoubleClickTime=0.2;MaxRange=100
     }
 }
 
