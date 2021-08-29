@@ -513,7 +513,21 @@ class J4FFairyController extends SqRootScript
 		}
 		
 		// Otherwise, figure out which of the two is closer to the fairy.
-		// TODO: implement
+		// Refer to comments in other code for how we're using the dot
+		// product to figure out distances.
+		local fairyPos = Object.Position(fairyId);
+		
+		local currentDisplacement = Object.Position(followTarget) - fairyPos;
+		local currentDistance = sqrt(currentDisplacement.Dot(currentDisplacement));
+		
+		local candidateDisplacement = Object.Position(candidateId) - fairyPos;
+		local candidateDistance = sqrt(candidateDisplacement.Dot(candidateDisplacement));
+		
+		// If the new candidate is closer, they win.
+		if (candidateDistance < currentDistance)
+		{
+			followTarget = candidateId;
+		}
 	}
 }
 
