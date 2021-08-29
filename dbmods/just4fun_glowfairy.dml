@@ -26,9 +26,27 @@ Make it Pretty:
 	can change? Maybe it douses its light and spews a colored particle
 	effect based on stuff like alert level? Or it keeps the light, but
 	colors it?
+* Make the light radius bigger when farther from the player?
 
-TODO: Implement controllable stop, gaze-follow, and teleport functionality.
-
+TODO: Implement follow nearest creature functionality.
+	Some thoughts on this.... For one, I don't see the ability to enumerate
+through the game world for nearby objects of a particular type, up to a
+range limit. So that means we'll have to use stims and receptrons. But we
+have a scope/reference issue here. Also a timing issue.
+	We need the fairy itself to issue the stim, and to respond to it. We
+also can't settle on the first respondant. Ideally we check for the closest.
+Doing that requires us to wait until we've received all the receptrons.
+	So basically, we need custom messages. I guess that's what SendMessage()
+and PostMessage() are for. So in total, what we need are:
+		Fairy generates its follow stim up to a radius.
+		We've attached a new metaproperty to both the Creature and Avatar
+			archetypes. It has a receptron for this stim.
+		To cut down on scripting, we have the potential target throw the
+			stim right back to the fairy.
+		The fairy responds to its stim coming back at it via script.
+		The fairy posts a custom message to...who? What?
+			I guess we need to give the fairy a message or link on startup,
+			allowing it to know who its controller is.
 */
 
 // Let's limit this to Thief-like games. Note that it's not necessarily
@@ -44,6 +62,25 @@ FINGERPRINT
 
 // This allows us to use our .nut files.
 #script "squirrel"
+
+/*
+================================================================================
+== New Stims ===================================================================
+================================================================================
+*/
+
+// Interesting note, but the "stimulate object" receptron effect is limited to
+// stim names of 15 characters or less. Otherwise, I might call this
+// J4FFairyFollowStim.
+
+// We use this stim in the following ways:
+// 1) A negative value will be broadcast to nearby creatures through a radius
+//	stim. If hit, that creature is a candidate for being followed by the fairy.
+// 2) The candidate creatures send a positive value back to the fairy that
+//	pinged them. This allows the fairy's script to see what object IDs responded
+//	to the ping.
+
+CreateArch "Stimulus" "J4FFryFllwStim"
 
 /*
 ================================================================================
@@ -77,7 +114,6 @@ CreateArch "Tulz" "J4FFairyControlBell"
 	
 	// This is a semicolon-delimited list of key=value pairs for the scripts.
 	// We use it here to define doubleclick behavior/timing.
-	// TODO: implement
     +ObjProp "DesignNote"
     {
 		// NOTE: Windows's default double-click interval is 500ms, but we can
@@ -124,7 +160,7 @@ CreateArch "MetaProperty" "J4FPlayerFairySetup"
 // This is the object our scripts will actually control. It needs to be a
 // moving terrain object so that it can follow from one point to another.
 
-CreateArch "Object" "J4FFairy"
+CreateArch "Tulz" "J4FFairy"
 {
 	+ObjProp "MovingTerrain" = true
 	
@@ -140,10 +176,98 @@ CreateArch "Object" "J4FFairy"
 		"" "[None]"
 	}
 	
-	// This is a vanilla game script that shuffles moving terrain around.
 	+ObjProp "Scripts"
 	{
+		// This is a vanilla game script that shuffles moving terrain around.
 		"Script 0" "StdElevator"
+		// This script allows tracking of follow candidates. It lets the fairy
+		// know who its controller object is, so that it can provide a list of
+		// follow candidates.
+		"Script 1" "J4FFairyIntermediary"
 		"Don't Inherit" FALSE
 	}
+	
+	// By default, the Fairy will reduce all generated and received stims to 0.
+	// In scripts, we will temporarily "unlock" stuff by setting this value to
+	// one instead.
+	+ObjProp "arSrcScale" = 0.0
 }
+
+++Receptron "J4FFairy" "J4FFryFllwStim"
+{
+	Min None
+	Max None
+	
+	Target Me
+	Agent Source
+	
+	Effect "stim_script_msg"
+	{
+		"Flags" "[None]"
+	}
+}
+
+++StimSource "J4FFairy" "J4FFryFllwStim"
+{
+	// Things can potentially receive their own radius stims, so we'll use
+	// positive and negative to distinguish intent. A more readable approach
+	// would probably be to use two different stims -- one for the fairy
+	// reaching out, one for the candidate reaching back.
+	Intensity -1.0
+	
+	Propagator "Radius"
+	{
+		Shape
+		{
+			"Radius" 25.0
+			// We could make this LOS if we wanted. I'm assuming not caring
+			// will make this less finnicky to use, in general.
+			"Flags" "[None]"
+			//"Flags" "Line of Sight (raycast)"
+			"Dispersion" None
+		}
+		Life
+		{
+			"Flags" "No Max Firings"
+			"Period" 500
+			"Max Firings" 0
+			"Intensity Slope" 0.0
+		}
+	}
+}
+
+/*
+================================================================================
+== Fairy Follow Targets ========================================================
+================================================================================
+*/
+
+// We use this to flag potential fairy following targets.
+
+CreateArch "MetaProperty" "J4FFairyFollowCandidate"
+
+// When the fairy stimulates us, respond to let it know we're a candidate.
+
+++Receptron "J4FFairyFollowCandidate" "J4FFryFllwStim"
+{
+	// Fairy sends us a negative value.
+	Min None
+	Max -0.1
+	
+	Target Source
+	Agent Me
+
+	// We send back a 1
+	Effect "stimulate"
+	{
+		"Stimulus" "J4FFryFllwStim"
+		"Multiply By" 0.00
+		"Then Add" 1.00
+	}
+}
+
+// The player is a potential candidate.
++MetaProp "Avatar" "J4FFairyFollowCandidate"
+
+// As are all kinds of NPC creatures.
++MetaProp "Creature" "J4FFairyFollowCandidate"

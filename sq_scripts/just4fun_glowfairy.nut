@@ -15,6 +15,7 @@ class J4FFairyController extends SqRootScript
 	markerToHomeId = 0;
 	// Timer handles
 	doubleClickTimer = 0;
+	followerSearchTimer = 0;
 	// userparams() data
 	maxRange = 100;
 	doubleClickTime = 0.5;
@@ -29,8 +30,11 @@ class J4FFairyController extends SqRootScript
 	// because they refer to archetype definitions within a gamesys rather than
 	// actual in-level objects, we don't have to worry about telling the fairy
 	// to follow something with a negative ID.
-	// TODO: auto-stop if our object vanishes; detect invalid/destroyed objects
 	followTarget = 0;
+	
+	// If true, we've replaced the followerSearchTimer with one that will
+	// hopefully trigger sooner.
+	fastFollowerTimer = false;
 	
 	function OnBeginScript()
 	{
@@ -56,12 +60,22 @@ class J4FFairyController extends SqRootScript
 		
 		if (IsDataSet("doubleClickTimer"))
 		{
-			homeId = GetData("doubleClickTimer");
+			doubleClickTimer = GetData("doubleClickTimer");
 		}
 		
 		if (IsDataSet("followTarget"))
 		{
 			followTarget = GetData("followTarget");
+		}
+		
+		if (IsDataSet("followerSearchTimer"))
+		{
+			followerSearchTimer = GetData("followerSearchTimer");
+		}
+		
+		if (IsDataSet("fastFollowerTimer"))
+		{
+			fastFollowerTimer = GetData("fastFollowerTimer");
 		}
 		
 		maxRange = userparams().MaxRange;
@@ -92,6 +106,7 @@ class J4FFairyController extends SqRootScript
 		// any necessary properties before the creation process finishes.
 		
 		// Create the home marker.
+		// TODO: clean up some of these redundant variables; home/homeId, etc.
 		local home = Object.BeginCreate("TerrPt");
 		Object.Teleport(home, farAway, zeros, playerId);
 		Object.EndCreate(home);
@@ -130,6 +145,9 @@ class J4FFairyController extends SqRootScript
 		SetData("fairyId", fairy);
 		fairyId = fairy;
 		
+		// Give the fairy a reference to us.
+		SendMessage(fairyId, "ControllerHello", self);
+		
 		// Begin controlling fairy motion.
 		SetOneShotTimer("J4FFairyMotion", 0.25);
 	}
@@ -152,8 +170,6 @@ class J4FFairyController extends SqRootScript
 				// So what is the fairy actually doing right now?
 				if (followTarget < 0)
 				{
-					//print("Following gaze");
-					
 					// Following our gaze. We'll set targetPos to a part of the map
 					// roughly where the player is looking.
 					
@@ -271,17 +287,12 @@ class J4FFairyController extends SqRootScript
 				}
 				else if (followTarget > 0)
 				{
-					//print("Following target");
-					
 					// Following a specific ingame creature.
-					// TODO: implement
+					// TODO: adjust position to fly above them?
+					// TODO: detect deleted, invalid, and dead targets; halt
+					
+					targetPos = Object.Position(followTarget);
 				}
-				//else
-				//{
-				//	print("Doing nothing");
-				//}
-				
-				//print(format("Targeting %g / %g / %g", targetPos.x, targetPos.y, targetPos.z));
 				
 				// Teleport() with only three parameters has no frame-of-reference
 				// object. So the targetPos coordinates will be treated as absolute
@@ -362,6 +373,38 @@ class J4FFairyController extends SqRootScript
 				SetData("followTarget", followTarget);
 				
 				break;
+			case "J4FFollowerFinalize":
+				// If this timer goes off, that means we're done searching for
+				// follow candidates. Either we've found one or we haven't.
+				
+				// For starters, forget the whole timer thing. It's gone off and the
+				// handle is useless now.
+				followerSearchTimer = 0;
+				SetData("followerSearchTimer", followerSearchTimer);
+				
+				// Force 0 for fairy stim values.
+				Property.SetSimple(fairyId, "arSrcScale", 0.0);
+				
+				// We've already picked our best target, if any. What did we find?
+				
+				// Let the player know what we're doing.
+				if (followTarget == playerId)
+				{
+					// Fairy decided the player was their best match.
+					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Loves You)\"");
+				}
+				else if (followTarget > 0)
+				{
+					// Fairy decided to stick around some other creature.
+					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Following)\"");
+				}
+				else
+				{
+					// Fairy was put into halt mode for the search, and there it will stay.
+					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Lonely)\"");
+				}
+				
+				break;
 		}
 	}
 	
@@ -390,10 +433,136 @@ class J4FFairyController extends SqRootScript
 		SetData("doubleClickTimer", doubleClickTimer);
 		
 		// NOTE: The single-click functionality is in the OnTimer message
-		// insetad. Everything below this point is for double-clicking.
+		// instead. Everything below this point is for double-clicking.
 		
-		// TODO: find the nearest valid target and follow them
-		print("Fairy controller double clicked");
+		// Finding a target to follow is a multi-step, asynchronous process.
+		// We can't get a list of nearby suitable targets ourselves, and must
+		// instead rely on the Act/React system's radius stimulations to do
+		// it for us. However, we can't trigger a radius stim either. Instead,
+		// the fairy must be constantly bursting its check in a radius. So
+		// we normally "disable" it by setting the fairy's arSrcScale to 0.
+		// That multiplies all incoming and outgoing stims by 0. This doesn't
+		// stop the radius effect, but it means that creatures/etc. will
+		// receive a 0 and should ignore it.
+		
+		// So, step 1 in this follower candidate finding process:
+		// Allow normal fairy stim values.
+		
+		// Now, because this is an asychronous process, that means other stuff
+		// can happen while we're waiting for the final results. That can
+		// include the player double clicking us a second time. So before we
+		// do anything, check whether the fairy is already "on."
+		
+		if (followerSearchTimer != 0)
+		{
+			// Fairy is already sending stimuli to nearby creatures. Just wait.
+			return;
+		}
+		
+		// Otherwise, we need to kick off the process.
+		// Allow normal fairy stim values.
+		Property.SetSimple(fairyId, "arSrcScale", 1.0);
+		
+		// Let the player know what we're doing.
+		Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_search: \"Tinker's Bell (Searching)\"");
+		
+		// Now we wait. But what does waiting mean, exactly? For starters, the
+		// fairy is pulsing its search once per X seconds. So we have to wait at
+		// least that long to be sure no creatures were in the area.
+		followerSearchTimer = SetOneShotTimer("J4FFollowerFinalize", 0.6);
+		SetData("followerSearchTimer", followerSearchTimer);
+		
+		//In practice, we might not have to wait as long, so we could end up
+		// replacing this timer with a (hopefully) shorter one once at least
+		// one candidate responds.
+		fastFollowerTimer = false;
+		SetData("fastFollowerTimer", fastFollowerTimer);
+		
+		// While we wait, maybe we should stop moving around.
+		followTarget = 0;
+		SetData("followTarget", followTarget);
+	}
+	
+	function OnFollowCandidate()
+	{
+		// The fairy passed the candidate's object ID number in the data.
+		local candidateId = message().data;
+		
+		// If we haven't created a fast timer yet, do so now. This allows
+		// faster responses on average, since when there's a candidate in
+		// range we only have to wait for the next fairy radius stim. If
+		// not, we have to wait out the full second to be sure there weren't
+		// any creatures in range. That's because we can't know, when the
+		// user has double-clicked the controller, how long we'll have to
+		// wait for the next time. On average, the fairy will be only 0.5s
+		// away from the next burst, not 1s.
+		if (!fastFollowerTimer)
+		{
+			if (followerSearchTimer != 0)
+			{
+				KillTimer(followerSearchTimer);
+			}
+			
+			// Instead of waiting the full 1.1 seconds, we'll wait an additional 10ms
+			followerSearchTimer = SetOneShotTimer("J4FFollowerFinalize", 0.01);
+			SetData("followerSearchTimer", followerSearchTimer);
+			
+			// Don't need to keep creating timers. One replacement is enough.
+			fastFollowerTimer = true;
+			SetData("fastFollowerTimer", fastFollowerTimer);
+		}
+		
+		// If this is our first candidate, accept them.
+		if (followTarget < 1)
+		{
+			followTarget = candidateId;
+			return;
+		}
+		
+		// Otherwise, figure out which of the two is closer to the fairy.
+		// TODO: implement
+	}
+}
+
+class J4FFairyIntermediary extends SqRootScript
+{
+	// Given the way the NewDark squirrel documentation is written, feels like
+	// everything is slow and expensive. So let's preemptively limit our use of
+	// GetData() by giving us a spot to store that info.
+	// Object IDs
+	myControllerId = 0;
+	
+	function OnBeginScript()
+	{
+		if (IsDataSet("myControllerId"))
+		{
+			myControllerId = GetData("myControllerId");
+		}
+	}
+	
+	function OnControllerHello()
+	{
+		// Our controller has finished creating us, and we can keep track of them
+		// for future reference.
+		myControllerId = message().data;
+		SetData("myControllerId", myControllerId);
+	}
+	
+	function OnJ4FFryFllwStimStimulus()
+	{
+		// We only care about positive values here.
+		if (message().intensity <= 0)
+			return;
+		
+		// message() for a stimulus includes a source and a sensor property.
+		// These are LinkIDs, not ObjIDs. So to get the objects themselves,
+		// we need to turn the numeric link ID into an sLink object. Now
+		// we can access the .source and .dest properties of the link.
+		local link = sLink();
+		LinkTools.LinkGet(message().source, link);
+		
+		// Pass the potential target on to my controller.
+		SendMessage(myControllerId, "FollowCandidate", link.source);
 	}
 }
 
