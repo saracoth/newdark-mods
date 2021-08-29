@@ -102,6 +102,23 @@ For curious modders, I'd rank these mods from least complex to most complex, in 
 1. Ghost Mode
 2. Minion Summoner
 3. Radar
+4. Fairy Light
+
+### Fairy Light
+
+Required files:
+* dbmods\just4fun_glowfairy.dml
+* sq_scripts\just4fun_glowfairy.nut
+
+A controllable, movable light. Probably as close as Thief gets to a flashlight mod, considering the way the lighting engine works and the limitations related to that.
+
+When this mod is installed, a Tinker's Bell item will be added to your inventory in every mission. Using it toggles your light fairy from waiting in place to following your gaze. The fairy will fly through walls to accomplish this, and will move faster when it needs to cross greater distances. NPCs shouldn't notice or care about the fairy any more than they would your average rat. They won't respond to the bell's ringing sound, either.
+
+The further away the fairy, the bigger its glow! However, due to engine limitations, the radius never grows beyond a 30-foot radius or so. The fairy also prefers to stick to walls, floors, and ceilings. If you stare at a door, the fairy will probably light up the room on the other side rather than the door itself. Maybe it just wants to help you find secret doors?
+
+You can also "double-click" the Tinker's Bell (use it twice in quick succession) to make the fairy tail someone nearby. This can be any creature, including the player. They will stick by their target until you use the bell to make the fairy follow your gaze or wait in place. If they fail to find a close enough creature, the fairy will give up and wait in place.
+
+*Modder's Notes*: This mod makes heavy use of squirrel scripting and has quite a few moving parts. Detecting a creature to follow was an interesting challenge, since in NewDark 1.27 I could find no way to pick suitable targets with squirrel scripting. I used a combination of script messages and the act/react system for that. As for the fairy's motion, it's basically like an elevator or other movable terrain object. Some juggling is required to keep movement responsive, but the end result looks butter smooth. Teleporting an object directly from place to place could either look choppy (infrequent updates) or risk performance issues (super frequent updates). Switching from a PortalRaycast() to an ObjRaycast() could also worsen performance in some cases, but it would allow your gaze to look at a door instead of sending the fairy to the other side of it.
 
 ### Ghost Mode
 
