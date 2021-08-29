@@ -8,8 +8,7 @@ class J4FSpawnLootPolo extends SqRootScript
 		// These are LinkIDs, not ObjIDs. So to get the objects themselves,
 		// we need to turn the numeric link ID into an sLink object. Now
 		// we can access the .source and .dest properties of the link.
-		local link = sLink();
-		LinkTools.LinkGet(message().source, link);
+		local link = sLink(message().source);
 		
 		// Several example .nut scripts do something similar. This should be
 		// slightly more efficient than creating two zero vectors later.
