@@ -280,11 +280,26 @@ class J4FFairyController extends SqRootScript
 				}
 				else if (followTarget > 0)
 				{
-					// Following a specific ingame creature.
-					// TODO: adjust position to fly above them?
-					// TODO: detect deleted, invalid, and dead targets; halt
+					// Following a specific ingame creature. We think.
 					
-					targetPos = Object.Position(followTarget);
+					// Does it still exist?
+					if (!Object.Exists(followTarget))
+					{
+						// Dang. It's gone now. Thankfully the default behavior is to halt.
+						
+						// Let's make it official: we're in halt mode.
+						followTarget = 0;
+						SetData("followTarget", followTarget);
+						
+						// New status indicator.
+						Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lost: \"Tinker's Bell (Lost)\"");
+					}
+					// NOTE: If we wanted, we could also check whether they're alive or not.
+					else
+					{
+						// TODO: adjust position to fly above them? behind? both?
+						targetPos = Object.Position(followTarget);
+					}
 				}
 				
 				// Teleport() with only three parameters has no frame-of-reference
@@ -384,12 +399,12 @@ class J4FFairyController extends SqRootScript
 				if (followTarget == playerId)
 				{
 					// Fairy decided the player was their best match.
-					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Loves You)\"");
+					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_love: \"Tinker's Bell (Loves You)\"");
 				}
 				else if (followTarget > 0)
 				{
 					// Fairy decided to stick around some other creature.
-					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Following)\"");
+					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_tail: \"Tinker's Bell (Fairy Tailing)\"");
 				}
 				else
 				{
