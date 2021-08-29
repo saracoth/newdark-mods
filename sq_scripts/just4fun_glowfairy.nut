@@ -141,6 +141,13 @@ class J4FFairyController extends SqRootScript
 		// Give the fairy a reference to us.
 		SendMessage(fairyId, "ControllerHello", self);
 		
+		// Attach a sound. We could possibly do this kind of thing
+		// with object properties if we were using schema files, but
+		// in our case we're using raw sound file references.
+		// TODO: do we really want this? likely TG+ or TG-only :(
+		// TODO: doesn't work unless fairy is in a room at the time
+		//Sound.PlayAtObject(fairyId, "humair", fairyId, eSoundSpecial.kSoundLoop);
+		
 		// Begin controlling fairy motion.
 		SetOneShotTimer("J4FFairyMotion", 0.25);
 	}
@@ -416,6 +423,16 @@ class J4FFairyController extends SqRootScript
 				doubleClickTimer = 0;
 				SetData("doubleClickTimer", doubleClickTimer);
 				
+				// Either of these will play the raw sound file. However, they will
+				// lack any volume or other adjustments applied in the sound schemas.
+				//Sound.PlayAmbient(self, "belldinn.wav");
+				//Sound.PlayAmbient(self, "belldinn");
+				// Sound schemas are defined in the game's .sch files. They can include
+				// properties like the volume, or a list of several sounds to choose
+				// from when triggered, for variety's sake. In this case, the schema
+				// is quieter than the raw sound, but has exactly one sound file.
+				Sound.PlaySchemaAmbient(self, "dinner_bell");
+				
 				// If we're not following the player's gaze, then start doing so.
 				if (followTarget >= 0)
 				{
@@ -457,16 +474,31 @@ class J4FFairyController extends SqRootScript
 				{
 					// Fairy decided the player was their best match.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_love: \"Tinker's Bell (Loves You)\"");
+					
+					// This plays a specific sound file by name. We could also look into
+					// using the pluck_harp sound schema, which has more control over the
+					// volume level and selects from among three different sounds.
+					Sound.PlayAmbient(fairyId, "harp2");
 				}
 				else if (followTarget > 0)
 				{
 					// Fairy decided to stick around some other creature.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_tail: \"Tinker's Bell (Fairy Tailing)\"");
+					
+					// This plays a specific sound file by name. We could also look into
+					// using the pluck_harp sound schema, which has more control over the
+					// volume level and selects from among three different sounds.
+					Sound.PlayAmbient(fairyId, "harp2");
 				}
 				else
 				{
 					// Fairy was put into halt mode for the search, and there it will stay.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Lonely)\"");
+					
+					// This plays a specific sound file by name. We could also look into
+					// using the pluck_harp sound schema, which has more control over the
+					// volume level and selects from among three different sounds.
+					Sound.PlayAmbient(fairyId, "harp3");
 				}
 				
 				break;
@@ -525,6 +557,9 @@ class J4FFairyController extends SqRootScript
 		}
 		
 		// Otherwise, we need to kick off the process.
+		
+		Sound.PlaySchemaAmbient(self, "dinner_bell");
+		
 		// Allow normal fairy stim values.
 		Property.SetSimple(fairyId, "arSrcScale", 1.0);
 		
