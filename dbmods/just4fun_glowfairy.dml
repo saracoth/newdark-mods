@@ -241,6 +241,9 @@ CreateArch "FireFX" "J4FFairyBody"
 	// TODO: need to update the dynamic self-lit radius code as well
 	+ObjProp "SelfLitRad" = 12.0
 	
+	// Required in Thief 1/Gold, where FireFX doesn't specify this model for us.
+	+ObjProp "ModelName" = "FX_Particle"
+	
 	// SFX->Particle Launch Info
 	+ObjProp "PGLaunchInfo"
 	{
@@ -320,6 +323,9 @@ CreateArch "FireFX" "J4FFairyBody"
 
 CreateArch "FireFX" "J4FFairyTail"
 {
+	// Required in Thief 1/Gold, where FireFX doesn't specify this model for us.
+	+ObjProp "ModelName" = "FX_Particle"
+	
 	// SFX->Particle Launch Info
 	+ObjProp "PGLaunchInfo"
 	{
