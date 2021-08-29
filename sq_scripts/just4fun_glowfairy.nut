@@ -297,7 +297,31 @@ class J4FFairyController extends SqRootScript
 					// NOTE: If we wanted, we could also check whether they're alive or not.
 					else
 					{
-						// TODO: adjust position to fly above them? behind? both?
+						// I'm not sure how we can detect the target's dimensions. Without
+						// that, we can't necessarily position the fairy intelligently.
+						// Going a little behind center is good for humans, but could still
+						// be stuck inside a burrick. Placing it at a certain height is
+						// okay with humans, maybe, but if you assume that might extra
+						// height the fairy wouldn't properly follow a tiny spider through
+						// a tiny tunnel.
+						//
+						// A possible workaround is to perform a raycast from the target to
+						// the floor when we first pick them. In theory, that could give us
+						// their midpoint. Then again, that breaks for elemental creatures,
+						// or any other creature with a Z-offset. And if we use a portal
+						// raycast, we get wildly inaccurate results for AI standing on an
+						// elevator. An ObjRaycast() might help, but remember that we also
+						// don't know the other object's dimensions. We can't necessarily
+						// repeat the same process even if we wanted to, because a lift
+						// can be very high above the ground, or right next to it. If we
+						// don't know the difference, we could well assume a platform
+						// 20 units off the ground is an object 40 units high or something.
+						//
+						// In short, the best available options require a lot of effort
+						// and still don't cover everything. We're better off waiting to see
+						// if we can get access to an object's dimensions in some way in the
+						// future.
+						
 						targetPos = Object.Position(followTarget);
 					}
 				}

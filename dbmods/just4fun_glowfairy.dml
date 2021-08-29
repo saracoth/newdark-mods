@@ -2,18 +2,13 @@ DML1
 
 /*
 TODO: Make it Pretty:
-* What does the fairy look like?
+* What does the fairy look like? How about some particle effects?
 * Can we create a bobbing appearance? Ie, make the NPC invisible, constantly
 	rotating on all three axis, and attach the visible/glowy part to it?
 	The base implementation seems to have some funky wobbly movement as a
 	side effect, which is nice. Also look into the Thief2 wisp object(s).
 * Dingling bell sound when interacting with fairy controller.
-* Ambient sound for the fairy itself.
-* Is it remotely possible that while following an NPC, the fairy behavior
-	can change? Maybe it douses its light and spews a colored particle
-	effect based on stuff like alert level? Or it keeps the light, but
-	colors it?
-* Make the light radius bigger when farther from the player?
+* Ambient sound for the fairy itself. Maybe a different one when following.
 */
 
 // Let's limit this to Thief-like games. Note that it's not necessarily
@@ -131,7 +126,6 @@ CreateArch "Tulz" "J4FFairy"
 {
 	+ObjProp "MovingTerrain" = true
 	
-	// TODO: better model, or just attach a particle effect and turn off render
 	+ObjProp "ModelName" = skull
 	
 	+ObjProp "SelfLit" = 50
