@@ -94,7 +94,7 @@ class J4FFairyController extends SqRootScript
 		if (playerId != 0)
 			return;
 		
-		// Get a reference to our containing Avatar, so we can follow their gaze.
+		// Get a reference to our containing Avatar, so we can track distance/etc.
 		local containerId = message().container;
 		if (!Object.InheritsFrom(containerId, "Avatar"))
 			return;
@@ -117,7 +117,7 @@ class J4FFairyController extends SqRootScript
 		Object.EndCreate(homeId);
 		SetData("homeId", homeId);
 		
-		// Now we can the second marker.
+		// And a second marker as well.
 		markerId = Object.BeginCreate("TerrPt");
 		Object.Teleport(markerId, farAway, zeros, playerId);
 		Object.EndCreate(markerId);
@@ -136,6 +136,13 @@ class J4FFairyController extends SqRootScript
 		markerToHomeId = markerToHome;
 		SetData("homeToMarkerId", homeToMarker);
 		homeToMarkerId = homeToMarker;
+		
+		// TODO: Consider delaying the creation of the fairy until first
+		// frob? There are some features, like giving the fairy an
+		// ambient sound, which may not work unless the fairy is spawned
+		// within a room or within the level boundaries. It also avoids
+		// weird cases like the player climbing up a tower they start in
+		// only to find the fairy hanging out somewhere for no reason.
 		
 		// Now create the fairy and link it to the home marker.
 		fairyId = Object.BeginCreate("J4FFairy");
