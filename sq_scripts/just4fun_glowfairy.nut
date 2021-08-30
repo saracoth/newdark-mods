@@ -377,7 +377,18 @@ class J4FFairyController extends SqRootScript
 				// Apply new light radius.
 				Property.SetSimple(fairyLightId, "SelfLitRad", newRadius);
 				
-				// TODO: would increasing brightness also help at long distances? What's the max?
+				// NOTE: Increasing brightness may help slightly at long distances,
+				// but above a certain point it's like staring into the sun, and the
+				// light still fades at a fairly decent pace after that. The overall
+				// effect was unsatisfying. Using Anim Light settings to influence
+				// dynamic lights is a thing now as well, but I didn't see where
+				// "cheating the system" via radius and inner radius had much effect.
+				// For example, it might have been worthwhile to set a large radius,
+				// along with a reasonable inner radius. The result might have been
+				// a larger illuminated area at the expense of a sudden drop-off
+				// at the fringes. For more background on light properties, check
+				// The Watcher's information in this thread:
+				// https://www.ttlg.com/forums/showthread.php?t=140345 
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyMotion", 0.25);
