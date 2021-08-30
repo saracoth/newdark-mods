@@ -34,4 +34,4 @@ Which items are detected, if any, depends on which of the optional extras you in
 * dbmods\just4fun_radar_11_T2_containers.dml
 * sq_scripts\just4fun_radar_10_containerdar.nut
 
-*Modder's Notes*: This mod demonstrates creating new objects in the game world, positioned on top of arbitrary targets. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible. As a result, it lacks some features of the current mod.
+*Modder's Notes*: This mod demonstrates creating new objects in the game world, positioned on top of arbitrary targets. The loot radar is more complex than the others, because we're trying to avoid the unsafe approach of adding a script directly to the existing IsLoot metaproperty. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible. As a result, it lacks some features of the current mod.
