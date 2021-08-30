@@ -764,8 +764,7 @@ class J4FFairyIntermediary extends SqRootScript
 		// These are LinkIDs, not ObjIDs. So to get the objects themselves,
 		// we need to turn the numeric link ID into an sLink object. Now
 		// we can access the .source and .dest properties of the link.
-		local link = sLink();
-		LinkTools.LinkGet(message().source, link);
+		local link = sLink(message().source);
 		
 		// Pass the potential target on to my controller.
 		SendMessage(myControllerId, "FollowCandidate", link.source);
