@@ -402,8 +402,8 @@ class J4FFairyController extends SqRootScript
 				// is quieter than the raw sound, but has exactly one sound file.
 				Sound.PlaySchemaAmbient(self, "dinner_bell");
 				
-				// If we're not following the player's gaze, then start doing so.
-				if (followTarget >= 0)
+				// If we were halted or following the player, follow their gaze instead.
+				if (followTarget == 0 || followTarget == playerId)
 				{
 					followTarget = -1;
 					
@@ -415,7 +415,8 @@ class J4FFairyController extends SqRootScript
 				}
 				else
 				{
-					// If we were already following their gaze, we stop moving.
+					// If we were already following their gaze, or following some other
+					// NPC, stop moving.
 					followTarget = 0;
 					
 					// Update the controller item name for extra clarity.
