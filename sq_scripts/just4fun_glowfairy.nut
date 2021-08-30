@@ -20,6 +20,12 @@ class J4FFairyController extends SqRootScript
 	// userparams() data
 	maxRange = 100;
 	doubleClickTime = 0.5;
+	minRadius = 12.0;
+	minTailRadius = 0.5;
+	maxRadius = 100.0;
+	minSpeed = 5.0;
+	targetJourneyTime = 0.75;
+	safetyUnits = 2;
 	
 	// Other variables. Note that we have to track them with GetData/SaveData
 	// as well, or we'll lose them when reloading a save game.
@@ -92,6 +98,12 @@ class J4FFairyController extends SqRootScript
 		
 		maxRange = userparams().MaxRange;
 		doubleClickTime = userparams().DoubleClickTime;
+		minRadius = userparams().MinRadius;
+		minTailRadius = userparams().MinTailRadius;
+		maxRadius = userparams().MaxRadius;
+		minSpeed = userparams().MinSpeed;
+		targetJourneyTime = userparams().TargetJourneyTime;
+		safetyUnits = userparams().SafetyUnits;
 	}
 	
 	function OnContained()
@@ -222,7 +234,7 @@ class J4FFairyController extends SqRootScript
 						// units backwards could target a location behind the camera.
 						// So let's cam the shortened distance to non-negative values
 						// to prevent that.
-						if (impactDistance <= 2)
+						if (impactDistance <= safetyUnits)
 						{
 							// Center on the camera instead of behind it.
 							targetPos = camPos;
@@ -231,7 +243,7 @@ class J4FFairyController extends SqRootScript
 						{
 							// Here's that directional vector again, doing the same
 							// job as before but with a smaller distance.
-							targetPos = (direction * (impactDistance - 2)) + camPos;
+							targetPos = (direction * (impactDistance - safetyUnits)) + camPos;
 						}
 					}
 					else
@@ -320,11 +332,11 @@ class J4FFairyController extends SqRootScript
 				// Note, however, that we're updating this speed over and over again
 				// throughout its journey. So the actual journey will take more than
 				// that time, because we keep slowing it down along the way.
-				local fairySpeed = fairyDistance / 0.75;
+				local fairySpeed = fairyDistance / targetJourneyTime;
 				// Maintain a minimum speed
-				if (fairySpeed < 5.0)
+				if (fairySpeed < minSpeed)
 				{
-					fairySpeed = 5.0;
+					fairySpeed = minSpeed;
 				}
 				// Enforce a maximum speed to reduce overshooting targets?
 				//else if (fairySpeed > 1000.0)
@@ -358,20 +370,21 @@ class J4FFairyController extends SqRootScript
 				// Start with 90% of the distance to the player.
 				local newRadius = playerDistance * 0.9;
 				// Then, if coming up a few units short of the player is smaller, use that.
-				if (newRadius > (playerDistance - 10))
+				if (newRadius > (playerDistance - 5))
 				{
-					newRadius = playerDistance - 10;
+					newRadius = playerDistance - 5;
 				}
 				// Enforce min/max values.
-				if (newRadius < 12.0)
+				local effectiveMinRadius = (followTarget > 0 && followTarget != playerId) ? minTailRadius : minRadius;
+				if (newRadius < effectiveMinRadius)
 				{
-					newRadius = 12.0;
+					newRadius = effectiveMinRadius;
 				}
 				// NOTE: As of NewDark 1.27, the engine itself still imposes a limit of
 				// a 30 unit radius for dynamic lights.
-				else if (newRadius > 100.0)
+				else if (newRadius > maxRadius)
 				{
-					newRadius = 100.0;
+					newRadius = maxRadius;
 				}
 				
 				// Apply new light radius.
@@ -506,7 +519,7 @@ class J4FFairyController extends SqRootScript
 		// On first use, initialize the fairy.
 		if (fairyId == 0)
 		{
-			local justAhead = vector(5, 0, 0);
+			local justAhead = vector(5, 0, 1);
 			local zeros = vector(0);
 			
 			// For all the objects, rather than use Object.Create() directly,
@@ -531,8 +544,8 @@ class J4FFairyController extends SqRootScript
 			// The default data for these kinds of links is 0 speed, no pause,
 			// and allow nice curving paths. We need to change the "Speed"
 			// property from its default value.
-			LinkTools.LinkSetData(homeToMarker, "Speed", 5.0);
-			LinkTools.LinkSetData(markerToHome, "Speed", 5.0);
+			LinkTools.LinkSetData(homeToMarker, "Speed", minSpeed);
+			LinkTools.LinkSetData(markerToHome, "Speed", minSpeed);
 			
 			SetData("markerToHomeId", markerToHome);
 			markerToHomeId = markerToHome;
