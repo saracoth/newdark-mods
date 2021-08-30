@@ -330,6 +330,9 @@ class J4FFairyController extends SqRootScript
 						
 						// New status indicator.
 						Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lost: \"Tinker's Bell (Lost)\"");
+						
+						// Purple, in the default thief particle color palette.
+						Property.Set(fairyLightId, "ParticleGroup", "2nd color", 156);
 					}
 					// NOTE: If we wanted, we could also check whether they're alive or not.
 					else
@@ -470,6 +473,9 @@ class J4FFairyController extends SqRootScript
 					
 					// Update the controller item name for extra clarity.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_gaze: \"Tinker's Bell (Gazing)\"");
+					
+					// Fairy default. Light blue, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 217);
 				}
 				else
 				{
@@ -478,6 +484,9 @@ class J4FFairyController extends SqRootScript
 					
 					// Update the controller item name for extra clarity.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
+					
+					// Relatively light orange, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 122);
 				}
 				
 				// In either case, we want to remember the follow target between
@@ -505,6 +514,9 @@ class J4FFairyController extends SqRootScript
 					// Fairy decided the player was their best match.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_love: \"Tinker's Bell (Loves You)\"");
 					
+					// Pink, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 254);
+					
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
 					// volume level and selects from among three different sounds.
@@ -515,6 +527,9 @@ class J4FFairyController extends SqRootScript
 					// Fairy decided to stick around some other creature.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_tail: \"Tinker's Bell (Fairy Tailing)\"");
 					
+					// Light yellow, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 124);
+					
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
 					// volume level and selects from among three different sounds.
@@ -524,6 +539,9 @@ class J4FFairyController extends SqRootScript
 				{
 					// Fairy was put into halt mode for the search, and there it will stay.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Lonely)\"");
+					
+					// Purple, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 156);
 					
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
@@ -595,6 +613,9 @@ class J4FFairyController extends SqRootScript
 		
 		// Let the player know what we're doing.
 		Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_search: \"Tinker's Bell (Searching)\"");
+		
+		// Light green, in the default thief particle color palette.
+		Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
 		
 		// Now we wait. But what does waiting mean, exactly? For starters, the
 		// fairy is pulsing its search once per X seconds. So we have to wait at
