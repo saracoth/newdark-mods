@@ -261,8 +261,8 @@ class J4FFairyController extends SqRootScript
 						// New status indicator.
 						Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lost: \"Tinker's Bell (Lost)\"");
 						
-						// Light green, in the default thief particle color palette.
-						Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
+						// Relatively light orange, in the default thief particle color palette.
+						Property.Set(fairyLightId, "ParticleGroup", "2nd color", 122);
 					}
 					// NOTE: If we wanted, we could also check whether they're alive or not.
 					else
@@ -422,8 +422,8 @@ class J4FFairyController extends SqRootScript
 					// Update the controller item name for extra clarity.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
 					
-					// Relatively light orange, in the default thief particle color palette.
-					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 122);
+					// Light green, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
 				}
 				
 				// In either case, we want to remember the follow target between
@@ -477,8 +477,8 @@ class J4FFairyController extends SqRootScript
 					// Fairy was put into halt mode for the search, and there it will stay.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Lonely)\"");
 					
-					// Light green, in the default thief particle color palette.
-					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
+					// Relatively light orange, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 122);
 					
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
@@ -590,8 +590,8 @@ class J4FFairyController extends SqRootScript
 			// Update the controller item name for extra clarity.
 			Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
 			
-			// Relatively light orange, in the default thief particle color palette.
-			Property.Set(fairyLightId, "ParticleGroup", "2nd color", 122);
+			// Light green, in the default thief particle color palette.
+			Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
 			
 			// Begin controlling fairy motion.
 			SetOneShotTimer("J4FFairyMotion", 0.25);
