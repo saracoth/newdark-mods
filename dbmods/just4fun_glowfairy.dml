@@ -113,7 +113,10 @@ CreateArch "MetaProperty" "J4FPlayerFairySetup"
 
 CreateArch "Tulz" "J4FFairy"
 {
-	+ObjProp "MovingTerrain" = true
+	+ObjProp "MovingTerrain"
+	{
+		"Active" TRUE
+	}
 	
 	// Choose a long or stick-like model so we can attach particles to one end
 	// and rotate the whole works. This is similar to what's done in Thief 2's

@@ -39,6 +39,12 @@ class J4FFairyController extends SqRootScript
 	
 	function OnBeginScript()
 	{
+		// We'll use this to fetch all relevant properties once, so that
+		// we can minimize use of GetData() and userparams() for performance
+		// reasons. Probably not a noticeable savings, but lots of example
+		// nut scripts that come with NewDark make little optimizations
+		// like that as well.
+		
 		if (IsDataSet("playerId"))
 		{
 			playerId = GetData("playerId");
@@ -96,90 +102,14 @@ class J4FFairyController extends SqRootScript
 		
 		// Get a reference to our containing Avatar, so we can track distance/etc.
 		local containerId = message().container;
+		// If it's not an Avatar, that's because a map maper put the control item
+		// in a chest or something like that. We'll have to wait until the player
+		// picks it up later instead.
 		if (!Object.InheritsFrom(containerId, "Avatar"))
 			return;
 		
 		SetData("playerId", containerId);
 		playerId = containerId;
-		
-		// Spawn stuff well above the player to avoid their light giving
-		// away our position at the start of a mission.
-		local farAway = vector(0, 0, 200);
-		local zeros = vector(0);
-		
-		// For all the objects, rather than use Object.Create() directly,
-		// we will use BeginCreate() and EndCreate() to allow us to set up
-		// any necessary properties before the creation process finishes.
-		
-		// Create the home marker.
-		homeId = Object.BeginCreate("TerrPt");
-		Object.Teleport(homeId, farAway, zeros, playerId);
-		Object.EndCreate(homeId);
-		SetData("homeId", homeId);
-		
-		// And a second marker as well.
-		markerId = Object.BeginCreate("TerrPt");
-		Object.Teleport(markerId, farAway, zeros, playerId);
-		Object.EndCreate(markerId);
-		SetData("markerId", markerId);
-		
-		// With both markers on the map, we can create a loop between them.
-		local homeToMarker = Link.Create("TPath", homeId, markerId);
-		local markerToHome = Link.Create("TPath", markerId, homeId);
-		// The default data for these kinds of links is 0 speed, no pause,
-		// and allow nice curving paths. We need to change the "Speed"
-		// property from its default value.
-		LinkTools.LinkSetData(homeToMarker, "Speed", 5.0);
-		LinkTools.LinkSetData(markerToHome, "Speed", 5.0);
-		
-		SetData("markerToHomeId", markerToHome);
-		markerToHomeId = markerToHome;
-		SetData("homeToMarkerId", homeToMarker);
-		homeToMarkerId = homeToMarker;
-		
-		// TODO: Consider delaying the creation of the fairy until first
-		// frob? There are some features, like giving the fairy an
-		// ambient sound, which may not work unless the fairy is spawned
-		// within a room or within the level boundaries. It also avoids
-		// weird cases like the player climbing up a tower they start in
-		// only to find the fairy hanging out somewhere for no reason.
-		
-		// Now create the fairy and link it to the home marker.
-		fairyId = Object.BeginCreate("J4FFairy");
-		Object.Teleport(fairyId, farAway, zeros, playerId);
-		local fairyToHome = Link.Create("TPathInit", fairyId, homeId);
-		Object.EndCreate(fairyId);
-		SetData("fairyId", fairyId);
-		
-		// The game should have created our particle attachments. We'll
-		// be changing some properties of the dynamic light portion of
-		// the fairy later, so grab a reference now to simplify things
-		// later.
-		
-		// Passing a 0 for the second parameter seems to indicate we
-		// either don't know or don't care. Either way, it gave us the
-		// link we needed, despite not yet knowing the fairy body ObjID.
-		foreach (testLinkId in Link.GetAll("ParticleAttachment", 0, fairyId))
-		{
-			local testLink = sLink(testLinkId);
-			
-			// Is this a link to the body?
-			if (Object.GetName(Object.Archetype(testLink.source)) == "J4FFairyBody")
-			{
-				// It is. Keep a reference to the body.
-				fairyLightId = testLink.source;
-				SetData("fairyLightId", fairyLightId);
-				
-				// We're done searching through links and can exit the loop.
-				break;
-			}
-		}
-		
-		// Give the fairy a reference to us.
-		SendMessage(fairyId, "ControllerHello", self);
-		
-		// Begin controlling fairy motion.
-		SetOneShotTimer("J4FFairyMotion", 0.25);
 	}
 	
 	function OnTimer()
@@ -407,8 +337,8 @@ class J4FFairyController extends SqRootScript
 				// until it reaches its destination.
 				//
 				// Toggling this also allows it to see the changed speed values above.
-				Property.SetSimple(fairyId, "MovingTerrain", false);
-				Property.SetSimple(fairyId, "MovingTerrain", true);
+				Property.Set(fairyId, "MovingTerrain", "Active", false);
+				Property.Set(fairyId, "MovingTerrain", "Active", true);
 				
 				// Make the fairy glow brighter (really, just increase its radius) the
 				// farther from the player it is. That makes its effect more useful at
@@ -555,6 +485,103 @@ class J4FFairyController extends SqRootScript
 	
 	function OnFrobInvEnd()
 	{
+		// On first use, initialize the fairy.
+		if (fairyId == 0)
+		{
+			local justAhead = vector(5, 0, 0);
+			local zeros = vector(0);
+			
+			// For all the objects, rather than use Object.Create() directly,
+			// we will use BeginCreate() and EndCreate() to allow us to set up
+			// any necessary properties before the creation process finishes.
+			
+			// Create the home marker.
+			homeId = Object.BeginCreate("TerrPt");
+			Object.Teleport(homeId, justAhead, zeros, playerId);
+			Object.EndCreate(homeId);
+			SetData("homeId", homeId);
+			
+			// And a second marker as well.
+			markerId = Object.BeginCreate("TerrPt");
+			Object.Teleport(markerId, justAhead, zeros, playerId);
+			Object.EndCreate(markerId);
+			SetData("markerId", markerId);
+			
+			// With both markers on the map, we can create a loop between them.
+			local homeToMarker = Link.Create("TPath", homeId, markerId);
+			local markerToHome = Link.Create("TPath", markerId, homeId);
+			// The default data for these kinds of links is 0 speed, no pause,
+			// and allow nice curving paths. We need to change the "Speed"
+			// property from its default value.
+			LinkTools.LinkSetData(homeToMarker, "Speed", 5.0);
+			LinkTools.LinkSetData(markerToHome, "Speed", 5.0);
+			
+			SetData("markerToHomeId", markerToHome);
+			markerToHomeId = markerToHome;
+			SetData("homeToMarkerId", homeToMarker);
+			homeToMarkerId = homeToMarker;
+			
+			// TODO: Additional magical puff to imply a summoning or
+			// teleportation effect?
+			
+			// Now create the fairy and link it to the home marker.
+			fairyId = Object.BeginCreate("J4FFairy");
+			Object.Teleport(fairyId, justAhead, zeros, playerId);
+			local fairyToHome = Link.Create("TPathInit", fairyId, homeId);
+			Object.EndCreate(fairyId);
+			SetData("fairyId", fairyId);
+			
+			// Toggling this now avoids a jarring teleport to the
+			// markers after we first teleport them. Doing this here
+			// seems to allow the engine to do its one-time snap to
+			// the TPathInit link now, when the fairy and its markers
+			// are all in the same spot.
+			Property.Set(fairyId, "MovingTerrain", "Active", false);
+			Property.Set(fairyId, "MovingTerrain", "Active", true);
+			
+			// The game should have created our particle attachments. We'll
+			// be changing some properties of the dynamic light portion of
+			// the fairy later, so grab a reference now to simplify things
+			// later.
+			
+			// Passing a 0 for the second parameter seems to indicate we
+			// either don't know or don't care. Either way, it gave us the
+			// link we needed, despite not yet knowing the fairy body ObjID.
+			foreach (testLinkId in Link.GetAll("ParticleAttachment", 0, fairyId))
+			{
+				local testLink = sLink(testLinkId);
+				
+				// Is this a link to the body?
+				if (Object.GetName(Object.Archetype(testLink.source)) == "J4FFairyBody")
+				{
+					// It is. Keep a reference to the body.
+					fairyLightId = testLink.source;
+					SetData("fairyLightId", fairyLightId);
+					
+					// We're done searching through links and can exit the loop.
+					break;
+				}
+			}
+			
+			// Give the fairy a reference to us.
+			SendMessage(fairyId, "ControllerHello", self);
+			
+			// Default mode is staying still. The frob will probably change
+			// it to gaze-following in a few moments, unless they're double-
+			// clicking and the fairy searches for a follow target instead.
+			followTarget = 0;
+			SetData("followTarget", followTarget);
+			
+			// Update the controller item name for extra clarity.
+			Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
+			
+			// Relatively light orange, in the default thief particle color palette.
+			Property.Set(fairyLightId, "ParticleGroup", "2nd color", 122);
+			
+			// Begin controlling fairy motion.
+			SetOneShotTimer("J4FFairyMotion", 0.25);
+		}
+		
 		// We can't necessarily take immediate action, because we need to detect
 		// whether this is a click or a double click (frob or double frob).
 		
