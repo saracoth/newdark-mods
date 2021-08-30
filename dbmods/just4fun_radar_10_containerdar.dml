@@ -12,18 +12,6 @@ FINGERPRINT
 
 /*
 ================================================================================
-== New Stims ===================================================================
-================================================================================
-*/
-
-// Interesting note, but the "stimulate object" receptron effect is limited to
-// stim names of 15 characters or less. Otherwise, I might call this
-// J4FRadarContainerPongStim.
-
-CreateArch "Stimulus" "J4FR_ContnrStim"
-
-/*
-================================================================================
 == Polo! =======================================================================
 ================================================================================
 */
@@ -80,48 +68,9 @@ CreateArch "J4FRadarPuffPolo" "J4FRadarPuffContainerPolo"
 */
 
 // When these items receive a J4FRadarPingStim, they'll acknowledge it by
-// sending a pong stim right back where it came from (the Marco puff). Then that
-// marco puff will use scripts to spawn a visible puff effect.
+// sending spawning a visible puff effect.
 
 CreateArch "MetaProperty" "J4FRadarContainerPingable"
-
-++Receptron "J4FRadarContainerPingable" "J4FRadarPingStim"
-{
-	Min None
-	Max None
-	
-	Target Source
-	Agent Me
-
-	Effect "stimulate"
-	{
-		"Stimulus" "J4FR_ContnrStim"
-		"Multiply By" 0.00
-		"Then Add" 1.00
-	}
-}
-
-/*
-================================================================================
-== What Responds to Pings ======================================================
-================================================================================
-*/
-
-// Given the different ways Thief 1/Gold and Thief 2 organize their containers,
-// we don't have any universal things to set up here. Refer to the game-specific
-// files instead.
-
-/*
-================================================================================
-== Attach Script to Marco Puff =================================================
-================================================================================
-*/
-
-// Both to work around the limited number of scripts per archetype, and to
-// avoid risk of sub-mods clashing with one another, we'll attach our new script
-// to the J4FRadarPuffMarco effect through a metaproperty.
-
-CreateArch "MetaProperty" "J4FContainerMarco"
 {
 	+ObjProp "Scripts"
 	{
@@ -130,7 +79,7 @@ CreateArch "MetaProperty" "J4FContainerMarco"
 	}
 }
 
-++Receptron "J4FContainerMarco" "J4FR_ContnrStim"
+++Receptron "J4FRadarContainerPingable" "J4FRadarPingStim"
 {
 	Min None
 	Max None
@@ -144,4 +93,12 @@ CreateArch "MetaProperty" "J4FContainerMarco"
 	}
 }
 
-+MetaProp "J4FRadarPuffMarco" "J4FContainerMarco"
+/*
+================================================================================
+== What Responds to Pings ======================================================
+================================================================================
+*/
+
+// Given the different ways Thief 1/Gold and Thief 2 organize their containers,
+// we don't have any universal things to set up here. Refer to the game-specific
+// files instead.

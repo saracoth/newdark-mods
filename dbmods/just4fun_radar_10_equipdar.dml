@@ -12,18 +12,6 @@ FINGERPRINT
 
 /*
 ================================================================================
-== New Stims ===================================================================
-================================================================================
-*/
-
-// Interesting note, but the "stimulate object" receptron effect is limited to
-// stim names of 15 characters or less. Otherwise, I might call this
-// J4FRadarEquipPongStim.
-
-CreateArch "Stimulus" "J4FR_EquipStim"
-
-/*
-================================================================================
 == Polo! =======================================================================
 ================================================================================
 */
@@ -80,24 +68,28 @@ CreateArch "J4FRadarPuffPolo" "J4FRadarPuffEquipPolo"
 */
 
 // When these items receive a J4FRadarPingStim, they'll acknowledge it by
-// sending a pong stim right back where it came from (the Marco puff). Then that
-// marco puff will use scripts to spawn a visible puff effect.
+// using scripts to spawn a visible puff effect.
 
 CreateArch "MetaProperty" "J4FRadarEquipPingable"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FSpawnEquipPolo"
+		"Don't Inherit" FALSE
+	}
+}
 
 ++Receptron "J4FRadarEquipPingable" "J4FRadarPingStim"
 {
 	Min None
 	Max None
 	
-	Target Source
-	Agent Me
-
-	Effect "stimulate"
+	Target Me
+	Agent Source
+	
+	Effect "stim_script_msg"
 	{
-		"Stimulus" "J4FR_EquipStim"
-		"Multiply By" 0.00
-		"Then Add" 1.00
+		"Flags" "[None]"
 	}
 }
 
@@ -114,38 +106,3 @@ CreateArch "MetaProperty" "J4FRadarEquipPingable"
 +MetaProp "Grenadz" "J4FRadarEquipPingable"
 +MetaProp "Potions" "J4FRadarEquipPingable"
 +MetaProp "Crystal" "J4FRadarEquipPingable"
-
-/*
-================================================================================
-== Attach Script to Marco Puff =================================================
-================================================================================
-*/
-
-// Both to work around the limited number of scripts per archetype, and to
-// avoid risk of sub-mods clashing with one another, we'll attach our new script
-// to the J4FRadarPuffMarco effect through a metaproperty.
-
-CreateArch "MetaProperty" "J4FEquipMarco"
-{
-	+ObjProp "Scripts"
-	{
-		"Script 0" "J4FSpawnEquipPolo"
-		"Don't Inherit" FALSE
-	}
-}
-
-++Receptron "J4FEquipMarco" "J4FR_EquipStim"
-{
-	Min None
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
-}
-
-+MetaProp "J4FRadarPuffMarco" "J4FEquipMarco"
