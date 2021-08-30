@@ -521,9 +521,6 @@ class J4FFairyController extends SqRootScript
 			SetData("homeToMarkerId", homeToMarker);
 			homeToMarkerId = homeToMarker;
 			
-			// TODO: Additional magical puff to imply a summoning or
-			// teleportation effect?
-			
 			// Now create the fairy and link it to the home marker.
 			fairyId = Object.BeginCreate("J4FFairy");
 			Object.Teleport(fairyId, justAhead, zeros, playerId);
@@ -562,6 +559,17 @@ class J4FFairyController extends SqRootScript
 					break;
 				}
 			}
+			
+			// Additional magical puff to imply a summoning effect.
+			local telepoofId = Object.BeginCreate("MagicMissileHit");
+			Object.Teleport(telepoofId, zeros, zeros, fairyLightId);
+			Object.EndCreate(telepoofId);
+			
+			// Sound effect to go along with the summoning.
+			// This plays a specific sound file by name. We could also look into
+			// using the pluck_harp sound schema, which has more control over the
+			// volume level and selects from among three different sounds.
+			Sound.PlayAmbient(fairyId, "harp1");
 			
 			// Give the fairy a reference to us.
 			SendMessage(fairyId, "ControllerHello", self);
