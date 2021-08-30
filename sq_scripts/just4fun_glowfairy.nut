@@ -261,8 +261,8 @@ class J4FFairyController extends SqRootScript
 						// New status indicator.
 						Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lost: \"Tinker's Bell (Lost)\"");
 						
-						// Purple, in the default thief particle color palette.
-						Property.Set(fairyLightId, "ParticleGroup", "2nd color", 156);
+						// Light green, in the default thief particle color palette.
+						Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
 					}
 					// NOTE: If we wanted, we could also check whether they're alive or not.
 					else
@@ -470,8 +470,8 @@ class J4FFairyController extends SqRootScript
 					// Fairy was put into halt mode for the search, and there it will stay.
 					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_lonely: \"Tinker's Bell (Lonely)\"");
 					
-					// Purple, in the default thief particle color palette.
-					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 156);
+					// Light green, in the default thief particle color palette.
+					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
 					
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
