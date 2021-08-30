@@ -2,15 +2,15 @@
 
 When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to "ping" nearby items of interest. Can be useful in finding hidden things, or those pesky little coins.
 
-![Coins in a dry water fountain.](doc/img/Radar-Coins.png)
+![Coins in a dry water fountain.](img/Radar-Coins.png)
 
-![Particle effects emanating from the ground, a distant wall, and a nearby window.](doc/img/Radar-Puff.png)
+![Particle effects emanating from the ground, a distant wall, and a nearby window.](img/Radar-Puff.png)
 
 When an item is detected, a particle effect will explode out from it. Lag spikes can happen if there are lots and lots of items detected nearby.
 
 Which items are detected, if any, depends on which of the optional extras you install. If you install none, the radar is pretty useless. Install one or more extras based on the kinds of items you'd like to detect. Installing or removing these extras will require starting a new game, as with installing or removing the mod in general.
 
-**Required files** (see [installation instructions](doc/Installation and Removal.md)):
+**Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * dbmods\just4fun_radar_00_base.dml
 * sq_scripts\just4fun_radar_00_base.nut
 

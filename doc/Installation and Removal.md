@@ -1,6 +1,6 @@
 # Installation
 
-See also [Troubleshooting](doc/Troubleshooting.md) if mods aren't working after following these instructions.
+See also [Troubleshooting](Troubleshooting.md) if mods aren't working after following these instructions.
 
 ## Warnings
 

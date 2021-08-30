@@ -24,4 +24,4 @@ Next time you launch the game and start a new mission, you'll also have a dbmod.
 INFO: found file 'just4fun_radar_00_base.dml' in path 'C:\Games\Thief\usermods\dbmods\', loading... (40200)
 ```
 
-If you don't see similar lines in dbmod.log, then the game never even tried to load the mod files. Doublecheck your cam_mod.ini file to be sure it includes the necessary directories. Refer to the [installation instructions](doc/Installation and Removal.md) for details.
+If you don't see similar lines in dbmod.log, then the game never even tried to load the mod files. Doublecheck your cam_mod.ini file to be sure it includes the necessary directories. Refer to the [installation instructions](Installation%20and%20Removal.md) for details.

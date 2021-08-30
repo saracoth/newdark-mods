@@ -6,7 +6,7 @@ If you install the just4fun_summoner_modmod.dml in addition to the other files, 
 
 Minions have a time limit. About five seconds for the default shadow minion, and about thirty for the slower fire elemental version. Since minions don't follow the player and can clutter up the level, the limited duration helps keep them from getting in your way or distracting you.
 
-**Required files** (see [installation instructions](doc/Installation and Removal.md)):
+**Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * dbmods\just4fun_summoner.dml
 * sq_scripts\just4fun_summoner.nut
 
