@@ -6,11 +6,11 @@ Unless otherwise noted, each mod should work with both original missions and all
 
 ## Installation
 
-Refer to [Installation and Removal](doc/Installation and Removal.md) for details.
+Refer to [Installation and Removal](doc/Installation%20and%20Removal.md) for details.
 
 ## The Mods
 
-Each mod lists the files it requires, and possibly optional files you can include or skip. Be sure to put the dml files in the dbmods directory and the nut files in the sq_scripts directory. Refer to [installation instructions](doc/Installation and Removal.md) for more details.
+Each mod lists the files it requires, and possibly optional files you can include or skip. Be sure to put the dml files in the dbmods directory and the nut files in the sq_scripts directory. Refer to [installation instructions](doc/Installation%20and%20Removal.md) for more details.
 
 It is not necessary to install every mod, but you can if you'd like. Feel free to pick and choose any combination of mods you wish.
 
@@ -46,7 +46,7 @@ For more information or to install this mod, check out the [Radar](doc/Mod-Radar
 
 ## Notes to Modders
 
-Some advice, background, and reasoning behind certain decisions can be found in [Modder Notes](doc/Modder Notes.md).
+Some advice, background, and reasoning behind certain decisions can be found in [Modder Notes](doc/Modder%20Notes.md).
 
 ## Licensing
 
