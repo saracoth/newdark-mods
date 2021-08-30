@@ -41,7 +41,7 @@ class J4FGhostModeToggle extends SqRootScript
 			// by hand instead.
 			Property.CopyFrom(frobber, "CollisionType", "Garrett");
 			// Same for the Fungus property.
-			Property.CopyFrom(frobber, "Fungus", "Garrett");
+			Property.SetSimple(frobber, "Fungus", false);
 		}
 		else
 		{
@@ -70,7 +70,7 @@ class J4FGhostModeToggle extends SqRootScript
 			// by hand instead.
 			Property.CopyFrom(frobber, "CollisionType", ghostMetaproperty);
 			// Same for the Fungus property.
-			Property.CopyFrom(frobber, "Fungus", ghostMetaproperty);
+			Property.SetSimple(frobber, "Fungus", true);
 		}
 	}
 }

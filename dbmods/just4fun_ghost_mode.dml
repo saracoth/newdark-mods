@@ -132,8 +132,3 @@ CreateArch "MetaProperty" "J4FGhostMode"
 		"Corner lean mod" 1059481190
 	}
 }
-
-// In my experience, adding the metaproperty wasn't enough to give the fungus
-// flag. And unless I explicitly give something the false flag, I couldn't
-// copy that property to disable it later.
-+ObjProp "Garrett" "Fungus" = false
