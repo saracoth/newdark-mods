@@ -271,9 +271,9 @@ class J4FFairyController extends SqRootScript
 						// that, we can't necessarily position the fairy intelligently.
 						// Going a little behind center is good for humans, but could still
 						// be stuck inside a burrick. Placing it at a certain height is
-						// okay with humans, maybe, but if you assume that might extra
-						// height the fairy wouldn't properly follow a tiny spider through
-						// a tiny tunnel.
+						// okay with humans maybe, but if we always put the fairy three feet
+						// above its target's center, it won't properly follow a tiny spider
+						// through a tiny tunnel.
 						//
 						// A possible workaround is to perform a raycast from the target to
 						// the floor when we first pick them. In theory, that could give us
@@ -287,10 +287,14 @@ class J4FFairyController extends SqRootScript
 						// don't know the difference, we could well assume a platform
 						// 20 units off the ground is an object 40 units high or something.
 						//
+						// On top of that, zombies could behave weirdly, since they may
+						// be lying on the ground when we do the initial check, resulting in
+						// a different result than if they were standing up.
+						//
 						// In short, the best available options require a lot of effort
 						// and still don't cover everything. We're better off waiting to see
 						// if we can get access to an object's dimensions in some way in the
-						// future.
+						// future. Some kind of bounding box, maybe.
 						
 						targetPos = Object.Position(followTarget);
 					}
@@ -334,7 +338,7 @@ class J4FFairyController extends SqRootScript
 				// Turning this property off and on again is enough for the engine to
 				// recalculate its path. Otherwise, even after we teleport the markers
 				// away, the fairy will continue moving towards its last-known location
-				// until it reaches its destination.
+				// until it reaches the old/out-of-date destination.
 				//
 				// Toggling this also allows it to see the changed speed values above.
 				Property.Set(fairyId, "MovingTerrain", "Active", false);
@@ -372,6 +376,8 @@ class J4FFairyController extends SqRootScript
 				
 				// Apply new light radius.
 				Property.SetSimple(fairyLightId, "SelfLitRad", newRadius);
+				
+				// TODO: would increasing brightness also help at long distances? What's the max?
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyMotion", 0.25);
