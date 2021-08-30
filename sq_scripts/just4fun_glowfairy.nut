@@ -686,8 +686,8 @@ class J4FFairyController extends SqRootScript
 		// not, we have to wait out the full second to be sure there weren't
 		// any creatures in range. That's because we can't know, when the
 		// user has double-clicked the controller, how long we'll have to
-		// wait for the next time. On average, the fairy will be only 0.5s
-		// away from the next burst, not 1s.
+		// wait for the next time. On average, this cuts the wait time in
+		// half.
 		if (!fastFollowerTimer)
 		{
 			if (followerSearchTimer != 0)
