@@ -99,6 +99,11 @@ CreateArch "MetaProperty" "J4FGhostMode"
 	// behavior by applying this metaproperty. But defining the none
 	// behavior here allows us to copy it with an add_prop (Set Property)
 	// receptron. Or, in our case, we'll do the same in a squirrel script.
+	// NOTE: The issue persists with both the "[None]" flag and the
+	// "No Effect" flag. Perhaps multi-flag properties like this are
+	// additive, meaning metaproperties can only toggle additional flags on
+	// rather than turn current ones off? Or maybe we're competing with a
+	// different metaproperty that also gives Garrett the Bounce flag?
 	+ObjProp "CollisionType"
 	{
 		"" "[None]"
