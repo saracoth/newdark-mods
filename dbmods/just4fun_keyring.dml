@@ -1,0 +1,43 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to prevent multiple copies of this mod from being applied, if
+// the user copies files to multiple valid folders. If we change a property
+// of a specific pre-existing object in a unique way, we can look for that.
+// However, we can't use NAME checks for the (non)existance of new CreateArch
+// archetypes, since we won't reliably know their IDs.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+// This allows us to use our .nut files.
+#script "squirrel"
+
+/*
+================================================================================
+== Attach Script to Lockables ==================================================
+================================================================================
+*/
+
+// It's not safe for generic gameplay mods to add scripts directly to existing
+// archetypes. Doing so could clash with other mods and FMs that put scripts
+// on those same items. So instead, we create a brand new metaproperty with
+// our scripts, then give the metaproperty to things. This safely puts the new
+// script on the object, without risk of interfering with anything else.
+
+CreateArch "MetaProperty" "J4FKeyringEnabled"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FKeyringTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Assign the new metaproperty to the types of objects we usually expect to be
+// locked and to have a key item.
+
++MetaProp "Door" "J4FKeyringEnabled"
++MetaProp "Locks" "J4FKeyringEnabled"
++MetaProp "Container" "J4FKeyringEnabled"
