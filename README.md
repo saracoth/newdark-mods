@@ -15,10 +15,11 @@ Each mod lists the files it requires, and possibly optional files you can includ
 It is not necessary to install every mod, but you can if you'd like. Feel free to pick and choose any combination of mods you wish.
 
 For curious modders, I'd rank these mods from least complex to most complex, in terms of figuring out the moving pieces and how they work together:
-1. Ghost Mode
-2. Minion Summoner
-3. Radar
-4. Fairy Light
+1. Keyring
+2. Ghost Mode
+3. Minion Summoner
+4. Radar
+5. Fairy Light
 
 ### Fairy Light (Thief 1/Gold/2)
 
@@ -31,6 +32,12 @@ For more information or to install this mod, check out the [Fairy Light](doc/Mod
 Sample, simple mod that allows the player to toggle a status effect with some ghostly properties.
 
 For more information or to install this mod, check out the [Ghost Mode](doc/Mod-GhostMode.md) documentation.
+
+### Keyring (Thief 1/Gold/2)
+
+A quality-of-life mod that automatically selects the appropriate key item for doors, chests, gearboxes, etc.
+
+For more information or to install this mod, check out the [Keyring](doc/Mod-Keyring.md) documentation.
 
 ### Minion Summoner (Thief 1/Gold/2)
 
