@@ -1,0 +1,27 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to prevent multiple copies of this mod from being applied, if
+// the user copies files to multiple valid folders. If we change a property
+// of a specific pre-existing object in a unique way, we can look for that.
+// However, we can't use NAME checks for the (non)existance of new CreateArch
+// archetypes, since we won't reliably know their IDs.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+// This allows us to use our .nut files.
+#script "squirrel"
+
+/*
+================================================================================
+== Option-Enabling Metaproperty ================================================
+================================================================================
+*/
+
+// This metaproperty just acts as a flag to the main script. We don't need any
+// properties or scripts to be attached to J4FAutoKeyUseEnabled here. We don't
+// even need to assign it to anything; it just needs to exist.
+
+CreateArch "MetaProperty" "J4FAutoKeyUseEnabled"
