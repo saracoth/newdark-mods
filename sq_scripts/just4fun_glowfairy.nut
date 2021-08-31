@@ -428,13 +428,13 @@ class J4FFairyController extends SqRootScript
 				
 				// Either of these will play the raw sound file. However, they will
 				// lack any volume or other adjustments applied in the sound schemas.
-				//Sound.PlayAmbient(self, "belldinn.wav");
-				//Sound.PlayAmbient(self, "belldinn");
+				//Sound.PlayAtObject(self, "belldinn.wav", playerId);
+				//Sound.PlayAtObject(self, "belldinn", playerId);
 				// Sound schemas are defined in the game's .sch files. They can include
 				// properties like the volume, or a list of several sounds to choose
 				// from when triggered, for variety's sake. In this case, the schema
 				// is quieter than the raw sound, but has exactly one sound file.
-				Sound.PlaySchemaAmbient(self, "dinner_bell");
+				Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
 				
 				// If we were halted or following the player, follow their gaze instead.
 				if (followTarget == 0 || followTarget == playerId)
@@ -491,7 +491,7 @@ class J4FFairyController extends SqRootScript
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
 					// volume level and selects from among three different sounds.
-					Sound.PlayAmbient(fairyId, "harp2");
+					Sound.PlayAtObject(fairyId, "harp2", playerId);
 				}
 				else if (followTarget > 0)
 				{
@@ -504,7 +504,7 @@ class J4FFairyController extends SqRootScript
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
 					// volume level and selects from among three different sounds.
-					Sound.PlayAmbient(fairyId, "harp2");
+					Sound.PlayAtObject(fairyId, "harp2", playerId);
 				}
 				else
 				{
@@ -517,7 +517,7 @@ class J4FFairyController extends SqRootScript
 					// This plays a specific sound file by name. We could also look into
 					// using the pluck_harp sound schema, which has more control over the
 					// volume level and selects from among three different sounds.
-					Sound.PlayAmbient(fairyId, "harp3");
+					Sound.PlayAtObject(fairyId, "harp3", playerId);
 				}
 				
 				break;
@@ -610,7 +610,7 @@ class J4FFairyController extends SqRootScript
 			// This plays a specific sound file by name. We could also look into
 			// using the pluck_harp sound schema, which has more control over the
 			// volume level and selects from among three different sounds.
-			Sound.PlayAmbient(fairyId, "harp1");
+			Sound.PlayAtObject(fairyId, "harp1", playerId);
 			
 			// Give the fairy a reference to us.
 			SendMessage(fairyId, "ControllerHello", self);
@@ -682,7 +682,7 @@ class J4FFairyController extends SqRootScript
 		
 		// Otherwise, we need to kick off the process.
 		
-		Sound.PlaySchemaAmbient(self, "dinner_bell");
+		Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
 		
 		// Allow normal fairy stim values.
 		Property.SetSimple(fairyId, "arSrcScale", 1.0);
