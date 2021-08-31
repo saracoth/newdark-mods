@@ -1,0 +1,27 @@
+DML1
+
+// This allows us to use our .nut files.
+#script "squirrel"
+
+/*
+================================================================================
+== Attach Script to Stuff ======================================================
+================================================================================
+*/
+
+// It's not safe for generic gameplay mods to add scripts directly to existing
+// archetypes. Doing so could clash with other mods and FMs that put scripts
+// on those same items. So instead, we create a brand new metaproperty with
+// our scripts, then give the metaproperty to things. This safely puts the new
+// script on the object, without risk of interfering with anything else.
+
+CreateArch "MetaProperty" "J4FDebugMe"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FDebugger"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Assign the new metaproperty to whatever we want to take a closer look at.
