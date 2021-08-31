@@ -7,10 +7,10 @@ If you install the just4fun_summoner_modmod.dml in addition to the other files, 
 Minions have a time limit. About five seconds for the default shadow minion, and about thirty for the slower fire elemental version. Since minions don't follow the player and can clutter up the level, the limited duration helps keep them from getting in your way or distracting you.
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
-* dbmods\just4fun_summoner.dml
-* sq_scripts\just4fun_summoner.nut
+* [dbmods\just4fun_summoner.dml](../dbmods/just4fun_summoner.dml?raw=1)
+* [sq_scripts\just4fun_summoner.nut](../sq_scripts/just4fun_summoner.nut?raw=1)
 
 **Optional extras**:
-* dbmods\just4fun_summoner_modmod.dml (fire element variant)
+* [dbmods\just4fun_summoner_modmod.dml](../dbmods/just4fun_summoner_modmod.dml?raw=1) (fire element variant)
 
 *Modder's Notes*: This mod demonstrates creating new objects in the game world. It's 100% script-based rather than using the act/react system. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible. As a result, it lacks some features, like the duration limit.

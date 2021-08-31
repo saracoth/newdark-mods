@@ -7,7 +7,7 @@ You also lose the ability to climb ropes and ladders, and can fall through eleva
 This is not perfect invisibility, since NPCs can retroactively notice you after you leave ghost mode. In reality, they always noticed you, but didn't care until you returned to normal mode. Either way, you can't pick the pockets of NPCs that are aware of you, whether hostile or ignoring you.
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
-* dbmods\just4fun_ghost_mode.dml
-* sq_scripts\just4fun_ghost_mode.nut
+* [dbmods\just4fun_ghost_mode.dml](../dbmods/just4fun_ghost_mode.dml?raw=1)
+* [sq_scripts\just4fun_ghost_mode.nut](../sq_scripts/just4fun_ghost_mode.nut?raw=1)
 
 *Modder's Notes*: This mod demonstrates adding and removing metaproperties, as well as copying specific properties from one object to another. It's 100% script-based rather than using the act/react system. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible. As a result, it lacks the slowfall effect.

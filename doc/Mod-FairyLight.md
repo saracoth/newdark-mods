@@ -15,7 +15,7 @@ You can also "double-click" the Tinker's Bell (use it twice in quick succession)
 This can be any creature, including the player. If they fail to find a close enough creature, the fairy will give up and wait in place. Otherwise, they will tail their target until you use the Tinker's Bell again.
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
-* dbmods\just4fun_glowfairy.dml
-* sq_scripts\just4fun_glowfairy.nut
+* [dbmods\just4fun_glowfairy.dml](../dbmods/just4fun_glowfairy.dml?raw=1)
+* [sq_scripts\just4fun_glowfairy.nut](../sq_scripts/just4fun_glowfairy.nut?raw=1)
 
 *Modder's Notes*: Fairy motion is based on elevators and other moving terrain. Some juggling is required to keep the movement butter smooth, but it's more visually appealing than teleporting a light directly. That would require much more frequent updates, which could affect performance. Using an ObjRaycast() instead of PortalRaycast() could eliminate the "flies through doors" effect, but might reduce performance. As for selecting targets to follow, that uses a combination of the act/react system to find targets within an area, and several layers of scripting to process the results.
