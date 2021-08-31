@@ -27,6 +27,16 @@ class J4FDebugger extends SqRootScript
 			print(format("\tFrobber %s %i: [%s] %s %i -> [%s] %s %i (sec %g%s)", Object.GetName(Object.Archetype(currentMessage.Frobber)), currentMessage.Frobber, currentMessage.SrcLoc.tostring(), Object.GetName(Object.Archetype(currentMessage.SrcObjId)), currentMessage.SrcObjId, currentMessage.DstLoc.tostring(), Object.GetName(Object.Archetype(currentMessage.DstObjId)), currentMessage.DstObjId, currentMessage.Sec, currentMessage.Abort ? ", Aborted" : ""));
 		}
 		
+		if (currentMessage instanceof ::sScrTimerMsg)
+		{
+			print(format("\tTimer %s", currentMessage.name));
+		}
+		
+		if (currentMessage instanceof ::sDarkGameModeScrMsg)
+		{
+			print(format("\tGameMode { resuming = %s, suspending = %s }", currentMessage.resuming.tostring(), currentMessage.suspending.tostring()));
+		}
+		
 		// TODO: handling of other specific message types?
 	}
 	
