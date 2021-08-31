@@ -17,6 +17,7 @@ class J4FKeyringTarget extends SqRootScript
 		// Okay, the player has used a locked door. Do they have a key?
 		// More important than that, does a key exist, period? Check to see
 		// if the frobbed object cares about keys.
+		// TODO: what about keyless, pickable doors? auto-select picks w/PickLock.CheckPick()?
 		if (!Property.Possessed(self, "KeyDst"))
 			return;
 		
