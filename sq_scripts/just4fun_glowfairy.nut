@@ -76,6 +76,16 @@ class J4FFairyController extends SqRootScript
 			homeId = GetData("homeId");
 		}
 		
+		if (IsDataSet("homeToMarkerId"))
+		{
+			homeToMarkerId = GetData("homeToMarkerId");
+		}
+		
+		if (IsDataSet("markerToHomeId"))
+		{
+			markerToHomeId = GetData("markerToHomeId");
+		}
+		
 		if (IsDataSet("doubleClickTimer"))
 		{
 			doubleClickTimer = GetData("doubleClickTimer");
@@ -733,6 +743,7 @@ class J4FFairyController extends SqRootScript
 		if (followTarget < 1)
 		{
 			followTarget = candidateId;
+			SetData("followTarget", followTarget);
 			return;
 		}
 		
@@ -751,6 +762,7 @@ class J4FFairyController extends SqRootScript
 		if (candidateDistance < currentDistance)
 		{
 			followTarget = candidateId;
+			SetData("followTarget", followTarget);
 		}
 	}
 }
