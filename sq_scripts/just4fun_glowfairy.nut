@@ -19,12 +19,15 @@ class J4FFairyController extends SqRootScript
 	doubleClickTimer = 0;
 	followerSearchTimer = 0;
 	// userparams() data
+	updateInterval = 0.25;
 	maxRange = 100;
 	doubleClickTime = 0.5;
 	minRadius = 12.0;
 	minTailRadius = 0.5;
 	maxRadius = 100.0;
+	playerTailRadius = 30.0;
 	minSpeed = 5.0;
+	minPlayerTailSpeed = 25.0;
 	targetJourneyTime = 0.75;
 	safetyUnits = 2;
 	
@@ -121,12 +124,15 @@ class J4FFairyController extends SqRootScript
 			fairyDoused = GetData("fairyDoused");
 		}
 		
+		updateInterval = userparams().UpdateInterval;
 		maxRange = userparams().MaxRange;
 		doubleClickTime = userparams().DoubleClickTime;
 		minRadius = userparams().MinRadius;
 		minTailRadius = userparams().MinTailRadius;
 		maxRadius = userparams().MaxRadius;
+		playerTailRadius = userparams().PlayerTailRadius;
 		minSpeed = userparams().MinSpeed;
+		minPlayerTailSpeed = userparams().MinPlayerTailSpeed;
 		targetJourneyTime = userparams().TargetJourneyTime;
 		safetyUnits = userparams().SafetyUnits;
 	}
@@ -445,10 +451,11 @@ messages are different. In any case, I'm willing to live with this.
 				// throughout its journey. So the actual journey will take more than
 				// that time, because we keep slowing it down along the way.
 				local fairySpeed = fairyDistance / targetJourneyTime;
-				// Maintain a minimum speed
-				if (fairySpeed < minSpeed)
+				// Maintain a minimum speed.
+				local effectiveMinSpeed = followTarget == playerId ? minPlayerTailSpeed : minSpeed;
+				if (fairySpeed < effectiveMinSpeed)
 				{
-					fairySpeed = minSpeed;
+					fairySpeed = effectiveMinSpeed;
 				}
 				// Enforce a maximum speed to reduce overshooting targets?
 				//else if (fairySpeed > 1000.0)
@@ -458,6 +465,16 @@ messages are different. In any case, I'm willing to live with this.
 				
 				LinkTools.LinkSetData(homeToMarkerId, "Speed", fairySpeed);
 				LinkTools.LinkSetData(markerToHomeId, "Speed", fairySpeed);
+				
+				// Enforcing strict path following leads to jerky and unpleasant
+				// movement. However, at higher speeds, this can lead to overshooting
+				// and orbiting targets. When following the player at high speeds,
+				// this makes it likely that the fairy repeatedly flies inside
+				// walls and fails to illuminate the area, creating a flickering
+				// effect. So when following the player, and only then, we will
+				// enforce strict path following.
+				LinkTools.LinkSetData(homeToMarkerId, "Path Limit?", followTarget == playerId);
+				LinkTools.LinkSetData(markerToHomeId, "Path Limit?", followTarget == playerId);
 				
 				// Turning this property off and on again is enough for the engine to
 				// recalculate its path. Otherwise, even after we teleport the markers
@@ -479,24 +496,40 @@ messages are different. In any case, I'm willing to live with this.
 				// than the player distance. But we need to enforce a minimum for when
 				// it's close.
 				
-				// Start with 90% of the distance to the player.
-				local newRadius = playerDistance * 0.9;
-				// Then, if coming up a few units short of the player is smaller, use that.
-				if (newRadius > (playerDistance - 5))
+				// Calculate the new light radius.
+				local newRadius = minRadius;
+				if (followTarget == playerId)
 				{
-					newRadius = playerDistance - 5;
+					// Following the player has a special radius. The main points of the
+					// variable radius are two-fold. One is to light a larger area at a
+					// distance, yes, but it's also to reduce the potential for the
+					// fairy to reveal the player. If they're actively following the
+					// player, they're going to be lit up light a Christmas tree anyway.
+					// So may as well use a special, fixed radius when player-following.
+					newRadius = playerTailRadius;
 				}
-				// Enforce min/max values.
-				local effectiveMinRadius = (followTarget > 0 && followTarget != playerId) ? minTailRadius : minRadius;
-				if (newRadius < effectiveMinRadius)
+				else
 				{
-					newRadius = effectiveMinRadius;
-				}
-				// NOTE: As of NewDark 1.27, the engine itself still imposes a limit of
-				// a 30 unit radius for dynamic lights.
-				else if (newRadius > maxRadius)
-				{
-					newRadius = maxRadius;
+					// Start with 90% of the distance to the player.
+					local newRadius = playerDistance * 0.9;
+					
+					// If coming up a few units short of the player is smaller, use that.
+					if (newRadius > (playerDistance - 5))
+					{
+						newRadius = playerDistance - 5;
+					}
+					// Enforce min/max values.
+					local effectiveMinRadius = (followTarget > 0 && followTarget != playerId) ? minTailRadius : minRadius;
+					if (newRadius < effectiveMinRadius)
+					{
+						newRadius = effectiveMinRadius;
+					}
+					// NOTE: As of NewDark 1.27, the engine itself still imposes a limit of
+					// a 30 unit radius for dynamic lights.
+					else if (newRadius > maxRadius)
+					{
+						newRadius = maxRadius;
+					}
 				}
 				
 				// Apply new light radius.
@@ -516,7 +549,7 @@ messages are different. In any case, I'm willing to live with this.
 				// https://www.ttlg.com/forums/showthread.php?t=140345 
 				
 				// Repeat.
-				SetOneShotTimer("J4FFairyMotion", 0.25);
+				SetOneShotTimer("J4FFairyMotion", updateInterval);
 				
 				break;
 			case "J4FDoubleClick":
@@ -737,7 +770,7 @@ messages are different. In any case, I'm willing to live with this.
 			Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
 			
 			// Begin controlling fairy motion.
-			SetOneShotTimer("J4FFairyMotion", 0.25);
+			SetOneShotTimer("J4FFairyMotion", updateInterval);
 		}
 		// If fairy was doused, then re-enable it.
 		else if (fairyDoused)
