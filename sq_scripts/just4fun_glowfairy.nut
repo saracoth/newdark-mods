@@ -171,11 +171,12 @@ class J4FFairyController extends SqRootScript
 				// I tested this out, and it was unable to prevent dropping the item.
 				//BlockMessage();
 				
-				// So, put it back. We're abusing the drop mechanics to add another
-				// interaction with the bell, without truly truly dropping it. Note
-				// that the behavior is a little different than dropping and picking
-				// it up normally, but I think we're safe in this particular case.
-				Link.Create(LinkTools.LinkKindNamed("Contains"), playerId, self);
+				// So we'll have to put it back in short order. Note that doing so
+				// immediately, inside this function, would cause issues noted below.
+				SetOneShotTimer("J4FFairyDouse", 0.001);
+				
+				// Let's prevent it from visibly appearing in the world until then.
+				Property.SetSimple(self, "RenderAlpha", 0.0);
 				
 				/*
 Dropping looks like this:
@@ -200,43 +201,11 @@ And when we recreate the link in the middle of this method, it looks like this t
 : OSM: SQUIRREL> Debug J4FFairyControlBell 239: PhysMadePhysical  0 -> J4FFairyControlBell 239 [0]
 
 The end result is that we're missing a PhysMadeNonPhysical, which should
-ideally come after the PhysMadePhysical. Thankfully, the controller
-object has no hitbox that I can see. I don't think this will meaningfully
-affect the game in weird ways, like AI trying to walk around it or the
-invisible object blocking sight. For all I know, the end result is that
-the object really is gone from the game world, but only these irrelevant
-messages are different. In any case, I'm willing to live with this.
+ideally come after the PhysMadePhysical. And while the controller object
+seems to have no hitbox, the player containing an item with any kind of
+physical properties runs the risk of occasional damage or death. So it's
+better to let the drop be completely processed before we put it back.
 				*/
-				
-				// Remember that we've disabled stuff, so we know to turn it
-				// on later.
-				fairyDoused = true;
-				SetData("fairyDoused", fairyDoused);
-			
-				// Since re-igniting the fairy places them in front of the player
-				// again, there's no real purpose to gaze or creature following.
-				// Go into halt/waiting mode instead.
-				followTarget = 0;
-				SetData("followTarget", followTarget);
-				
-				// Halt the visible effects. Since the only visible parts of
-				// the fairy are particle effects, we just stop them.
-				PGroup.SetActive(fairyLightId, false);
-				PGroup.SetActive(fairyTrailId, false);
-				
-				// Make note of the previous light level, then douse it.
-				SetData("wasLightLevel", Property.Get(fairyLightId, "SelfLit"));
-				Property.Remove(fairyLightId, "SelfLit");
-				
-				// Yet another text change to indicate status.
-				Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_hiding: \"Tinker's Bell (Hiding)\"");
-				
-				// And this counts as an interaction, so gets a sound effect.
-				Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
-				
-				// NOTE: We're skipping any kind of visual de-summoning effect,
-				// since disabling the particle effect as we do still causes
-				// those particles to linger for a few seconds before fading.
 				
 				break;
 		}
@@ -546,7 +515,7 @@ messages are different. In any case, I'm willing to live with this.
 				// a larger illuminated area at the expense of a sudden drop-off
 				// at the fringes. For more background on light properties, check
 				// The Watcher's information in this thread:
-				// https://www.ttlg.com/forums/showthread.php?t=140345 
+				// https://www.ttlg.com/forums/showthread.php?t=140345
 				
 				// Repeat.
 				SetOneShotTimer("J4FFairyMotion", updateInterval);
@@ -656,6 +625,45 @@ messages are different. In any case, I'm willing to live with this.
 				}
 				
 				break;
+			case "J4FFairyDouse":
+				// Put it back. We're abusing the drop mechanics to add another
+				// interaction with the bell, without truly truly dropping it.
+				Link.Create(LinkTools.LinkKindNamed("Contains"), playerId, self);
+				
+				// Restore the visibility.
+				Property.SetSimple(self, "RenderAlpha", 1.0);
+				
+				// Remember that we've disabled stuff, so we know to turn it
+				// on later.
+				fairyDoused = true;
+				SetData("fairyDoused", fairyDoused);
+			
+				// Since re-igniting the fairy places them in front of the player
+				// again, there's no real purpose to gaze or creature following.
+				// Go into halt/waiting mode instead.
+				followTarget = 0;
+				SetData("followTarget", followTarget);
+				
+				// Halt the visible effects. Since the only visible parts of
+				// the fairy are particle effects, we just stop them.
+				PGroup.SetActive(fairyLightId, false);
+				PGroup.SetActive(fairyTrailId, false);
+				
+				// Make note of the previous light level, then douse it.
+				SetData("wasLightLevel", Property.Get(fairyLightId, "SelfLit"));
+				Property.Remove(fairyLightId, "SelfLit");
+				
+				// Yet another text change to indicate status.
+				Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_hiding: \"Tinker's Bell (Hiding)\"");
+				
+				// And this counts as an interaction, so gets a sound effect.
+				Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
+				
+				// NOTE: We're skipping any kind of visual de-summoning effect,
+				// since disabling the particle effect as we do still causes
+				// those particles to linger for a few seconds before fading.
+				
+				break;
 		}
 	}
 	
@@ -745,7 +753,7 @@ messages are different. In any case, I'm willing to live with this.
 			
 			// Additional magical puff to imply a summoning effect.
 			local telepoofId = Object.BeginCreate("MagicMissileHit");
-			Object.Teleport(telepoofId, zeros, zeros, fairyLightId);
+			Object.Teleport(telepoofId, justAhead, zeros, playerId);
 			Object.EndCreate(telepoofId);
 			
 			// Sound effect to go along with the summoning.
@@ -790,7 +798,7 @@ messages are different. In any case, I'm willing to live with this.
 			
 			// Visible re-summoning effect.
 			local igniteId = Object.BeginCreate("MagicMissileHit");
-			Object.Teleport(igniteId, zeros, zeros, fairyLightId);
+			Object.Teleport(igniteId, justAhead, zeros, playerId);
 			Object.EndCreate(igniteId);
 			
 			// Remember that it's no longer doused.
