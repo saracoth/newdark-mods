@@ -4,17 +4,19 @@ A controllable, movable light. Probably as close as Thief gets to a flashlight m
 
 ![Fairy lighting distant sign](img/FairyLight-Gazing.png)
 
-When this mod is installed, a Tinker's Bell item will be added to your inventory in every mission. Using it toggles your light fairy from waiting in place to following your gaze. The fairy will fly through walls to accomplish this, and will move faster when it needs to cross greater distances. NPCs ignore the fairy and can't hear its bell, but everyone benefits from the light it gives off.
+When this mod is installed, a Tinker's Bell item will be added to your inventory in every mission. Using it toggles your light fairy from waiting in place to following your gaze. The fairy will fly through walls to accomplish this, and will move faster when it needs to cross greater distances. NPCs ignore the fairy and can't hear its bell, but its light could reveal you or your stash of bodies, so please use responsibly.
 
 The further away the fairy, the bigger its glow! However, due to engine limitations, the radius never grows beyond 30 feet or so. The fairy also prefers to stick to walls, floors, and ceilings. If you stare at a door, the fairy will probably light up the room on the other side rather than the door itself.
 
-Once the fairy has been summoned, attempting to drop the Tinker's Bell will instead douse the fairy. Use the bell again to re-summon it, or drop it a second time to get rid of it.
+Once the fairy has been summoned, attempting to drop the Tinker's Bell will instead douse the fairy. Use the bell again to re-summon it. Dousing is useful when you can't find a convenient spot for the fairy to wait.
 
 You can also "double-click" the Tinker's Bell (use it twice in quick succession) to make the fairy tail someone nearby.
 
 ![Fairy following servant through city streets](img/FairyLight-Tailing.png)
 
 This can be any creature, including the player. If they fail to find a close enough creature, the fairy will give up and wait in place. Otherwise, they will tail their target until you use the Tinker's Bell again.
+
+When tailing the player, the fairy will project a larger light radius for your convenience. When tailing any other creature, the fairy will try really, really hard to not give away your position. Unless the creature comes within about a foot of you, the fairy's light shouldn't give you away. And if you need to, you can always douse the fairy in an emergency.
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * [dbmods\just4fun_glowfairy.dml](../dbmods/just4fun_glowfairy.dml?raw=1)
