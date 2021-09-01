@@ -37,6 +37,11 @@ class J4FDebugger extends SqRootScript
 			print(format("\tGameMode { resuming = %s, suspending = %s }", currentMessage.resuming.tostring(), currentMessage.suspending.tostring()));
 		}
 		
+		if (currentMessage instanceof ::sContainedScrMsg)
+		{
+			print(format("\tContained by %s %i (event %s)", Object.GetName(Object.Archetype(currentMessage.container)), currentMessage.container, currentMessage.event.tostring()));
+		}
+		
 		// TODO: handling of other specific message types?
 	}
 	
