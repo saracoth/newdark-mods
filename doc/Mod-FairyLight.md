@@ -8,6 +8,8 @@ When this mod is installed, a Tinker's Bell item will be added to your inventory
 
 The further away the fairy, the bigger its glow! However, due to engine limitations, the radius never grows beyond 30 feet or so. The fairy also prefers to stick to walls, floors, and ceilings. If you stare at a door, the fairy will probably light up the room on the other side rather than the door itself.
 
+Once the fairy has been summoned, attempting to drop the Tinker's Bell will instead douse the fairy. Use the bell again to re-summon it, or drop it a second time to get rid of it.
+
 You can also "double-click" the Tinker's Bell (use it twice in quick succession) to make the fairy tail someone nearby.
 
 ![Fairy following servant through city streets](img/FairyLight-Tailing.png)
