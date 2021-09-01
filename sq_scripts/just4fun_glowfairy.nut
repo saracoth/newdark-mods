@@ -9,6 +9,7 @@ class J4FFairyController extends SqRootScript
 	playerId = 0;
 	fairyId = 0;
 	fairyLightId = 0;
+	fairyTrailId = 0;
 	markerId = 0;
 	homeId = 0;
 	// Link IDs
@@ -43,6 +44,10 @@ class J4FFairyController extends SqRootScript
 	// hopefully trigger sooner.
 	fastFollowerTimer = false;
 	
+	// If true, we disabled the fairy and need to re-enable it if further
+	// interacted with.
+	fairyDoused = false;
+	
 	function OnBeginScript()
 	{
 		// We'll use this to fetch all relevant properties once, so that
@@ -64,6 +69,11 @@ class J4FFairyController extends SqRootScript
 		if (IsDataSet("fairyLightId"))
 		{
 			fairyLightId = GetData("fairyLightId");
+		}
+		
+		if (IsDataSet("fairyTrailId"))
+		{
+			fairyTrailId = GetData("fairyTrailId");
 		}
 		
 		if (IsDataSet("markerId"))
@@ -106,6 +116,11 @@ class J4FFairyController extends SqRootScript
 			fastFollowerTimer = GetData("fastFollowerTimer");
 		}
 		
+		if (IsDataSet("fairyDoused"))
+		{
+			fairyDoused = GetData("fairyDoused");
+		}
+		
 		maxRange = userparams().MaxRange;
 		doubleClickTime = userparams().DoubleClickTime;
 		minRadius = userparams().MinRadius;
@@ -118,20 +133,107 @@ class J4FFairyController extends SqRootScript
 	
 	function OnContained()
 	{
-		// This function is for first-time setup only. We can skip it.
-		if (playerId != 0)
-			return;
-		
-		// Get a reference to our containing Avatar, so we can track distance/etc.
+		// Our (current/former/potential) container.
 		local containerId = message().container;
-		// If it's not an Avatar, that's because a map maper put the control item
-		// in a chest or something like that. We'll have to wait until the player
-		// picks it up later instead.
-		if (!Object.InheritsFrom(containerId, "Avatar"))
-			return;
 		
-		SetData("playerId", containerId);
-		playerId = containerId;
+		switch (message().event)
+		{
+			case eContainsEvent.kContainAdd:
+				// This logic is for first-time setup only. We can skip if already done.
+				if (playerId != 0)
+					return;
+		
+				// If it's not an Avatar, that's because a map maper put the control item
+				// in a chest or something like that. We'll have to wait until the player
+				// picks it up later instead.
+				if (!Object.InheritsFrom(containerId, "Avatar"))
+					return;
+					
+				SetData("playerId", containerId);
+				playerId = containerId;
+				
+				break;
+			case eContainsEvent.kContainRemove:
+				// This logic is only for when the player had the item and attempts to drop it.
+				if (containerId != playerId)
+					return;
+				
+				// This logic is for dousing and disabling an existing fairy only.
+				if (fairyId == 0 || fairyDoused)
+					return;
+				
+				// I tested this out, and it was unable to prevent dropping the item.
+				//BlockMessage();
+				
+				// So, put it back. We're abusing the drop mechanics to add another
+				// interaction with the bell, without truly truly dropping it. Note
+				// that the behavior is a little different than dropping and picking
+				// it up normally, but I think we're safe in this particular case.
+				Link.Create(LinkTools.LinkKindNamed("Contains"), playerId, self);
+				
+				/*
+Dropping looks like this:
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: InvDeSelect  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: Contained  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> 	Contained by Garrett 220 (event 3)
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: PhysMadePhysical  0 -> J4FFairyControlBell 239 [0]
+
+Picking up looks like this:
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: WorldSelect  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: InvSelect  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: PhysMadeNonPhysical  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: Contained  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> 	Contained by Garrett 220 (event 2)
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: WorldDeSelect  0 -> J4FFairyControlBell 239 [0]
+
+And when we recreate the link in the middle of this method, it looks like this the first time:
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: Contained  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> 	Contained by Garrett 220 (event 2)
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: Contained  0 -> J4FFairyControlBell 239 [0]
+: OSM: SQUIRREL> 	Contained by Garrett 220 (event 3)
+: OSM: SQUIRREL> Debug J4FFairyControlBell 239: PhysMadePhysical  0 -> J4FFairyControlBell 239 [0]
+
+The end result is that we're missing a PhysMadeNonPhysical, which should
+ideally come after the PhysMadePhysical. Thankfully, the controller
+object has no hitbox that I can see. I don't think this will meaningfully
+affect the game in weird ways, like AI trying to walk around it or the
+invisible object blocking sight. For all I know, the end result is that
+the object really is gone from the game world, but only these irrelevant
+messages are different. In any case, I'm willing to live with this.
+				*/
+				
+				// Remember that we've disabled stuff, so we know to turn it
+				// on later.
+				fairyDoused = true;
+				SetData("fairyDoused", fairyDoused);
+			
+				// Since re-igniting the fairy places them in front of the player
+				// again, there's no real purpose to gaze or creature following.
+				// Go into halt/waiting mode instead.
+				followTarget = 0;
+				SetData("followTarget", followTarget);
+				
+				// Halt the visible effects. Since the only visible parts of
+				// the fairy are particle effects, we just stop them.
+				PGroup.SetActive(fairyLightId, false);
+				PGroup.SetActive(fairyTrailId, false);
+				
+				// Make note of the previous light level, then douse it.
+				SetData("wasLightLevel", Property.Get(fairyLightId, "SelfLit"));
+				Property.Remove(fairyLightId, "SelfLit");
+				
+				// Yet another text change to indicate status.
+				Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_hiding: \"Tinker's Bell (Hiding)\"");
+				
+				// And this counts as an interaction, so gets a sound effect.
+				Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
+				
+				// NOTE: We're skipping any kind of visual de-summoning effect,
+				// since disabling the particle effect as we do still causes
+				// those particles to linger for a few seconds before fading.
+				
+				break;
+		}
 	}
 	
 	function OnTimer()
@@ -526,12 +628,12 @@ class J4FFairyController extends SqRootScript
 	
 	function OnFrobInvEnd()
 	{
+		local zeros = vector(0);
+		local justAhead = vector(5, 0, 1);
+		
 		// On first use, initialize the fairy.
 		if (fairyId == 0)
 		{
-			local justAhead = vector(5, 0, 1);
-			local zeros = vector(0);
-			
 			// For all the objects, rather than use Object.Create() directly,
 			// we will use BeginCreate() and EndCreate() to allow us to set up
 			// any necessary properties before the creation process finishes.
@@ -578,27 +680,34 @@ class J4FFairyController extends SqRootScript
 			Property.Set(fairyId, "MovingTerrain", "Active", true);
 			
 			// The game should have created our particle attachments. We'll
-			// be changing some properties of the dynamic light portion of
-			// the fairy later, so grab a reference now to simplify things
-			// later.
+			// be changing some properties of these attachments, so grab
+			// references to them now to simplify things later.
 			
 			// Passing a 0 for the second parameter seems to indicate we
 			// either don't know or don't care. Either way, it gave us the
-			// link we needed, despite not yet knowing the fairy body ObjID.
+			// link we needed, despite not yet knowing the fairy part ObjIDs.
 			foreach (testLinkId in Link.GetAll("ParticleAttachment", 0, fairyId))
 			{
 				local testLink = sLink(testLinkId);
+				local linkToArchetypeName = Object.GetName(Object.Archetype(testLink.source));
 				
 				// Is this a link to the body?
-				if (Object.GetName(Object.Archetype(testLink.source)) == "J4FFairyBody")
+				if (linkToArchetypeName == "J4FFairyBody")
 				{
 					// It is. Keep a reference to the body.
 					fairyLightId = testLink.source;
 					SetData("fairyLightId", fairyLightId);
-					
-					// We're done searching through links and can exit the loop.
-					break;
 				}
+				// How about the tail/trail effect?
+				else if (linkToArchetypeName == "J4FFairyTail")
+				{
+					// It is. Keep a reference to the trail.
+					fairyTrailId = testLink.source;
+					SetData("fairyTrailId", fairyTrailId);
+				}
+				
+				// Those should be the only two particle effect links,
+				// so let's keep looping until we've processed both.
 			}
 			
 			// Additional magical puff to imply a summoning effect.
@@ -629,6 +738,33 @@ class J4FFairyController extends SqRootScript
 			
 			// Begin controlling fairy motion.
 			SetOneShotTimer("J4FFairyMotion", 0.25);
+		}
+		// If fairy was doused, then re-enable it.
+		else if (fairyDoused)
+		{
+			// Put things in front of the player again.
+			Object.Teleport(markerId, justAhead, zeros, playerId);
+			Object.Teleport(homeId, justAhead, zeros, playerId);
+			Object.Teleport(fairyId, justAhead, zeros, playerId);
+			
+			// Resume the visible effects. Since the only visible parts of
+			// the fairy are particle effects, we just activate them.
+			PGroup.SetActive(fairyLightId, true);
+			PGroup.SetActive(fairyTrailId, true);
+			
+			// Restore previous light level.
+			Property.SetSimple(fairyLightId, "SelfLit", GetData("wasLightLevel"));
+			
+			// Visible re-summoning effect.
+			local igniteId = Object.BeginCreate("MagicMissileHit");
+			Object.Teleport(igniteId, zeros, zeros, fairyLightId);
+			Object.EndCreate(igniteId);
+			
+			// Remember that it's no longer doused.
+			fairyDoused = false;
+			SetData("fairyDoused", fairyDoused);
+			
+			// Now let the regular frob scripts take over again.
 		}
 		
 		// We can't necessarily take immediate action, because we need to detect
