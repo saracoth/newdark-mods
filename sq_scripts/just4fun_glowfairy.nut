@@ -511,7 +511,7 @@ messages are different. In any case, I'm willing to live with this.
 				else
 				{
 					// Start with 90% of the distance to the player.
-					local newRadius = playerDistance * 0.9;
+					newRadius = playerDistance * 0.9;
 					
 					// If coming up a few units short of the player is smaller, use that.
 					if (newRadius > (playerDistance - 5))
@@ -519,7 +519,7 @@ messages are different. In any case, I'm willing to live with this.
 						newRadius = playerDistance - 5;
 					}
 					// Enforce min/max values.
-					local effectiveMinRadius = (followTarget > 0 && followTarget != playerId) ? minTailRadius : minRadius;
+					local effectiveMinRadius = (followTarget > 0) ? minTailRadius : minRadius;
 					if (newRadius < effectiveMinRadius)
 					{
 						newRadius = effectiveMinRadius;
