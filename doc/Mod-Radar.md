@@ -28,10 +28,8 @@ Which items are detected, if any, depends on which of the optional extras you in
 * [dbmods\just4fun_radar_10_devicedar.dml](../dbmods/just4fun_radar_10_devicedar.dml?raw=1)
 * [sq_scripts\just4fun_radar_10_devicedar.nut](../sq_scripts/just4fun_radar_10_devicedar.nut?raw=1)
 
-**Optional container detection (chests, lockboxes, etc.)**:
+**Optional container detection (chests, lockboxes, etc. with items in them)**:
 * [dbmods\just4fun_radar_10_containerdar.dml](../dbmods/just4fun_radar_10_containerdar.dml?raw=1)
-* [dbmods\just4fun_radar_11_T1_containers.dml](../dbmods/just4fun_radar_11_T1_containers.dml?raw=1)
-* [dbmods\just4fun_radar_11_T2_containers.dml](../dbmods/just4fun_radar_11_T2_containers.dml?raw=1)
 * [sq_scripts\just4fun_radar_10_containerdar.nut](../sq_scripts/just4fun_radar_10_containerdar.nut?raw=1)
 
 *Modder's Notes*: This mod demonstrates creating new objects in the game world, positioned on top of arbitrary targets. The loot radar is more complex than the others, because we're trying to avoid the unsafe approach of adding a script directly to the existing IsLoot metaproperty. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible. As a result, it lacks some features of the current mod.
