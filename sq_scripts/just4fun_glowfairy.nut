@@ -630,6 +630,14 @@ better to let the drop be completely processed before we put it back.
 				// interaction with the bell, without truly truly dropping it.
 				Link.Create(LinkTools.LinkKindNamed("Contains"), playerId, self);
 				
+				// Because it's a "fake drop" and we're trying to pretend the
+				// drop never happened, make it the current inventory item again
+				// even if the player has auto-equip turned off.
+				if (DarkUI.InvItem() != self)
+				{
+					DarkUI.InvSelect(self);
+				}
+				
 				// Restore the visibility.
 				Property.SetSimple(self, "RenderAlpha", 1.0);
 				
@@ -753,7 +761,14 @@ better to let the drop be completely processed before we put it back.
 			
 			// Additional magical puff to imply a summoning effect.
 			local telepoofId = Object.BeginCreate("MagicMissileHit");
-			Object.Teleport(telepoofId, justAhead, zeros, playerId);
+			// This teleport is the ideal in theory, but sometimes the
+			// game hasn't processed the teleportation of the attachment
+			// links. So the fairy core has been positioned, but the
+			// visible fairy pieces are out of place.
+			Object.Teleport(telepoofId, zeros, zeros, fairyLightId);
+			// Unfortunately, while this is more reliable, the effect is
+			// always off center. So it's just reliably wrong.
+			//Object.Teleport(telepoofId, justAhead, zeros, playerId);
 			Object.EndCreate(telepoofId);
 			
 			// Sound effect to go along with the summoning.
@@ -798,7 +813,14 @@ better to let the drop be completely processed before we put it back.
 			
 			// Visible re-summoning effect.
 			local igniteId = Object.BeginCreate("MagicMissileHit");
-			Object.Teleport(igniteId, justAhead, zeros, playerId);
+			// This teleport is the ideal in theory, but sometimes the
+			// game hasn't processed the teleportation of the attachment
+			// links. So the fairy core has been positioned, but the
+			// visible fairy pieces are out of place.
+			Object.Teleport(igniteId, zeros, zeros, fairyLightId);
+			// Unfortunately, while this is more reliable, the effect is
+			// always off center. So it's just reliably wrong.
+			//Object.Teleport(igniteId, justAhead, zeros, playerId);
 			Object.EndCreate(igniteId);
 			
 			// Remember that it's no longer doused.
