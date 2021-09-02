@@ -99,6 +99,15 @@ CreateArch "MetaProperty" "J4FRadarContainerPingable"
 ================================================================================
 */
 
-// Given the different ways Thief 1/Gold and Thief 2 organize their containers,
-// we don't have any universal things to set up here. Refer to the game-specific
-// files instead.
+// NOTE: In thief 1, the Container archetype also has some purely decorative
+// items, which were moved to other placed in Thief 2. To avoid detecting these
+// inert items, separate DML files could target Thief 1/Gold and Thief 2. In
+// Thief 2, the Container archetype is a fine target. In thief 1/Gold, we'd want
+// to target these instead:
+// +MetaProp "FootLocker" "J4FRadarContainerPingable"
+// +MetaProp "Chest" "J4FRadarContainerPingable"
+// +MetaProp "MoneyBox" "J4FRadarContainerPingable"
+// However, our script ignores any empty Container. We may as well keep things
+// simple and attach to every Container object, then filter them out later.
+
++MetaProp "Container" "J4FRadarContainerPingable"

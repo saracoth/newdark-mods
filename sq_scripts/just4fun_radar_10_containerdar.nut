@@ -4,6 +4,18 @@ class J4FSpawnContainerPolo extends SqRootScript
 {
 	function OnJ4FRadarPingStimStimulus()
 	{
+		// This function will fire when a container has been pinged.
+		// But let's first check to see if there are any Contains links,
+		// meaning the container actually has something in it.
+		local anyLink = Link.GetOne("Contains", self);
+		
+		// Empty.
+		if (anyLink <= 0)
+			return;
+		
+		// Otherwise, the container is probably intersting to us and should
+		// respond to the ping.
+		
 		// Several example .nut scripts do something similar. This should be
 		// slightly more efficient than creating two zero vectors later.
 		local zeros = vector(0);
