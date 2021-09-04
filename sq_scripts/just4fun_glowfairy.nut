@@ -51,6 +51,12 @@ class J4FFairyController extends SqRootScript
 	// interacted with.
 	fairyDoused = false;
 	
+	// Caching the distance between the fairy and the current follow candidate,
+	// to avoid having to do the math again and again. No need to presist this
+	// with SetData(), since we can recalculate if someone somehow manages to
+	// save and load the game in the middle of a Stim radius burst.
+	followCandidateDistance = null;
+	
 	function OnBeginScript()
 	{
 		// We'll use this to fetch all relevant properties once, so that
@@ -257,12 +263,12 @@ better to let the drop be completely processed before we put it back.
 					// we get the current *camera* position and facing.
 					local camPos = Camera.GetPosition();
 					local camFacing = Camera.GetFacing();
-				
+					
 					// Now, the squirrel sin() and cos() functions work with radians.
 					// However, camFacing is given to us in degrees. So let's convert.
 					local camPitch = PI * camFacing.y / 180;
 					local camYaw = PI * camFacing.z / 180;
-				
+					
 					// NOTE: camFacing.x exists, but only comes into play for leaning
 					// and similar things we're can ignore. Our pitch is 0 when the
 					// view is centered, and increases up to 90 when looking down.
@@ -276,13 +282,13 @@ better to let the drop be completely processed before we put it back.
 					// coordinates, it acts as a multiplier. If we multiply its
 					// X, Y, and Z values by 100, the result is a 3D coordinate in
 					// space that is exactly 100 units away from the 0,0,0 position.
-				
+					
 					local direction = vector(
 						cos(camPitch) * cos(camYaw),
 						cos(camPitch) * sin(camYaw),
 						sin(-1 * camPitch)
 						);
-				
+					
 					// For our raycasting test, let's pick a point up to MaxRange units
 					// away. Or however many units we'd like. The point is, the fairy
 					// can't be controlled outside whatever distance we pick here.
@@ -290,14 +296,14 @@ better to let the drop be completely processed before we put it back.
 					// by 100 units, then add that to the camera position. This way,
 					// instead of being 100 units away from 0,0,0 we pick a point
 					// 100 units away from wherever the camera happens to be.
-				
+					
 					local testPos = (direction * maxRange) + camPos;
-				
+					
 					// Assuming PortalRaycast() returns true, targetPos contains our
 					// point of impact. Let's re-initialize it to a brand new vector,
 					// as a paranoia measure.
 					targetPos = vector(0);
-				
+					
 					if (Engine.PortalRaycast(camPos, testPos, targetPos))
 					{
 						// The targetPos is touching some piece of level geometry.
@@ -307,16 +313,15 @@ better to let the drop be completely processed before we put it back.
 						//
 						// So we'd like to pull the target point back a little closer
 						// to the camera. To do that, we first figure out what
-						// distance targetPos is from the camera. We'll use the
-						// https://gamedev.stackexchange.com/a/92521 approach.
-					
-						local displacement = targetPos - camPos;
-						// Per https://en.wikipedia.org/wiki/Dot_product , the
-						// dot product of any vector with itself is a non-negative
-						// number. So sqrt() is safe in this context, and will always
-						// give us a positive distance value.
-						local impactDistance = sqrt(displacement.Dot(displacement));
-					
+						// distance targetPos is from the camera. Thankfully, the
+						// vector class exposed to squirrel has convenient math and
+						// other functions to get the distance. Subtracting one
+						// vector from another produces a new X/Y/Z vector with the
+						// offset of one location from the other. Whichever one you
+						// subtracted from what, the Length() of this new vector will
+						// give you the distance.
+						local impactDistance = (targetPos - camPos).Length();
+						
 						// If the player is hugging a wall or something, going a few
 						// units backwards could target a location behind the camera.
 						// So let's cam the shortened distance to non-negative values
@@ -412,8 +417,7 @@ better to let the drop be completely processed before we put it back.
 				// the distance between the fairy and its target. Refer to the above
 				// comments for details on what this math is doing and where it
 				// came from.
-				local fairyDisplacement = targetPos - fairyPos;
-				local fairyDistance = sqrt(fairyDisplacement.Dot(fairyDisplacement));
+				local fairyDistance = (targetPos - fairyPos).Length();
 				// Scale the distance so that we'll cover it in roughly X seconds.
 				// The number of seconds is the divisor here, like 0.5 for 0.5 secs.
 				// Note, however, that we're updating this speed over and over again
@@ -458,8 +462,7 @@ better to let the drop be completely processed before we put it back.
 				// farther from the player it is. That makes its effect more useful at
 				// greater distances.
 				// More vector math. Again, see other comments for more background info.
-				local playerDisplacement = Object.Position(playerId) - fairyPos;
-				local playerDistance = sqrt(playerDisplacement.Dot(playerDisplacement));
+				local playerDistance = (Object.Position(playerId) - fairyPos).Length();
 				
 				// Technically, we could safely make the radius just a little smaller
 				// than the player distance. But we need to enforce a minimum for when
@@ -943,6 +946,13 @@ better to let the drop be completely processed before we put it back.
 		{
 			followTarget = candidateId;
 			SetData("followTarget", followTarget);
+			
+			// If we have only one target, there's no need to calculate the
+			// distances. But if we do have more than one, we need to make it
+			// clear we haven't figured out the distance to the first target
+			// just yet.
+			followCandidateDistance = null;
+			
 			return;
 		}
 		
@@ -951,17 +961,20 @@ better to let the drop be completely processed before we put it back.
 		// product to figure out distances.
 		local fairyPos = Object.Position(fairyId);
 		
-		local currentDisplacement = Object.Position(followTarget) - fairyPos;
-		local currentDistance = sqrt(currentDisplacement.Dot(currentDisplacement));
+		if (followCandidateDistance == null)
+		{
+			followCandidateDistance = (Object.Position(followTarget) - fairyPos).Length();
+		}
 		
-		local candidateDisplacement = Object.Position(candidateId) - fairyPos;
-		local candidateDistance = sqrt(candidateDisplacement.Dot(candidateDisplacement));
+		local candidateDistance = (Object.Position(candidateId) - fairyPos).Length();
 		
 		// If the new candidate is closer, they win.
-		if (candidateDistance < currentDistance)
+		if (candidateDistance < followCandidateDistance)
 		{
 			followTarget = candidateId;
 			SetData("followTarget", followTarget);
+			
+			followCandidateDistance = candidateDistance;
 		}
 	}
 }
