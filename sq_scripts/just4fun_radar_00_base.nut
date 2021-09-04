@@ -25,6 +25,57 @@ class J4FSpawnMarco extends SqRootScript
 	}
 }
 
+// This a subclass of script goes on pingable items, to generate a visible
+// puff in response to a ping.
+class J4FSpawnAbstractPolo extends SqRootScript
+{
+	// Subclass's constructor() should specify this.
+	// TODO: confirm save/load friendly
+	puffName = null;
+	
+	// Subclasses can override this to ignore items that accepted the
+	// stimulus, but can turn out to be uninteresting after all.
+	function BlessItem(itemToBless)
+	{
+		return true;
+	}
+	
+	// Subclasses can override this behavior if needed, such as when
+	// the item cannot be pinged or scripted directly.
+	function GetPingedItem()
+	{
+		return self;
+	}
+	
+	function OnJ4FRadarPingStimStimulus()
+	{
+		// What is the pinged item of interest?
+		local pingedItem = GetPingedItem();
+		
+		// TODO:
+		print(format("Pinged %s %i", Object.GetName(Object.Archetype(pingedItem)), pingedItem));
+		
+		// Is it really interesting enough to point out to the player?
+		if (!BlessItem(pingedItem))
+			return;
+		
+		// Several example .nut scripts do something similar. This should be
+		// slightly more efficient than creating two zero vectors later.
+		local zeros = vector(0);
+		
+		// Create a new instance of our puff in the game world,
+		// then immediately teleport it, similar to create_obj receptrons.
+		
+		// Start the creation process. This may be better than using just
+		// Object.Create() in some cases.
+		local summon = Object.BeginCreate(puffName);
+		// Now we place the new object on top of the radar-detected item.
+		Object.Teleport(summon, zeros, zeros, pingedItem);
+		// Now we're done setting up the new object instance.
+		Object.EndCreate(summon);
+	}
+}
+
 // This script will be called on the player when the game starts, giving them the radar item.
 class J4FGiveRadarItem extends SqRootScript
 {
