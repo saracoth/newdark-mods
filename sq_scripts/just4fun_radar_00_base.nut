@@ -282,6 +282,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		
 		foreach (targetId, displayTexture in displayTargets)
 		{
+			// TODO: Item IDs can and will be reused, so we have to be careful about that.
+			//	For example, I saw temporary SFX temporarily receive the radar highlight.
+			//	When using the minion summoner, some minions had the highlight as well.
 			// TODO: check whether the targetId needs to be ignored/removed
 			// eg, item picked up, etc.
 			
