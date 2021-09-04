@@ -1,0 +1,39 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to prevent multiple copies of this mod from being applied, if
+// the user copies files to multiple valid folders. If we change a property
+// of a specific pre-existing object in a unique way, we can look for that.
+// However, we can't use NAME checks for the (non)existance of new CreateArch
+// archetypes, since we won't reliably know their IDs.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+// This allows us to use our .nut files.
+#script "squirrel"
+
+/*
+================================================================================
+== Attach Controller Script to Mission =========================================
+================================================================================
+*/
+
+// Using a script on a marker to attach and detach overlay handlers is the
+// recommended approach in the NewDark documentation. To do this, we need to
+// spawn a unique marker in each and every level, rather than, say, attach a
+// script to the player Avatar directly.
+
+Create "Marker" "J4FRadarUiMarker"
+{
+	// TODO: doesn't the name in Create "<archetype>" "<name>" work well enough?
+	// This assigns an object name, so we can find this marker in scripts.
+	+ObjProp "SymName" = "J4FRadarUiInterfacer"
+	
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarUi"
+		"Don't Inherit" FALSE
+	}
+}
