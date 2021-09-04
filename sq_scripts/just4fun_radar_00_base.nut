@@ -56,7 +56,24 @@ class J4FSpawnAbstractPolo extends SqRootScript
 		if (!BlessItem(self))
 			return;
 		
+		//SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self);
+		SetOneShotTimer("J4FNoticeMeSempai", 0.1);
+	}
+	
+	// TODO: jury-rig
+	function OnTimer()
+	{
+		if (message().name != "J4FNoticeMeSempai")
+			return;
+		
+		// TODO: jury-rig
 		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self);
+		
+		// TODO: jury-rig
+		//if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
+//		{
+//			j4fRadarOverlayInstance.displayTargets[detectedId] <- displayWhat;
+//		}
 	}
 	
 	function OnJ4FRadarPingStimStimulus()
@@ -188,7 +205,7 @@ class J4FRadarUi extends SqRootScript
 		local displayWhat = "";
 		
 		// TODO:
-		print(format("Detected %s %i with %s", Object.GetName(Object.Archetype(detectedId)), detectedId, displayWhat));
+		//print(format("Detected %s %i with %s", Object.GetName(Object.Archetype(detectedId)), detectedId, displayWhat));
 		
 		// TODO: jury-rig
 		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))

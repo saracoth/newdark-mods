@@ -19,7 +19,10 @@ class J4FSpawnLootPolo extends J4FSpawnAbstractPolo
 		// These are LinkIDs, not ObjIDs. So to get the objects themselves,
 		// we need to turn the numeric link ID into an sLink object. Now
 		// we can access the .source and .dest properties of the link.
-		return sLink(message().source).source;
+		// TODO:
+		//return sLink(message().source).source;
+		// TODO: testing
+		return self;
 	}
 	
 	// Given the weird setup of stims and such, this script needs to respond
@@ -32,6 +35,9 @@ class J4FSpawnLootPolo extends J4FSpawnAbstractPolo
 	// And it can ignore the standard one.
 	function OnJ4FRadarPingStimStimulus()
 	{
-		return;
+		// TODO: testing
+		base.OnJ4FRadarPingStimStimulus();
+		// TODO: testing
+		//return;
 	}
 }

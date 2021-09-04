@@ -45,6 +45,13 @@ CreateArch "J4FRadarPuffPolo" "J4FRadarPuffLootPolo"
 // sending a pong stim right back where it came from (the Marco puff). Then that
 // marco puff will use scripts to spawn a visible puff effect.
 
+// TODO: testing
++ObjProp "IsLoot" "Scripts"
+{
+	"Script 3" "J4FSpawnLootPolo"
+	"Don't Inherit" FALSE
+}
+
 ++Receptron "IsLoot" "J4FRadarPingStim"
 {
 	Min None
