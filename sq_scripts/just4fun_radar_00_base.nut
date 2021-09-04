@@ -122,3 +122,45 @@ class J4FGiveRadarItem extends SqRootScript
         }
     }
 }
+
+// TODO: save/load testing
+// This script goes on the marker we add to every mission. It sets up and
+// tears down the overlay handler.
+class J4FRadarUi extends SqRootScript
+{
+	// A destructor function that removes the handler is a best practice
+	// recommended by the sample overlay code that comes with NewDark.
+	function destructor()
+	{
+		// Per NewDark's documentation, there's no danger in removing
+		// an overlay that's already been removed. So this is just an
+		// extra safety net to be absolutely sure the overlay is removed,
+		// even if the EndScript message never triggers for some reason.
+		DarkOverlay.RemoveHandler(j4fRadarOverlayInstance);
+	}
+
+	function OnBeginScript()
+	{
+		DarkOverlay.AddHandler(j4fRadarOverlayInstance);
+	}
+
+	function OnEndScript()
+	{
+		DarkOverlay.RemoveHandler(j4fRadarOverlayInstance);
+	}
+}
+
+class J4FRadarOverlayHandler extends IDarkOverlayHandler
+{
+	
+}
+
+// Create a single instance of the handler. This is squirrel's "new slot"
+// operator "<-" which adds a slot named myOverlay to a table and then sets the
+// value in that slot. Because we're not prefixing myOverlay, presumably this is
+// creating a slot in some kind of special table for the entire .nut file or
+// something. I'm unclear on the scope of this operation, but it follows the
+// sample documentation that comes with NewDark, which states this is a "global"
+// instance. I'm not sure if there's any difference between this approach and
+// global variables, but in any case it gets the job done.
+j4fRadarOverlayInstance <- J4FRadarOverlayHandler();

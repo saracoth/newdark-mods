@@ -25,12 +25,8 @@ FINGERPRINT
 // spawn a unique marker in each and every level, rather than, say, attach a
 // script to the player Avatar directly.
 
-Create "Marker" "J4FRadarUiMarker"
+Create "Marker" "J4FRadarUiInterfacer"
 {
-	// TODO: doesn't the name in Create "<archetype>" "<name>" work well enough?
-	// This assigns an object name, so we can find this marker in scripts.
-	+ObjProp "SymName" = "J4FRadarUiInterfacer"
-	
 	+ObjProp "Scripts"
 	{
 		"Script 0" "J4FRadarUi"
