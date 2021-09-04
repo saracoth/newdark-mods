@@ -198,6 +198,53 @@ CreateArch "SFX" "J4FRadarPingPuff"
 CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 
 // A this close distance, the effect will even go through walls.
+// NOTE: There's a limit to how many targets the game will process in a
+// single stim, so some smaller radii are used to  help ensure that
+// nearby items are detected. Otherwise, there is no guarantee.
+
+++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+{
+	Intensity 1.0
+	
+	Propagator "Radius"
+	{
+		Shape
+		{
+			"Radius" 25.0
+			"Flags" "[None]"
+			"Dispersion" None
+		}
+		Life
+		{
+			"Flags" "[None]"
+			"Period" 5000
+			"Max Firings" 1
+			"Intensity Slope" 0.0
+		}
+	}
+}
+
+++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+{
+	Intensity 1.0
+	
+	Propagator "Radius"
+	{
+		Shape
+		{
+			"Radius" 50.0
+			"Flags" "[None]"
+			"Dispersion" None
+		}
+		Life
+		{
+			"Flags" "[None]"
+			"Period" 5000
+			"Max Firings" 1
+			"Intensity Slope" 0.0
+		}
+	}
+}
 
 ++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
 {
@@ -222,6 +269,28 @@ CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 }
 
 // Also hit stuff at a greater distance, but only if we can see it.
+
+++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+{
+	Intensity 1.0
+	
+	Propagator "Radius"
+	{
+		Shape
+		{
+			"Radius" 100.0
+			"Flags" "Line of Sight (raycast)"
+			"Dispersion" None
+		}
+		Life
+		{
+			"Flags" "[None]"
+			"Period" 5000
+			"Max Firings" 1
+			"Intensity Slope" 0.0
+		}
+	}
+}
 
 ++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
 {
