@@ -526,7 +526,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		
 		// Added to x/y coordinate to place the center of the bitmap on
 		// those coordinates, instead of the top-left corner.
-		local overlayOffset = 0 - (useBitmapSize / 2);
+		local overlayOffset = (useBitmapSize / 2);
 		
 		// Since draw order doesn't matter, may as well loop through
 		// backwards. This is marginally more efficient, since we only
