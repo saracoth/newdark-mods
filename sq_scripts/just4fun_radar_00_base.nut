@@ -3,11 +3,11 @@ TODO: What remains to make this branch feature complete?
 * Figure out new detection method. Maybe we ditch the radar item and stims,
 	or maybe the radar item just turns the HUD on and off.
 -		Requires a new way of safely flagging loot items.
-?			Maybe we go full crazy and add a metaproperty to *Object*
-			itself, or at least to Physical. Then part of the script's
-			startup is to check whether it's an IsLoot object and, if not,
-			remove the metaproperty? Does that also kill the script, or are
-			we cluttering things up with unavoidable garbage scripts?
+?			We could go full crazy and add a metaproperty to *Object* (or
+			at least Physical). However, while we can remove metaproperties
+			from objects, I see no way to remove scripts from objects, even
+			after removing the metaproperty that put the script there in the
+			first place. This is an insanely messy approach.
 ?			I think I've had radius stims affect the object itself before.
 			Giving IsLoot a tiny, one-time radius stim it responds to could
 			be the safest approach with the smallest footprint. However,
@@ -53,6 +53,40 @@ TODO: What remains to make this branch feature complete?
 -		Use Object.RenderedThisFrame() to uncap or increase range limit?
 
 */
+
+// TODO: testing
+class J4FScriptRemovalTest extends SqRootScript
+{
+	function OnBeginScript()
+	{
+		// Spreading all objects out across a couple of seconds,
+		// without spending CPU time generating random numbers for
+		// random delays.
+		SetOneShotTimer("J4FRadarInitDelay", self / 1000.0);
+	}
+	
+	function OnTimer()
+	{
+		if (message().name != "J4FRadarInitDelay")
+			return;
+		
+		print("I'm alive!");
+		
+		if (!Object.HasMetaProperty(self, "IsLoot"))
+		{
+			print("You killed me!");
+			Object.RemoveMetaProperty(self, "J4FAllTheThings");
+		}
+		
+		// TODO: jury-rig
+		//SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self);
+	}
+	
+	function OnEndScript()
+	{
+		print("I'm dead!");
+	}
+}
 
 // This script goes on the summoning object itself. When used from inventory,
 // it spawns a "marco" ping a short at the player's location.

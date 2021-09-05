@@ -14,6 +14,17 @@ FINGERPRINT
 // This allows us to use our .nut files.
 #script "squirrel"
 
+// TODO: testing
+CreateArch "MetaProperty" "J4FAllTheThings"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FScriptRemovalTest"
+		"Don't Inherit" FALSE
+	}
+}
++MetaProp "physical" "J4FAllTheThings"
+
 /*
 ================================================================================
 == New Stims ===================================================================
