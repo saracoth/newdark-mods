@@ -1,3 +1,59 @@
+/*
+TODO: What remains to make this branch feature complete?
+* Figure out new detection method. Maybe we ditch the radar item and stims,
+	or maybe the radar item just turns the HUD on and off.
+-		Requires a new way of safely flagging loot items.
+?			Maybe we go full crazy and add a metaproperty to *Object*
+			itself, or at least to Physical. Then part of the script's
+			startup is to check whether it's an IsLoot object and, if not,
+			remove the metaproperty? Does that also kill the script, or are
+			we cluttering things up with unavoidable garbage scripts?
+?			I think I've had radius stims affect the object itself before.
+			Giving IsLoot a tiny, one-time radius stim it responds to could
+			be the safest approach with the smallest footprint. However,
+			that will only work if DML allows Agent/Target properties to
+			add a metaproperty by name. Otherwise, we're back to a catch 22
+			where we need to attach a script to the IsLoot item, so that we
+			can attach our actually desired script to it. We can't stimulate
+			specific objects either, because, again, we don't know their
+			object IDs.
+-		Requires a way to ignore non-physical items. Anything that our
+		radius stim wouldn't have affected in the first place. Ideally,
+		we do this after performance testing, for sake of worst-case
+		testing.
+-		Requires figuring out how we want to detect newly-added items. For
+		example, if a script spawns an item of interest after the level start.
+* Figure out how to remove (and/or hide) items later on. For example, to
+	remove an indicator after an item is picked up, or a container after
+	it gets emptied.
+-		Is it worth doing all those checks on every frame? If not, how
+		can we have the scripts on the individual items track this info,
+		but give the overlay access to it? Do we need to push those status
+		changes to the overlay, or can the overlay easily pull them? I
+		assume we'll have to push them.
+* Serialize/deserialize data so that savegames reload correctly.
+-		Requires implementing a serialize/deserialize, unless squirrel
+		turns out to have some native methods for this.
+-		Requires figuring out when to SetData() or not. If we do so after
+		each individual message identifying a target of interest, then
+		we'll serialize that data hundreds of times, to an increasingly
+		larger string, which seems a little wasteful. But premature
+		optimization is the root of all evil, so maybe hold off on this.
+* Switch from HUD object squares to semitransparent overlays with bitmaps.
+-		Requires first picking a test image that works for both games
+		(like bitmap/txt/BUBB00.pcx or something), then picking better
+		images for each game and/or object type.
+-		Requires reworking overlay hander code to create, destroy, and
+		reposition overlays as appropriate.
+* Make the overlay effect prettier. For example, cycling between alpha
+	values in a sine wave fashion.
+* Once done with performance and other testing, define a distance limit.
+	First implement the distance checking, and then implement hiding
+	based on distance, for worst-case performance cost testing.
+-		Use Object.RenderedThisFrame() to uncap or increase range limit?
+
+*/
+
 // This script goes on the summoning object itself. When used from inventory,
 // it spawns a "marco" ping a short at the player's location.
 class J4FSpawnMarco extends SqRootScript
