@@ -10,51 +10,32 @@ FINGERPRINT
 	NAME -2099 Garrett
 }
 
-/*
-================================================================================
-== New Stims ===================================================================
-================================================================================
-*/
-
-// Interesting note, but the "stimulate object" receptron effect is limited to
-// stim names of 15 characters or less. Otherwise, I might call this
-// J4FRadarLootPongStim.
-
-CreateArch "Stimulus" "J4FR_LootStim"
-
-/*
-================================================================================
-== Polo! =======================================================================
-================================================================================
-*/
-
-// Define a visible radar puff. We don't need to change any properties here,
-// since the base J4FRadarPuffPolo already looks good enough for our purposes.
-
-CreateArch "J4FRadarPuffPolo" "J4FRadarPuffLootPolo"
-
-/*
-================================================================================
-== Pinging and Ponging =========================================================
-================================================================================
-*/
-
-// The vanilla game already has an IsLoot metaproperty we can piggyback onto.
-
-// When these items receive a J4FRadarPingStim, they'll acknowledge it by
-// sending a pong stim right back where it came from (the Marco puff). Then that
-// marco puff will use scripts to spawn a visible puff effect.
-
-// TODO: testing
+// TODO: worst-case performance testing
 +ObjProp "IsLoot" "Scripts"
 {
-	"Script 3" "J4FSpawnLootPolo"
+	"Script 3" "J4FRadarLootTarget"
 	"Don't Inherit" FALSE
 }
 
-++Receptron "IsLoot" "J4FRadarPingStim"
+/*
+================================================================================
+== IsLoot Handling =============================================================
+================================================================================
+*/
+
+// IsLoot is a metaproperty, and actual loot items are scattered all over the
+// object hierarchy. And mission authors can slap IsLoot on any old random
+// thing in the mission if they want. So we want to identity items with this
+// metaproperty as interesting, but for the reasons noted in the base mod, we
+// shouldn't attach scripts to an existing object or metaproperty. We also can't
+// give a metaproperty to a metaproperty. So instead, we're using the ping/echo
+// system. When the player gets near, they will stimulate the loot. The loot
+// will reflect that signal back to the player, who will then flag the loot as
+// an item of interest.
+
+++Receptron "IsLoot" "J4FRadarStim"
 {
-	Min None
+	Min 0.1
 	Max None
 	
 	Target Source
@@ -62,32 +43,32 @@ CreateArch "J4FRadarPuffPolo" "J4FRadarPuffLootPolo"
 
 	Effect "stimulate"
 	{
-		"Stimulus" "J4FR_LootStim"
+		"Stimulus" "J4FRadarStim"
 		"Multiply By" 0.00
-		"Then Add" 1.00
+		"Then Add" -1.00
 	}
 }
 
 /*
 ================================================================================
-== Attach Script to Marco Puff =================================================
+== Identified Loot =============================================================
 ================================================================================
 */
 
-// Both to work around the limited number of scripts per archetype, and to
-// avoid risk of sub-mods clashing with one another, we'll attach our new script
-// to the J4FRadarPuffMarco effect through a metaproperty.
+// Once loot has been identified, we'll flag it with this metaproperty. That
+// will attach the desired script to the item and nullify the radar stim from
+// now on.
 
-CreateArch "MetaProperty" "J4FLootMarco"
+CreateArch "MetaProperty" "J4FRadarLootPOI"
 {
 	+ObjProp "Scripts"
 	{
-		"Script 0" "J4FSpawnLootPolo"
+		"Script 0" "J4FRadarLootTarget"
 		"Don't Inherit" FALSE
 	}
 }
 
-++Receptron "J4FLootMarco" "J4FR_LootStim"
+++Receptron "J4FRadarLootPOI" "J4FRadarStim"
 {
 	Min None
 	Max None
@@ -95,10 +76,5 @@ CreateArch "MetaProperty" "J4FLootMarco"
 	Target Me
 	Agent Source
 	
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
+	Effect "Abort"
 }
-
-+MetaProp "J4FRadarPuffMarco" "J4FLootMarco"

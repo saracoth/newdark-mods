@@ -14,38 +14,27 @@ FINGERPRINT
 // This allows us to use our .nut files.
 #script "squirrel"
 
-// TODO: testing
-CreateArch "MetaProperty" "J4FAllTheThings"
-{
-	+ObjProp "Scripts"
-	{
-		"Script 0" "J4FScriptRemovalTest"
-		"Don't Inherit" FALSE
-	}
-}
-//+MetaProp "physical" "J4FAllTheThings"
-
 /*
 ================================================================================
 == New Stims ===================================================================
 ================================================================================
 */
 
-CreateArch "Stimulus" "J4FRadarPingStim"
+CreateArch "Stimulus" "J4FRadarStim"
 
 /*
 ================================================================================
-== Radar Pinging Item ==========================================================
+== Radar Control Item ==========================================================
 ================================================================================
 */
 
-// Create an item the player can use to send a radar blip (ie, "Marco!")
+// Create an item the player can use to toggle the radar display on and off.
 // Basing it off of Compass2 because we're going to use the old/unused compass
 // model anyway, so may a well make it behave like a proper compass item.
 
-CreateArch "Compass2" "J4FRadarMarcoItem"
+CreateArch "Compass2" "J4FRadarControlItem"
 {
-	+ObjProp "GameName" = name_j4f_radar_pinger: "Radar"
+	+ObjProp "GameName" = name_j4f_radar_pinger: "Toggle Radar"
 	
 	+ObjProp "ModelName" = compass
 	
@@ -53,7 +42,7 @@ CreateArch "Compass2" "J4FRadarMarcoItem"
 	+ObjProp "FrobInfo"
 	{
 		"World Action" "Move, FocusScript"
-		// When using it from our inventory, it should spawn a "Marco" puff.
+		// When using it from our inventory, it should tell our scripts.
 		"Inv Action" "Script"
 		"Tool Action" "[None]"
 	}
@@ -61,159 +50,66 @@ CreateArch "Compass2" "J4FRadarMarcoItem"
 	// This script will create the pinging "Marco" puff when used.
 	+ObjProp "Scripts"
 	{
-		"Script 0" "J4FSpawnMarco"
+		"Script 0" "J4FRadarToggler"
 		"Don't Inherit" FALSE
 	}
 }
 
 /*
 ================================================================================
-== Radar Giver =================================================================
+== Radar-Enabled Player ========================================================
 ================================================================================
 */
 
 // It's not safe for generic gameplay mods to add scripts directly to the
 // Garrett archetype. Doing so could clash with other mods and FMs. So instead,
 // we create a brand new metaproperty with a single script, then give the
-// metaproperty to Garrett. This safely puts the new script on the player,
+// metaproperty to Garrett. This safely puts the new scripts on the player,
 // without risk of interfering with other mods and behaviors.
 
-CreateArch "MetaProperty" "J4FRadarItemGiver"
+CreateArch "MetaProperty" "J4FRadarEnabledPlayer"
 {
 	+ObjProp "Scripts"
 	{
+		// This adds the control item to our inventory on game start.
 		"Script 0" "J4FGiveRadarItem"
+		// This allows us to receive ping responses for our J4FRadarStim
+		"Script 1" "J4FRadarEchoReceiver"
 		"Don't Inherit" FALSE
 	}
 }
 
-// Assign the new metaproperty to the Garrett object, which is the usual Avatar
-// type used in missions. As a bonus, mods of this mod could *remove* this
-// metaproperty to prevent automatically giving the item to the player!
+// Some items can't be safely scripted, so we'll also periodically ping
+// things near the player. Because they can't be scripted, however, and
+// because we can't use names in Target/Agent data, we instead need those
+// items to "reflect" the stim back at the player. The J4FRadarEchoReceiver
+// script will then processes the pinged items as needed.
 
-+MetaProp "Garrett" "J4FRadarItemGiver"
-
-/*
-================================================================================
-== RadarPingPuff Parent SFX ====================================================
-================================================================================
-*/
-
-// Define some particle effects and junk once, so that we can easily make
-// variations from it.
-
-CreateArch "SFX" "J4FRadarPingPuff"
+++Receptron "J4FRadarEnabledPlayer" "J4FRadarStim"
 {
-	// These aren't our .nut scripts, but just some vanilla game scripts for SFX
-	+ObjProp "Scripts"
+	// They'll reflect back negative values, so listen only for those.
+	Min None
+	Max -0.1
+	
+	Target Me
+	Agent Source
+	
+	Effect "stim_script_msg"
 	{
-		"Script 0" StdParticleGroup
-		"Don't Inherit" false
-	}
-
-	+ObjProp "Position"
-	{
-		"Location" 0.0, 0.0, 0.0
-		"Heading" 0
-		"Pitch" 0
-		"Bank" 0
-	}
-
-	+ObjProp "RenderAlpha" = 0.5
-
-	+ObjProp "ParticleGroup"
-	{
-		"Active" true
-		"Particle Render Type" Single-colored disk
-		"Particle Animation" Launched one-shot
-		"Particle Group Motion" Immobile
-		"number of particles" 1
-		"size of particle" 0.33
-		"velocity" 0.0, 0.0, 5.0
-		"gravity vector" 0.0, 0.0, 0.0
-		"color (palettized)" 226
-		"2nd color" 0
-		"3rd color" 0
-		"alpha" 0
-		"fixed-group radius" 0.5
-		"spin / pulse group" false
-		"spin speed" 6.0, 5.0, 3.0
-		"pulse magnitude" 0.1
-		"pulse cycle time ms" 1000
-		"particle fade time" 0.5
-		"launch period" 0.0
-		"animation offset ms" 0
-		"Group-scale velocity" 1.25
-		"bm-disk flags" "[None]"
-		"bm-disk birth time" 0.0
-		"bm-disk rot (vel, offs, rand)" 0.0, 0.0, 0.0
-		"bm-disk ani frame time" 0.0
-		"bm-disk grow speed" 0.0
-		"bm-disk rgb" 0.0, 0.0, 0.0
-		"bm-disk 2nd rgb" 0.0, 0.0, 0.0
-		"bm-disk 3rd rgb" 0.0, 0.0, 0.0
-		"always simulate (slow)" false
-		"always simulate group" true
-		"particles start launched" false
-		"alpha subpixel particles" false
-		"skip subpixel particles" false
-		"ignore attachment refs" false
-		"force matching unrefs" false
-	}
-
-	+ObjProp "PGLaunchInfo"
-	{
-		"Launch Type" Bounding Box
-		"Box Min" -0.5, -0.5, -0.5
-		"Box Max" 0.5, 0.5, 0.5
-		"Min Radius" 0.0
-		"Max Radius" 0.0
-		"Loc unrotated?" false
-		"Velocity Min" -1.0, -1.0, -1.0
-		"Velocity Max" 1.0, 1.0, 1.0
-		"Vel unrotated?" false
-		"Min time" 1.5
-		"Max time" 2.5
-	}
-
-	+ObjProp "ModelName" = FX_Particles
-
-	+ObjProp "StTweqDelete"
-	{
-		"AnimS" On
-		"MiscS" "[None]"
-		"Cur Time" 0
-		"Frame #" 0
-	}
-
-	+ObjProp "CfgTweqDelete"
-	{
-		"Halt" Destroy Obj
-		"AnimC" Sim
-		"MiscC" "[None]"
-		"CurveC" "[None]"
-		"Rate" 3000
+		"Flags" "[None]"
 	}
 }
 
-/*
-================================================================================
-== Marco! ======================================================================
-================================================================================
-*/
-
-// This will burst at various distances. We'll use it to stimulate items of
-// interest. Later on, those items will generate their own "polo" puff that we
-// can actually see.
-
-CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
-
-// A this close distance, the effect will even go through walls.
+// A close distance, the effect will go through walls. Further away, not.
 // NOTE: There's a limit to how many targets the game will process in a
 // single stim, so some smaller radii are used to  help ensure that
-// nearby items are detected. Otherwise, there is no guarantee.
+// nearby items are detected. Otherwise, there is no guarantee that near
+// items will be stimulated and distant ones ignored.
+// 
+// We also use faster pulses for close ranges, and slower for long
+// ranges, to hopefully reduce overall CPU burden.
 
-++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
 {
 	Intensity 1.0
 	
@@ -227,15 +123,15 @@ CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 		}
 		Life
 		{
-			"Flags" "[None]"
-			"Period" 5000
+			"Flags" "No Max Firings"
+			"Period" 500
 			"Max Firings" 1
 			"Intensity Slope" 0.0
 		}
 	}
 }
 
-++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
 {
 	Intensity 1.0
 	
@@ -249,15 +145,15 @@ CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 		}
 		Life
 		{
-			"Flags" "[None]"
-			"Period" 5000
+			"Flags" "No Max Firings"
+			"Period" 1000
 			"Max Firings" 1
 			"Intensity Slope" 0.0
 		}
 	}
 }
 
-++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
 {
 	Intensity 1.0
 	
@@ -271,8 +167,8 @@ CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 		}
 		Life
 		{
-			"Flags" "[None]"
-			"Period" 5000
+			"Flags" "No Max Firings"
+			"Period" 2000
 			"Max Firings" 1
 			"Intensity Slope" 0.0
 		}
@@ -281,7 +177,7 @@ CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 
 // Also hit stuff at a greater distance, but only if we can see it.
 
-++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
 {
 	Intensity 1.0
 	
@@ -295,15 +191,15 @@ CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 		}
 		Life
 		{
-			"Flags" "[None]"
-			"Period" 5000
+			"Flags" "No Max Firings"
+			"Period" 3000
 			"Max Firings" 1
 			"Intensity Slope" 0.0
 		}
 	}
 }
 
-++StimSource "J4FRadarPuffMarco" "J4FRadarPingStim"
+++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
 {
 	Intensity 1.0
 	
@@ -317,76 +213,16 @@ CreateArch "J4FRadarPingPuff" "J4FRadarPuffMarco"
 		}
 		Life
 		{
-			"Flags" "[None]"
-			"Period" 5000
+			"Flags" "No Max Firings"
+			"Period" 4000
 			"Max Firings" 1
 			"Intensity Slope" 0.0
 		}
 	}
 }
 
-/*
-================================================================================
-== Polo! =======================================================================
-================================================================================
-*/
+// Assign the new metaproperty to the Garrett object, which is the usual Avatar
+// type used in missions. As a bonus, mods of this mod could *remove* this
+// metaproperty to prevent automatically giving the item to the player!
 
-// These are for visible puffs. We tweak it's appearance a bit from the ping.
-
-CreateArch "J4FRadarPingPuff" "J4FRadarPuffPolo"
-{
-	+ObjProp "ParticleGroup"
-	{
-		"Active" true
-		"Particle Render Type" Single-colored disk
-		"Particle Animation" Launched one-shot
-		"Particle Group Motion" Immobile
-		"number of particles" 80
-		"size of particle" 0.33
-		"velocity" 0.0, 0.0, 5.0
-		"gravity vector" 0.0, 0.0, 0.0
-		"color (palettized)" 226
-		"2nd color" 0
-		"3rd color" 0
-		"alpha" 128
-		"fixed-group radius" 0.5
-		"spin / pulse group" false
-		"spin speed" 6.0, 5.0, 3.0
-		"pulse magnitude" 0.1
-		"pulse cycle time ms" 1000
-		"particle fade time" 0.5
-		"launch period" 0.0
-		"animation offset ms" 0
-		"Group-scale velocity" 0.0
-		"bm-disk flags" "[None]"
-		"bm-disk birth time" 0.0
-		"bm-disk rot (vel, offs, rand)" 0.0, 0.0, 0.0
-		"bm-disk ani frame time" 0.0
-		"bm-disk grow speed" 0.0
-		"bm-disk rgb" 0.0, 0.0, 0.0
-		"bm-disk 2nd rgb" 0.0, 0.0, 0.0
-		"bm-disk 3rd rgb" 0.0, 0.0, 0.0
-		"always simulate (slow)" false
-		"always simulate group" true
-		"particles start launched" true
-		"alpha subpixel particles" false
-		"skip subpixel particles" false
-		"ignore attachment refs" false
-		"force matching unrefs" false
-	}
-
-	+ObjProp "PGLaunchInfo"
-	{
-		"Launch Type" Sphere
-		"Box Min" -1.0, -1.0, -1.0
-		"Box Max" 1.0, 1.0, 1.0
-		"Min Radius" 0.0
-		"Max Radius" 0.0
-		"Loc unrotated?" false
-		"Velocity Min" -20.0, -20.0, -20.0
-		"Velocity Max" 20.0, 20.0, 20.0
-		"Vel unrotated?" false
-		"Min time" 1.0
-		"Max time" 1.0
-	}
-}
++MetaProp "Garrett" "J4FRadarEnabledPlayer"

@@ -14,5 +14,5 @@ FINGERPRINT
 
 // These targets work best for Thief 1/Gold.
 
-+MetaProp "Key" "J4FRadarEquipPingable"
-+MetaProp "RopeArrow" "J4FRadarEquipPingable"
++MetaProp "Key" "J4FRadarEquipPOI"
++MetaProp "RopeArrow" "J4FRadarEquipPOI"

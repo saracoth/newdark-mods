@@ -23,6 +23,9 @@ TODO: What remains to make this branch feature complete?
 		changes to the overlay, or can the overlay easily pull them? I
 		assume we'll have to push them.
 * Serialize/deserialize data so that savegames reload correctly.
+-		Depending on our techniques, this may be unnecessary. For example,
+		if we decorate all items with something that functions on script
+		begin, that will fire again on a reload.
 -		Requires implementing a serialize/deserialize, unless squirrel
 		turns out to have some native methods for this.
 -		Requires figuring out when to SetData() or not. If we do so after
@@ -31,11 +34,7 @@ TODO: What remains to make this branch feature complete?
 		larger string, which seems a little wasteful. But premature
 		optimization is the root of all evil, so maybe hold off on this.
 * Switch from HUD object squares to semitransparent overlays with bitmaps.
--		Requires first picking a test image that works for both games
-		(like bitmap/txt/BUBB00.pcx or something), then picking better
-		images for each game and/or object type.
--		Requires reworking overlay hander code to create, destroy, and
-		reposition overlays as appropriate.
+-		Requires additional image colors.
 * Make the overlay effect prettier. For example, cycling between alpha
 	values in a sine wave fashion.
 * Once done with performance and other testing, define a distance limit.
@@ -47,75 +46,58 @@ TODO: What remains to make this branch feature complete?
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 
-// TODO: testing
-class J4FScriptRemovalTest extends SqRootScript
-{
-	function OnBeginScript()
-	{
-		// Spreading all objects out across a couple of seconds,
-		// without spending CPU time generating random numbers for
-		// random delays.
-		SetOneShotTimer("J4FRadarInitDelay", self / 1000.0);
-	}
-	
-	function OnTimer()
-	{
-		if (message().name != "J4FRadarInitDelay")
-			return;
-		
-		print("I'm alive!");
-		
-		if (!Object.HasMetaProperty(self, "IsLoot"))
-		{
-			print("You killed me!");
-			Object.RemoveMetaProperty(self, "J4FAllTheThings");
-		}
-		
-		// TODO: jury-rig
-		//SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self);
-	}
-	
-	function OnEndScript()
-	{
-		print("I'm dead!");
-	}
-}
-
-// This script goes on the summoning object itself. When used from inventory,
-// it spawns a "marco" ping a short at the player's location.
-class J4FSpawnMarco extends SqRootScript
+// This script goes on an inventory item the player can use to turn the
+// radar effect on and off.
+class J4FRadarToggler extends SqRootScript
 {
 	function OnFrobInvEnd()
 	{
-		// Several example .nut scripts do something similar. This should be
-		// slightly more efficient than creating two zero vectors later.
-		local zeros = vector(0);
+		// TODO: implement, default to off
+	}
+}
+
+class J4FRadarEchoReceiver extends SqRootScript
+{
+	// Most items of interest don't need this, and will instead directly
+	// register themselves with the radar system. Other items are trickier,
+	// and rely on the radius stim bursts to detect them as we draw near.
+	function OnJ4FRadarStimStimulus()
+	{
+		// message() for a stimulus includes a source and a sensor property.
+		// These are LinkIDs, not ObjIDs. So to get the objects themselves,
+		// we need to turn the numeric link ID into an sLink object. Now
+		// we can access the .source and .dest properties of the link.
+		local newPointOfInterest = sLink(message().source).source;
 		
-		// Create a new instance of our puff in the game world,
-		// then immediately teleport it.
+		// Rather than keep all the loot-specific logic in its own module,
+		// it's easier to keep it here. The loot module files are still
+		// required to enable these effects, because otherwise the POI
+		// metaproperty won't exist.
+		local lootPointOfInterest = ObjID("J4FRadarLootPOI");
 		
-		// Start the creation process. This may be better than using just
-		// Object.Create() in some cases.
-		local summon = Object.BeginCreate("J4FRadarPuffMarco");
-		// Here we use that to set the new object's position before we
-		// finish creating it.
-		Object.Teleport(summon, zeros, zeros, message().Frobber);
-		// Now we're done.
-		Object.EndCreate(summon);
-		
-		// NOTE: In practice, the following one-liner worked equally well.
-		// Object.Teleport(Object.Create("J4FRadarPuffMarco"), vector(0), vector(0), message().Frobber);
+		if (
+			// The optional loot module is installed.
+			lootPointOfInterest < 0
+			// And it's a loot item.
+			&& Object.InheritsFrom(newPointOfInterest, "IsLoot")
+			// But it does not yet have the loot POI metaproperty.
+			&& !Object.HasMetaProperty(newPointOfInterest, lootPointOfInterest)
+		)
+		{
+			Object.AddMetaProperty(newPointOfInterest, lootPointOfInterest);
+		}
 	}
 }
 
 // This a subclass of script goes on pingable items, to generate a visible
 // puff in response to a ping.
-class J4FSpawnAbstractPolo extends SqRootScript
+class J4FRadarAbstractTarget extends SqRootScript
 {
-	// Subclass's constructor() should specify this.
+	// Subclass's constructor() should specify this if desired.
 	// TODO: confirm save/load friendly
-	puffName = null;
+	color = "W";
 	
+	// TODO: when do we use this now?
 	// Subclasses can override this to ignore items that accepted the
 	// stimulus, but can turn out to be uninteresting after all.
 	function BlessItem(itemToBless)
@@ -123,68 +105,24 @@ class J4FSpawnAbstractPolo extends SqRootScript
 		return true;
 	}
 	
-	// Subclasses can override this behavior if needed, such as when
-	// the item cannot be pinged or scripted directly.
-	function GetPingedItem()
-	{
-		return self;
-	}
-	
-	// TODO: performance testing by registering all possible items
-	//	loot is trickier, but what can we do, right?
+	// This will fire on mission start and on reloading a save.
 	function OnBeginScript()
 	{
-		if (GetPingedItem() != self)
-			return;
-		if (!BlessItem(self))
-			return;
-		
-		//SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self);
-		SetOneShotTimer("J4FNoticeMeSempai", 0.1);
+		// Depending on which order objects are set up, things like the
+		// overlay marker may not be ready yet. We'll add a slight
+		// startup delay before registering our existence with them.
+		// We use our item ID to help stagger startup times when there
+		// are a lot of items in the level. We could generate a random
+		// delay, but that carries a CPU cost of its own.
+		SetOneShotTimer("J4FRadarTargetInit", ((self % 900) + 100) / 1000.0);
 	}
 	
-	// TODO: jury-rig
 	function OnTimer()
 	{
-		if (message().name != "J4FNoticeMeSempai")
+		if (message().name != "J4FRadarTargetInit")
 			return;
 		
-		// TODO: jury-rig
-		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self);
-		
-		// TODO: jury-rig
-		//if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
-//		{
-//			j4fRadarOverlayInstance.displayTargets[detectedId] <- displayWhat;
-//		}
-	}
-	
-	function OnJ4FRadarPingStimStimulus()
-	{
-		// What is the pinged item of interest?
-		local pingedItem = GetPingedItem();
-		
-		// Is it really interesting enough to point out to the player?
-		if (!BlessItem(pingedItem))
-			return;
-		
-		// TODO:
-		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", pingedItem);
-		
-		// Several example .nut scripts do something similar. This should be
-		// slightly more efficient than creating two zero vectors later.
-		local zeros = vector(0);
-		
-		// Create a new instance of our puff in the game world,
-		// then immediately teleport it, similar to create_obj receptrons.
-		
-		// Start the creation process. This may be better than using just
-		// Object.Create() in some cases.
-		local summon = Object.BeginCreate(puffName);
-		// Now we place the new object on top of the radar-detected item.
-		Object.Teleport(summon, zeros, zeros, pingedItem);
-		// Now we're done setting up the new object instance.
-		Object.EndCreate(summon);
+		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self, color);
 	}
 }
 
@@ -207,14 +145,14 @@ class J4FGiveRadarItem extends SqRootScript
 			// this variable, but it's probably less efficient than doing the
 			// ID lookup once and storing the result. This approach was used
 			// in the HolyH2O script sample as well.
-			local radarItemId = ObjID("J4FRadarMarcoItem");
+			local radarItemId = ObjID("J4FRadarControlItem");
 			
 			// Loop through everything in the player's inventory to find the token.
 			foreach (link in playerInventory)
 			{
 				// Is the inventory item an instance of the radar item?
 				// (InheritsFrom *might* also detect other kinds of items based
-				// on the J4FRadarMarcoItem as well, but that's not relevant
+				// on the J4FRadarControlItem as well, but that's not relevant
 				// to this mod.)
 				if ( Object.InheritsFrom(LinkDest(link), radarItemId) )
 				{
@@ -282,18 +220,12 @@ class J4FRadarUi extends SqRootScript
 	function OnJ4FRadarDetected()
 	{
 		local detectedId = message().data;
-		local displayBitmapName = message().data2;
-		local displayBitmapPath = message().data3;
-		
-		// TODO:
-		local displayBitmapName = "BUBB00";
-		local displayBitmapPath = "bitmap\\txt\\";
 		
 		// TODO: jury-rig
 		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
 		{
 			// TODO: figure out these key/value pairs :/
-			j4fRadarOverlayInstance.displayTargets[detectedId] <- displayBitmapPath + displayBitmapName;
+			j4fRadarOverlayInstance.displayTargets[detectedId] <- message().data2;
 		}
 	}
 }
@@ -306,7 +238,7 @@ class J4FRadarPointOfInterest
 {
 	x = 0;
 	y = 0;
-	displayTexture = "";
+	displayColor = "W";
 }
 
 // TODO: document class and its contents
@@ -392,7 +324,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// then do the actual removing later.
 		local removeIds = [];
 		
-		foreach (targetId, displayTexture in displayTargets)
+		foreach (targetId, displayColor in displayTargets)
 		{
 			// TODO: Item IDs can and will be reused, so we have to be careful about that.
 			//	For example, I saw temporary SFX temporarily receive the radar highlight.
@@ -429,7 +361,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// Pick a point in the center of the object bounds.
 			metadataForOverlay.x = (x1_ref.tointeger() + x2_ref.tointeger()) / 2;
 			metadataForOverlay.y = (y1_ref.tointeger() + y2_ref.tointeger()) / 2;
-			metadataForOverlay.displayTexture = displayTexture;
+			metadataForOverlay.displayColor = displayColor;
 			toDrawThisFrame.append(metadataForOverlay);
 		}
 		
@@ -516,6 +448,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			{
 				newBitmapSize = 64;
 			}
+			// TODO: worst-case performance testing
+			newBitmapSize = 64;
 			
 			// Check to see if it's actually any different. Not every
 			// resizeNeeded will yield different target bitmap size.
@@ -561,7 +495,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		for (local i = toDrawThisFrame.len(); --i > -1; )
 		{
 			local drawMetadata = toDrawThisFrame[i];
-			local displayTexture = drawMetadata.displayTexture;
+			local displayColor = drawMetadata.displayColor;
 			local x = drawMetadata.x;
 			local y = drawMetadata.y;
 			
@@ -570,16 +504,16 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// it if needed.
 			local overlayArray;
 			local usedInPool = 0;
-			if (displayTexture in overlayPool)
+			if (displayColor in overlayPool)
 			{
 				// The array exists, so grab it.
-				overlayArray = overlayPool[displayTexture];
+				overlayArray = overlayPool[displayColor];
 				
 				// But is this the first time we've grabbed it this frame?
 				// If not, we need to load the appropriate usedInPool value.
-				if (displayTexture in poolUsed)
+				if (displayColor in poolUsed)
 				{
-					usedInPool = poolUsed[displayTexture];
+					usedInPool = poolUsed[displayColor];
 				}
 				// Otherwise, we defaulted usedInPool to 0 earlier.
 			}
@@ -589,7 +523,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// empty array to work with.
 				overlayArray = [];
 				// And remember it for future use.
-				overlayPool[displayTexture] <- overlayArray;
+				overlayPool[displayColor] <- overlayArray;
 				// NOTE: We defaulted usedInPool to 0 earlier.
 			}
 			
@@ -619,8 +553,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// TODO: huh...do we need to get a new bitmap handle for each
 				// overlay, or can we use one for all? Also, when should we
 				// call DarkOverlay.FlushBitmap()?
-				// TODO: so, parameters are not what I expected...review displayTexture keys :(
-				local newBitmap = DarkOverlay.GetBitmap("RadarW" + useBitmapSize, "j4fres\\");
+				// TODO: so, parameters are not what I expected...review displayColor keys :(
+				local newBitmap = DarkOverlay.GetBitmap("Radar" + displayColor + useBitmapSize, "j4fres\\");
 				/*
 				// TODO: uh, we actually need to know this always, not just on creation :/
 				// maybe we need to create classes to track our overlay details; if not,
@@ -658,7 +592,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			
 			// Regardless of how we got here, we're using another overlay of
 			// this type and need to make note of that.
-			poolUsed[displayTexture] <- usedInPool + 1;
+			poolUsed[displayColor] <- usedInPool + 1;
 			
 			// And whether or not we drew the contents of the overlay earlier,
 			// we need to instruct it to draw the overlay itself this frame.

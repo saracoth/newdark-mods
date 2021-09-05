@@ -12,95 +12,23 @@ FINGERPRINT
 
 /*
 ================================================================================
-== Polo! =======================================================================
+== Register Items of Interest ==================================================
 ================================================================================
 */
 
-// Define a visible radar puff. How about blue?
+// These items will announce themselves to the radar system.
 
-CreateArch "J4FRadarPuffPolo" "J4FRadarPuffContainerPolo"
-{
-	+ObjProp "ParticleGroup"
-	{
-		"Active" true
-		"Particle Render Type" Single-colored disk
-		"Particle Animation" Launched one-shot
-		"Particle Group Motion" Immobile
-		"number of particles" 80
-		"size of particle" 0.33
-		"velocity" 0.0, 0.0, 5.0
-		"gravity vector" 0.0, 0.0, 0.0
-		"color (palettized)" 222
-		"2nd color" 0
-		"3rd color" 0
-		"alpha" 128
-		"fixed-group radius" 0.5
-		"spin / pulse group" false
-		"spin speed" 6.0, 5.0, 3.0
-		"pulse magnitude" 0.1
-		"pulse cycle time ms" 1000
-		"particle fade time" 0.5
-		"launch period" 0.0
-		"animation offset ms" 0
-		"Group-scale velocity" 0.0
-		"bm-disk flags" "[None]"
-		"bm-disk birth time" 0.0
-		"bm-disk rot (vel, offs, rand)" 0.0, 0.0, 0.0
-		"bm-disk ani frame time" 0.0
-		"bm-disk grow speed" 0.0
-		"bm-disk rgb" 0.0, 0.0, 0.0
-		"bm-disk 2nd rgb" 0.0, 0.0, 0.0
-		"bm-disk 3rd rgb" 0.0, 0.0, 0.0
-		"always simulate (slow)" false
-		"always simulate group" true
-		"particles start launched" true
-		"alpha subpixel particles" false
-		"skip subpixel particles" false
-		"ignore attachment refs" false
-		"force matching unrefs" false
-	}
-}
-
-/*
-================================================================================
-== Pinging and Ponging =========================================================
-================================================================================
-*/
-
-// When these items receive a J4FRadarPingStim, they'll acknowledge it by
-// sending spawning a visible puff effect.
-
-CreateArch "MetaProperty" "J4FRadarContainerPingable"
+CreateArch "MetaProperty" "J4FRadarContainerPOI"
 {
 	+ObjProp "Scripts"
 	{
-		"Script 0" "J4FSpawnContainerPolo"
+		"Script 0" "J4FRadarContainerTarget"
 		"Don't Inherit" FALSE
 	}
 }
 
-++Receptron "J4FRadarContainerPingable" "J4FRadarPingStim"
-{
-	Min None
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
-}
-
-/*
-================================================================================
-== What Responds to Pings ======================================================
-================================================================================
-*/
-
 // NOTE: In thief 1, the Container archetype also has some purely decorative
-// items, which were moved to other placed in Thief 2. To avoid detecting these
+// items, which were moved to other places in Thief 2. To avoid detecting these
 // inert items, separate DML files could target Thief 1/Gold and Thief 2. In
 // Thief 2, the Container archetype is a fine target. In thief 1/Gold, we'd want
 // to target these instead:
@@ -110,4 +38,4 @@ CreateArch "MetaProperty" "J4FRadarContainerPingable"
 // However, our script ignores any empty Container. We may as well keep things
 // simple and attach to every Container object, then filter them out later.
 
-+MetaProp "Container" "J4FRadarContainerPingable"
++MetaProp "Container" "J4FRadarContainerPOI"

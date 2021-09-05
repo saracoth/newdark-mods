@@ -12,108 +12,21 @@ FINGERPRINT
 
 /*
 ================================================================================
-== Polo! =======================================================================
+== Register Items of Interest ==================================================
 ================================================================================
 */
 
-// Define a visible radar puff. Let's make these purple.
+// These items will announce themselves to the radar system.
 
-CreateArch "J4FRadarPuffPolo" "J4FRadarPuffDevicePolo"
-{
-	+ObjProp "ParticleGroup"
-	{
-		"Active" true
-		"Particle Render Type" Single-colored disk
-		"Particle Animation" Launched one-shot
-		"Particle Group Motion" Immobile
-		"number of particles" 25
-		"size of particle" 0.33
-		"velocity" 0.0, 0.0, 5.0
-		"gravity vector" 0.0, 0.0, 0.0
-		"color (palettized)" 157
-		"2nd color" 0
-		"3rd color" 0
-		"alpha" 128
-		"fixed-group radius" 0.5
-		"spin / pulse group" false
-		"spin speed" 6.0, 5.0, 3.0
-		"pulse magnitude" 0.1
-		"pulse cycle time ms" 1000
-		"particle fade time" 0.5
-		"launch period" 0.0
-		"animation offset ms" 0
-		"Group-scale velocity" 0.0
-		"bm-disk flags" "[None]"
-		"bm-disk birth time" 0.0
-		"bm-disk rot (vel, offs, rand)" 0.0, 0.0, 0.0
-		"bm-disk ani frame time" 0.0
-		"bm-disk grow speed" 0.0
-		"bm-disk rgb" 0.0, 0.0, 0.0
-		"bm-disk 2nd rgb" 0.0, 0.0, 0.0
-		"bm-disk 3rd rgb" 0.0, 0.0, 0.0
-		"always simulate (slow)" false
-		"always simulate group" true
-		"particles start launched" true
-		"alpha subpixel particles" false
-		"skip subpixel particles" false
-		"ignore attachment refs" false
-		"force matching unrefs" false
-	}
-	
-	+ObjProp "PGLaunchInfo"
-	{
-		"Launch Type" Sphere
-		"Box Min" -1.0, -1.0, -1.0
-		"Box Max" 1.0, 1.0, 1.0
-		"Min Radius" 0.0
-		"Max Radius" 0.0
-		"Loc unrotated?" false
-		"Velocity Min" -8.0, -8.0, -8.0
-		"Velocity Max" 8.0, 8.0, 8.0
-		"Vel unrotated?" false
-		"Min time" 1.0
-		"Max time" 1.0
-	}
-}
-
-/*
-================================================================================
-== Pinging and Ponging =========================================================
-================================================================================
-*/
-
-// When these items receive a J4FRadarPingStim, they'll acknowledge it by
-// using scripts to spawn a visible puff effect.
-
-CreateArch "MetaProperty" "J4FRadarDevicePingable"
+CreateArch "MetaProperty" "J4FRadarDevicePOI"
 {
 	+ObjProp "Scripts"
 	{
-		"Script 0" "J4FSpawnDevicePolo"
+		"Script 0" "J4FRadarDeviceTarget"
 		"Don't Inherit" FALSE
 	}
 }
 
-++Receptron "J4FRadarDevicePingable" "J4FRadarPingStim"
-{
-	Min None
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
-}
-
-/*
-================================================================================
-== What Responds to Pings ======================================================
-================================================================================
-*/
-
-+MetaProp "Lockboxes" "J4FRadarDevicePingable"
-+MetaProp "Switches" "J4FRadarDevicePingable"
-+MetaProp "PressPlate" "J4FRadarDevicePingable"
++MetaProp "Lockboxes" "J4FRadarDevicePOI"
++MetaProp "Switches" "J4FRadarDevicePOI"
++MetaProp "PressPlate" "J4FRadarDevicePOI"
