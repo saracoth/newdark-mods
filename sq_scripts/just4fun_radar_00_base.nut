@@ -3,6 +3,15 @@ TODO: What remains to make this branch feature complete?
 * Figure out new detection method. Maybe we ditch the radar item and stims,
 	or maybe the radar item just turns the HUD on and off.
 -		Requires a new way of safely flagging loot items.
+?			Links only come into play when objects are dynamically spawned
+			or when creating objects in DromEd. Even if we added an attachment
+			link (ParticleAttachement, DetailAttachement, PhysAttach) to
+			something via DML, that will not affect anything that already
+			exists in the level. This is fine. After all, this allows
+			individual instances of objects to have different links if
+			the level designer wishes. However, it does also mean that we
+			can't use links to attach a new kind of object to all the loot
+			that exists in every level :(
 ?			We could go full crazy and add a metaproperty to *Object* (or
 			at least Physical). However, while we can remove metaproperties
 			from objects, I see no way to remove scripts from objects, even
@@ -51,7 +60,6 @@ TODO: What remains to make this branch feature complete?
 	First implement the distance checking, and then implement hiding
 	based on distance, for worst-case performance cost testing.
 -		Use Object.RenderedThisFrame() to uncap or increase range limit?
-
 */
 
 // TODO: testing
