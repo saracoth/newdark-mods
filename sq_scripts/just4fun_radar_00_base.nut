@@ -395,17 +395,35 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// TODO: check whether the targetId needs to be ignored/removed
 			// eg, item picked up, etc.
 			
-			local targetPos = Object.Position(targetId);
-			if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
+			// Well, WorldToScreen looked promising, but it appears to just pick a corner
+			// of the object. If we want something more...centered, we'll have to use
+			// GetObjectScreenBounds instead.
+			//local targetPos = Object.Position(targetId);
+			//if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
+			//	continue;
+			
+			// This sets the x/y pairs to the left, top, right, and bottom edges of the
+			// object. Or it returns false if the object is completely offscreen.
+			if (!DarkOverlay.GetObjectScreenBounds(targetId, x1_ref, y1_ref, x2_ref, y2_ref))
 				continue;
+			
+			// For debugging purposes, we can also draw directly in the HUD this frame.
+			// This will draw the bounding box we just retrieved.
+			///*
+			DarkOverlay.DrawLine(x1_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y2_ref.tointeger());
+			DarkOverlay.DrawLine(x1_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y2_ref.tointeger());
+			DarkOverlay.DrawLine(x2_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y1_ref.tointeger());
+			DarkOverlay.DrawLine(x2_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y1_ref.tointeger());
+			//*/
 			
 			// TODO: I guess we should do all the other checking as well, including
 			// whether to remove the item ID, whether to ignore it because it's not
 			// currently visible or in range, etc.
 			
 			local metadataForOverlay = J4FRadarPointOfInterest();
-			metadataForOverlay.x = x1_ref.tointeger();
-			metadataForOverlay.y = y1_ref.tointeger();
+			// Pick a point in the center of the object bounds.
+			metadataForOverlay.x = (x1_ref.tointeger() + x2_ref.tointeger()) / 2;
+			metadataForOverlay.y = (y1_ref.tointeger() + y2_ref.tointeger()) / 2;
 			metadataForOverlay.displayTexture = displayTexture;
 			toDrawThisFrame.append(metadataForOverlay);
 		}
