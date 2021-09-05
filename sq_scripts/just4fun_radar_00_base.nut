@@ -279,18 +279,18 @@ class J4FRadarUi extends SqRootScript
 	function OnJ4FRadarDetected()
 	{
 		local detectedId = message().data;
-		// TODO:
-		//local displayWhat = message().data2;
-		// TODO:
-		local displayWhat = "";
+		local displayBitmapName = message().data2;
+		local displayBitmapPath = message().data3;
 		
 		// TODO:
-		//print(format("Detected %s %i with %s", Object.GetName(Object.Archetype(detectedId)), detectedId, displayWhat));
+		local displayBitmapName = "BUBB00";
+		local displayBitmapPath = "bitmap\\txt\\";
 		
 		// TODO: jury-rig
 		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
 		{
-			j4fRadarOverlayInstance.displayTargets[detectedId] <- displayWhat;
+			// TODO: figure out these key/value pairs :/
+			j4fRadarOverlayInstance.displayTargets[detectedId] <- displayBitmapPath + displayBitmapName;
 		}
 	}
 }
@@ -321,6 +321,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// safe to lose track of on save/load, and we don't try to persist them.
 	canvasWidth = 0;
 	canvasHeight = 0;
+	// TODO: implement resizeNeeded if needed, or else remove that logic
 	resizeNeeded = false;
 	displayTargets = {};
 	// This is a table whose keys are strings, indicating the appearance
@@ -368,7 +369,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		}
 	}
 	
-	// TODO: just testing
 	function DrawHUD()
 	{
 		// Well, this is really, really awkward. Turns out that WorldToScreen()
@@ -378,9 +378,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// drawing phase, we use the information we gathered here to manage the
 		// visible overlays.
 		toDrawThisFrame = [];
-		
-		// TODO:
-		DarkOverlay.DrawString("Hello", 10, 10);
 		
 		// I'm unclear how squirrel handles modifying an object while
 		// enumerating through it. Given that some programming languages
@@ -400,7 +397,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			local targetPos = Object.Position(targetId);
 			if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
 				continue;
-
+			
 			// TODO: I guess we should do all the other checking as well, including
 			// whether to remove the item ID, whether to ignore it because it's not
 			// currently visible or in range, etc.
@@ -410,23 +407,17 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			metadataForOverlay.y = y1_ref.tointeger();
 			metadataForOverlay.displayTexture = displayTexture;
 			toDrawThisFrame.append(metadataForOverlay);
-			
-			//DarkOverlay.WorldToScreen(targetPos, x, y);
-			if (!DarkOverlay.GetObjectScreenBounds(targetId, x1_ref, y1_ref, x2_ref, y2_ref))
-				continue;
-			
-			local x1 = x1_ref.tointeger();
-			local y1 = y1_ref.tointeger();
-			local x2 = x2_ref.tointeger();
-			local y2 = y2_ref.tointeger();
-			
-			DarkOverlay.DrawLine(x1, y1, x1, y2);
-			DarkOverlay.DrawLine(x1, y2, x2, y2);
-			DarkOverlay.DrawLine(x2, y2, x2, y1);
-			DarkOverlay.DrawLine(x2, y1, x1, y1);
 		}
 		
-		// TODO: process removeIds
+		// If we've slated any items for removal, process that list.
+		// Since the order doesn't matter, may as well loop through
+		// backwards. This is marginally more efficient, since we only
+		// have to grab the array length once, and we reference fewer
+		// variable values and more constant/literal values.
+		for (local i = removeIds.len(); --i > -1; )
+		{
+			delete displayTargets[removeIds[i]];
+		}
     }
 	
 	// Our best option seems to be creating a separate overlay for each
@@ -436,69 +427,55 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	//
 	// Using overlays rather than HUD elements gives us more flexibility.
 	// For example, we can set transparencies. However, there are some
-	// oddities in how coordiantes work. While the HUD covers the entire
-	// canvas and uses the Engine.GetCanvasSize() height/width, that isn't
-	// necessarily the same as the game's screen resolution. If we wanted
-	// to create a single overlay covering the whole screen, and directly
-	// port HUD-based code to draw on the overlay instead, lots of things
-	// immediately go wrong. For starters, an overlay must have a width
-	// and height that are powers of 2, which resolutions like 1920 or
-	// 1080 are not. It will be automatically rounded to a power of 2 and
-	// potentially flood the .log file with "fatal" errors. So problem 1,
-	// an overlay cannot cover the entire screen unless you make it bigger
-	// than the screen resolution (is that allowed?), and also there's
-	// no way I see in NewDark 1.27 to get the current resolution. Maybe
-	// it's possible to get configuration values with the Engine class,
-	// but I don't know when resolution changes in the middle of a game
-	// become available through Engine.ConfigGetRaw() and such.
+	// oddities in how coordiantes and such work. Because an overlay must
+	// have power-of-2 widths and heights, odds are slim that a single
+	// overlay could ever cover the entire screen. So rather than treat
+	// the overlay as a shared canvas for all indicators, each indicator
+	// will be its own overlay. We'll just create, destroy, and relocate
+	// them as needed.
 	function DrawTOverlay()
 	{
 		// Because the number of tracked items will usually be much
 		// bigger than the number of visible items, rather than giving
 		// each tracked item its own overlay, we'll have them share a
-		// pool of overlays. We'll just move these overlays around, and
-		// create/destroy them as needed to be sure we have enough.
+		// pool of overlays. Instead of an overlay permanently belonging
+		// to a point of interest, they will be *temporarily* assigned
+		// for the duration of a single frame.
+		
 		// This variable keeps track of how many overlays of each type
 		// we needed this frame, so we can either hide or destroy the
 		// rest. The keys match those of overlayPool, but the value is
 		// just an integer counter.
 		local poolUsed = {};
 		
-		// I'm unclear how squirrel handles modifying an object while
-		// enumerating through it. Given that some programming languages
-		// consider this a problem and either error out or behave
-		// unpredictably, we'll keep track of removed items here and
-		// then do the actual removing later.
-		local removeIds = [];
-		
-		// TODO: for loop
-		foreach (drawMetadata in toDrawThisFrame)
+		// Since draw order doesn't matter, may as well loop through
+		// backwards. This is marginally more efficient, since we only
+		// have to grab the array length once, and we reference fewer
+		// variable values and more constant/literal values.
+		for (local i = toDrawThisFrame.len(); --i > -1; )
 		{
+			local drawMetadata = toDrawThisFrame[i];
 			local displayTexture = drawMetadata.displayTexture;
 			local x = drawMetadata.x;
 			local y = drawMetadata.y;
 			
-			// TODO: Item IDs can and will be reused, so we have to be careful about that.
-			//	For example, I saw temporary SFX temporarily receive the radar highlight.
-			//	When using the minion summoner, some minions had the highlight as well.
-			// TODO: check whether the targetId needs to be ignored/removed
-			// eg, item picked up, etc.
-			// TODO: distance-from-player (or camera) check? LOS or was-rendered check?
-			
 			// We need to find or create an overlay to use for this item.
 			// Start by getting the array of overlays for this type. Create
 			// it if needed.
-			local overlayArray, usedInPool = 0;
+			local overlayArray;
+			local usedInPool = 0;
 			if (displayTexture in overlayPool)
 			{
 				// The array exists, so grab it.
 				overlayArray = overlayPool[displayTexture];
+				
 				// But is this the first time we've grabbed it this frame?
 				// If not, we need to load the appropriate usedInPool value.
 				if (displayTexture in poolUsed)
 				{
 					usedInPool = poolUsed[displayTexture];
 				}
+				// Otherwise, we defaulted usedInPool to 0 earlier.
 			}
 			else
 			{
@@ -510,7 +487,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// NOTE: We defaulted usedInPool to 0 earlier.
 			}
 			
-			// Now overlayArray and usedInPool are ready. Next step is to
+			// Now overlayArray and usedInPool are populated. Next step is to
 			// either pick an existing overlay we haven't used this frame,
 			// or we create a new overlay and add it to the array for current
 			// and future use.
@@ -536,8 +513,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// call DarkOverlay.FlushBitmap()?
 				// TODO: so, parameters are not what I expected...review displayTexture keys :(
 				local newBitmap = DarkOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
-				// TODO:
-				print(format("Loaded bitmap and got %i", newBitmap));
 				/*
 				// TODO: uh, we actually need to know this always, not just on creation :/
 				// maybe we need to create classes to track our overlay details; if not,
@@ -578,16 +553,10 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// this type and need to make note of that.
 			poolUsed[displayTexture] <- usedInPool + 1;
 			
-			// TODO:
-			print(format("Using overlay %i, which is %i in %s", currentOverlay, usedInPool + 1, displayTexture));
-			
 			// And whether or not we drew the contents of the overlay earlier,
 			// we need to instruct it to draw the overlay itself this frame.
 			DarkOverlay.DrawTOverlayItem(currentOverlay);
 		}
-		
-		// TODO: process poolUsed
-		// TODO: process removeIds
 	}
 }
 
