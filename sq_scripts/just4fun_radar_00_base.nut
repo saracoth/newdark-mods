@@ -312,6 +312,12 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	canvasHeight = 0;
 	resizeNeeded = false;
 	displayTargets = {};
+	// This is a table whose keys are strings, indicating the appearance
+	// of the overlay. For example, a specific bitmap path. The keys are
+	// arrays of overlay handles created with DarkOverlay.CreateTOverlayItem()
+	// or DarkOverlay.CreateTOverlayItemFromBitmap()
+	// TODO: do we need to manually clean this up ourselves on Teardown/etc.?
+	overlayPool = {};
 	
 	function Teardown()
 	{
@@ -387,6 +393,179 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		
 		// TODO: process removeIds
     }
+	
+	// Our best option seems to be creating a separate overlay for each
+	// visible indicator, repositioning them as needed. As opposed to,
+	// say, creating a single overlay that covers the whole screen and
+	// rearranging elements within that master overlay.
+	//
+	// Using overlays rather than HUD elements gives us more flexibility.
+	// For example, we can set transparencies. However, there are some
+	// oddities in how coordiantes work. While the HUD covers the entire
+	// canvas and uses the Engine.GetCanvasSize() height/width, that isn't
+	// necessarily the same as the game's screen resolution. If we wanted
+	// to create a single overlay covering the whole screen, and directly
+	// port HUD-based code to draw on the overlay instead, lots of things
+	// immediately go wrong. For starters, an overlay must have a width
+	// and height that are powers of 2, which resolutions like 1920 or
+	// 1080 are not. It will be automatically rounded to a power of 2 and
+	// potentially flood the .log file with "fatal" errors. So problem 1,
+	// an overlay cannot cover the entire screen unless you make it bigger
+	// than the screen resolution (is that allowed?), and also there's
+	// no way I see in NewDark 1.27 to get the current resolution. Maybe
+	// it's possible to get configuration values with the Engine class,
+	// but I don't know when resolution changes in the middle of a game
+	// become available through Engine.ConfigGetRaw() and such.
+	function DrawTOverlay()
+	{
+		// Because the number of tracked items will usually be much
+		// bigger than the number of visible items, rather than giving
+		// each tracked item its own overlay, we'll have them share a
+		// pool of overlays. We'll just move these overlays around, and
+		// create/destroy them as needed to be sure we have enough.
+		// This variable keeps track of how many overlays of each type
+		// we needed this frame, so we can either hide or destroy the
+		// rest. The keys match those of overlayPool, but the value is
+		// just an integer counter.
+		local poolUsed = {};
+		
+		// I'm unclear how squirrel handles modifying an object while
+		// enumerating through it. Given that some programming languages
+		// consider this a problem and either error out or behave
+		// unpredictably, we'll keep track of removed items here and
+		// then do the actual removing later.
+		local removeIds = [];
+		
+		foreach (targetId, displayTexture in displayTargets)
+		{
+			// TODO:1:
+			print(format("Checking target %i", targetId));
+			
+			// TODO: Item IDs can and will be reused, so we have to be careful about that.
+			//	For example, I saw temporary SFX temporarily receive the radar highlight.
+			//	When using the minion summoner, some minions had the highlight as well.
+			// TODO: check whether the targetId needs to be ignored/removed
+			// eg, item picked up, etc.
+			
+			local targetPos = Object.Position(targetId);
+			// TODO:
+			print(format("Getting screen coords for %g/%g/%g", targetPos.x, targetPos.y, targetPos.z));
+			// Make sure we're looking in that general direction.
+			if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
+				continue;
+			
+			// TODO:
+			print("Success!");
+			
+			// TODO: distance-from-player (or camera) check? LOS or was-rendered check?
+			
+			local x = x1_ref.tointeger();
+			local y = y1_ref.tointeger();
+			
+			// We need to find or create an overlay to use for this item.
+			// Start by getting the array of overlays for this type. Create
+			// it if needed.
+			local overlayArray, usedInPool = 0;
+			if (displayTexture in overlayPool)
+			{
+				// The array exists, so grab it.
+				overlayArray = overlayPool[displayTexture];
+				// But is this the first time we've grabbed it this frame?
+				// If not, we need to load the appropriate usedInPool value.
+				if (displayTexture in poolUsed)
+				{
+					usedInPool = poolUsed[displayTexture];
+				}
+			}
+			else
+			{
+				// First time we've ever seen this one. Create a new,
+				// empty array to work with.
+				overlayArray = [];
+				// And remember it for future use.
+				overlayPool[displayTexture] = overlayArray;
+				// NOTE: We defaulted usedInPool to 0 earlier.
+			}
+			
+			// Now overlayArray and usedInPool are ready. Next step is to
+			// either pick an existing overlay we haven't used this frame,
+			// or we create a new overlay and add it to the array for current
+			// and future use.
+			local currentOverlay;
+			if (usedInPool < overlayArray.len())
+			{
+				// We can reuse an overlay. Start by grabbing it.
+				currentOverlay = overlayArray[usedInPool];
+				
+				// TODO: centered x/y
+				DarkOverlay.UpdateTOverlayPosition(currentOverlay, x, y);
+				
+				// NOTE: The engine remembers the contents of the overlay,
+				// so we don't need to re-draw them. We only need to tell
+				// it to draw the overlay itself later.
+			}
+			else
+			{
+				// We need to create a new overlay. This requires some initial
+				// setup.
+				// TODO: huh...do we need to get a new bitmap handle for each
+				// overlay, or can we use one for all? Also, when should we
+				// call DarkOverlay.FlushBitmap()?
+				// TODO: so, parameters are not what I expected...review displayTexture keys :(
+				local newBitmap = DarkOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
+				// TODO:
+				print(format("Loaded bitmap and got %i", newBitmap));
+				/*
+				// TODO: uh, we actually need to know this always, not just on creation :/
+				// maybe we need to create classes to track our overlay details; if not,
+				// we'll need more tables to store info like this, which seems silly
+				local overlayWidth, overlayHeight;
+				if (DarkOverlay.GetBitmapSize(newBitmap, x1_ref, y1_ref))
+				{
+					overlayWidth = x1_ref.tointeger();
+					overlayHeight = y1_ref.tointeger();
+				}
+				else
+				{
+					// TODO: better error handling
+					overlayWidth = 64;
+					overlayHeight = 64;
+				}
+				*/
+				
+				// TODO: centered x/y
+				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x, y, 127, newBitmap, true);
+				overlayArray.append(currentOverlay);
+				
+				// Because we used CreateTOverlayItemFromBitmap(), the
+				// contents of the overlay are taken care of for us.
+				// Otherwise, we'd want to do something like this:
+				/*
+				if (DarkOverlay.BeginTOverlayUpdate(currentOverlay))
+				{
+					// Do whatever drawing operations we need here.
+					
+					// Tell the engine we're done drawing the overlay contents.
+					DarkOverlay.EndTOverlayUpdate();
+				}
+				*/
+			}
+			
+			// Regardless of how we got here, we're using another overlay of
+			// this type and need to make note of that.
+			poolUsed[displayTexture] <- usedInPool + 1;
+			
+			// TODO:
+			print(format("Using overlay %i, which is %i in %s", currentOverlay, usedInPool + 1, displayTexture));
+			
+			// And whether or not we drew the contents of the overlay earlier,
+			// we need to instruct it to draw the overlay itself this frame.
+			DarkOverlay.DrawTOverlayItem(currentOverlay);
+		}
+		
+		// TODO: process poolUsed
+		// TODO: process removeIds
+	}
 }
 
 // Create a single instance of the handler. This is squirrel's "new slot"
