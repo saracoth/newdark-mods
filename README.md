@@ -1,6 +1,6 @@
 # newdark-mods
 
-Collection of example game modifications for NewDark-engine games (Thief 1/Gold, Thief 2, and System Shock 2). These are simple gameplay modifications for demonstration purposes. Only vanilla game assets are used.
+Collection of example game modifications for NewDark-engine games (Thief 1/Gold, Thief 2, and System Shock 2). These are simple gameplay modifications for demonstration purposes. Most mods use only vanilla game assets.
 
 Unless otherwise noted, each mod should work with both original missions and all fan missions.
 

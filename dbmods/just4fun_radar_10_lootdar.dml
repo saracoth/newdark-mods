@@ -10,13 +10,6 @@ FINGERPRINT
 	NAME -2099 Garrett
 }
 
-// TODO: worst-case performance testing
-+ObjProp "IsLoot" "Scripts"
-{
-	"Script 3" "J4FRadarLootTarget"
-	"Don't Inherit" FALSE
-}
-
 /*
 ================================================================================
 == IsLoot Handling =============================================================

@@ -2,18 +2,10 @@
 TODO: What remains to make this branch feature complete?
 * Figure out new detection method. Maybe we ditch the radar item and stims,
 	or maybe the radar item just turns the HUD on and off.
--		Requires a new way of safely flagging loot items.
-			By process of elimination, we will detect nearby IsLoot by
-			having the player avatar repeatedly emit a radius stim. IsLoot
-			will respond to that by stimulating the source, in essence
-			reflecting our stim back at us. A ping and respond model just the
-			same as the current radar mod.
 -		Requires a way to ignore non-physical items. Anything that our
 		radius stim wouldn't have affected in the first place. Ideally,
 		we do this after performance testing, for sake of worst-case
 		testing.
--		Requires figuring out how we want to detect newly-added items. For
-		example, if a script spawns an item of interest after the level start.
 * Figure out how to remove (and/or hide) items later on. For example, to
 	remove an indicator after an item is picked up, or a container after
 	it gets emptied.
@@ -22,21 +14,6 @@ TODO: What remains to make this branch feature complete?
 		but give the overlay access to it? Do we need to push those status
 		changes to the overlay, or can the overlay easily pull them? I
 		assume we'll have to push them.
-* Serialize/deserialize data so that savegames reload correctly.
--		Depending on our techniques, this may be unnecessary. For example,
-		if we decorate all items with something that functions on script
-		begin, that will fire again on a reload.
--		Requires implementing a serialize/deserialize, unless squirrel
-		turns out to have some native methods for this.
--		Requires figuring out when to SetData() or not. If we do so after
-		each individual message identifying a target of interest, then
-		we'll serialize that data hundreds of times, to an increasingly
-		larger string, which seems a little wasteful. But premature
-		optimization is the root of all evil, so maybe hold off on this.
-* Switch from HUD object squares to semitransparent overlays with bitmaps.
--		Requires additional image colors.
-* Make the overlay effect prettier. For example, cycling between alpha
-	values in a sine wave fashion.
 * Once done with performance and other testing, define a distance limit.
 	First implement the distance checking, and then implement hiding
 	based on distance, for worst-case performance cost testing.
@@ -94,8 +71,11 @@ class J4FRadarEchoReceiver extends SqRootScript
 class J4FRadarAbstractTarget extends SqRootScript
 {
 	// Subclass's constructor() should specify this if desired.
-	// TODO: confirm save/load friendly
 	color = "W";
+	
+	// TODO: Item IDs can and will be reused, so we have to be careful about that.
+	//	For example, I saw temporary SFX temporarily receive the radar highlight.
+	//	When using the minion summoner, some minions had the highlight as well.
 	
 	// TODO: when do we use this now?
 	// Subclasses can override this to ignore items that accepted the
@@ -173,7 +153,6 @@ class J4FGiveRadarItem extends SqRootScript
     }
 }
 
-// TODO: save/load testing
 // This script goes on the marker we add to every mission. It sets up and
 // tears down the overlay handler. We also use it to pass along messages
 // to the overlay handler, including persisted data with SetData()/GetData()
@@ -216,15 +195,17 @@ class J4FRadarUi extends SqRootScript
 		destructor();
 	}
 	
-	// TODO: doc
+	// Rather than have radar points of interest communicate directly
+	// with the overlay instance, we'll have them communicate with us.
 	function OnJ4FRadarDetected()
 	{
+		// We sent the point-of-interest item object ID in "data"
 		local detectedId = message().data;
 		
-		// TODO: jury-rig
+		// If the POI item is not already in the list, put it there.
 		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
 		{
-			// TODO: figure out these key/value pairs :/
+			// We sent the radar color indicator in "data2"
 			j4fRadarOverlayInstance.displayTargets[detectedId] <- message().data2;
 		}
 	}
@@ -242,6 +223,16 @@ class J4FRadarPointOfInterest
 }
 
 // TODO: document class and its contents
+// This is the actual overlay handler, following along with both squirrel
+// documentation and things like T2OverlaySample.nut. Rather than a generic
+// list of elements, we use a variable-sized pool of elements we manage on
+// each frame.
+//
+// NOTE: Documentation says that only one IDarkOverlayHandler can be defined
+// per OSM. However, I can confirm multiple IDarkOverlayHandler implementations
+// can be defined in squirrel .nut files, and all of them can be set up and
+// used by their respective mods. So our using an IDarkOverlayHandler in this
+// radar mod does *not* prevent other squirrel-based mods from having theirs.
 class J4FRadarOverlayHandler extends IDarkOverlayHandler
 {
 	// Having various int_ref objects stored centrally avoids having to
@@ -256,21 +247,20 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// safe to lose track of on save/load, and we don't try to persist them.
 	canvasWidth = 0;
 	canvasHeight = 0;
-	// TODO: implement resizeNeeded if needed, or else remove that logic
 	resizeNeeded = false;
 	useBitmapSize = 0;
 	displayTargets = {};
-	// This is a table whose keys are strings, indicating the appearance
-	// of the overlay. For example, a specific bitmap path. The keys are
+	// This is a table whose keys are strings, indicating the color of the
+	// overlay. For example, "W" for white, "Y" for yellow, etc. The keys are
 	// arrays of overlay handles created with DarkOverlay.CreateTOverlayItem()
 	// or DarkOverlay.CreateTOverlayItemFromBitmap()
 	// TODO: do we need to manually clean this up ourselves on Teardown/etc.?
 	overlayPool = {};
-	// Contains 
+	// Contains a list of points of interest to render on the current frame.
 	// See comments in DrawHUD() for an explanation of why we need to feed
 	// data into DrawTOverlay like this.
 	toDrawThisFrame = [];
-	// Used for alpha cycling effect.
+	// Used for alpha/opacity/transparency cycling effect.
 	currentWaveStep = 0;
 	
 	function Teardown()
@@ -286,7 +276,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// OnUIEnterMode implements an IDarkOverlayHandler method.
 	// This is the best spot to figure out our canvas size, which is related to
 	// but different than the user's resolution settings. If they change res
-	// mid-game, this function will fire again, and we can reposition things.
+	// mid-game, this function will fire again, and we can resize our overlays.
 	function OnUIEnterMode()
 	{
 		Engine.GetCanvasSize(x1_ref, y1_ref);
@@ -307,6 +297,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		}
 	}
 	
+	// DrawHUD implements an IDarkOverlayHandler method.
+	// We don't draw anything here, but instead use it to gather
+	// data for DrawTOverlay later on.
 	function DrawHUD()
 	{
 		// Well, this is really, really awkward. Turns out that WorldToScreen()
@@ -326,15 +319,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		
 		foreach (targetId, displayColor in displayTargets)
 		{
-			// TODO: Item IDs can and will be reused, so we have to be careful about that.
-			//	For example, I saw temporary SFX temporarily receive the radar highlight.
-			//	When using the minion summoner, some minions had the highlight as well.
-			// TODO: check whether the targetId needs to be ignored/removed
-			// eg, item picked up, etc.
-			
-			// Well, WorldToScreen looked promising, but it appears to just pick a corner
+			// Well, WorldToScreen() looked promising, but it appears to pick a corner
 			// of the object. If we want something more...centered, we'll have to use
-			// GetObjectScreenBounds instead.
+			// GetObjectScreenBounds() instead.
 			//local targetPos = Object.Position(targetId);
 			//if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
 			//	continue;
@@ -346,7 +333,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			
 			// For debugging purposes, we can also draw directly in the HUD this frame.
 			// This will draw the bounding box we just retrieved.
-			///*
+			/*
 			DarkOverlay.DrawLine(x1_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y2_ref.tointeger());
 			DarkOverlay.DrawLine(x1_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y2_ref.tointeger());
 			DarkOverlay.DrawLine(x2_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y1_ref.tointeger());
@@ -376,6 +363,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		}
     }
 	
+	// In some circumstances, we want to gracefully destroy all
+	// overlay objects.
 	function DeleteOverlays()
 	{
 		foreach (key,overlays in overlayPool)
@@ -391,6 +380,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		}
 	}
 	
+	// DrawTOverlay implements an IDarkOverlayHandler method.
+	//
 	// Our best option seems to be creating a separate overlay for each
 	// visible indicator, repositioning them as needed. As opposed to,
 	// say, creating a single overlay that covers the whole screen and
@@ -404,6 +395,20 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// the overlay as a shared canvas for all indicators, each indicator
 	// will be its own overlay. We'll just create, destroy, and relocate
 	// them as needed.
+	//
+	// NOTE: I've observed in Calendra's Legacy mission 2 (Midnight at
+	// Murkbell, a rather large map) that there are no performance issues
+	// on my machine, even if handling all radar-enabled items at all
+	// distances, including non-physical items that would otherwise be
+	// ignored. However, I also noticed some radar indicators flickering
+	// on and off as I moved my camera a little. These were near the
+	// center of the screen, so the most likely explanation is there is
+	// some kind of hard limit. Either there's a time limit to how long
+	// our DrawTOverlay can take, or there's a limit to how many overlays
+	// can be drawn on the screen, or there's a limit to how many
+	// overlays can be defined at all. In any case, this is probably a
+	// net win, since it can only help maintain performance when faced
+	// with large numbers of radar points of interest.
 	function DrawTOverlay()
 	{
 		// Because the number of tracked items will usually be much
@@ -438,6 +443,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// the result, add 1, then multiply by 8 again. Or to make
 			// things a little simpler, instead of subtracting 5, we
 			// can add 3. That saves the "add 1" step above.
+			// tl;dr This math picks a multiple of 8 nearest 5% of the
+			// screen height.
 			// We then cap to a min of 8 and max of 64.
 			local newBitmapSize = floor(((canvasHeight / 20) + 3) / 8).tointeger() * 8;
 			if (newBitmapSize < 8)
@@ -448,8 +455,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			{
 				newBitmapSize = 64;
 			}
-			// TODO: worst-case performance testing
-			newBitmapSize = 64;
 			
 			// Check to see if it's actually any different. Not every
 			// resizeNeeded will yield different target bitmap size.
@@ -463,8 +468,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			}
 		}
 		
-		// Added to x/y coordinate to place the center of the bitmap on
-		// those coordinates, instead of the top-left corner.
+		// Subtracted from x/y coordinate to place the center of the
+		// bitmap on those coordinates, instead of the top-left corner.
 		local overlayOffset = (useBitmapSize / 2);
 		
 		// We'll do a complete alpha cycle in 120 frames. If and only
@@ -553,25 +558,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// TODO: huh...do we need to get a new bitmap handle for each
 				// overlay, or can we use one for all? Also, when should we
 				// call DarkOverlay.FlushBitmap()?
-				// TODO: so, parameters are not what I expected...review displayColor keys :(
+				// TODO: fallback if we can detect our bitmaps aren't installed?
 				local newBitmap = DarkOverlay.GetBitmap("Radar" + displayColor + useBitmapSize, "j4fres\\");
-				/*
-				// TODO: uh, we actually need to know this always, not just on creation :/
-				// maybe we need to create classes to track our overlay details; if not,
-				// we'll need more tables to store info like this, which seems silly
-				local overlayWidth, overlayHeight;
-				if (DarkOverlay.GetBitmapSize(newBitmap, x1_ref, y1_ref))
-				{
-					overlayWidth = x1_ref.tointeger();
-					overlayHeight = y1_ref.tointeger();
-				}
-				else
-				{
-					// TODO: better error handling
-					overlayWidth = 64;
-					overlayHeight = 64;
-				}
-				*/
 				
 				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x - overlayOffset, y - overlayOffset, currentAlpha, newBitmap, true);
 				overlayArray.append(currentOverlay);
