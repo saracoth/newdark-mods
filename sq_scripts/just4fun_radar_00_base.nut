@@ -26,6 +26,38 @@ TODO: What remains to make this branch feature complete?
 			can attach our actually desired script to it. We can't stimulate
 			specific objects either, because, again, we don't know their
 			object IDs.
+?			I don't see a way to rearrange the object hierarchy, and that's
+			not really any better than adding scripts directly to IsLoot.
+			IsLoot can have only one parent archetype, and the only reason
+			this option would be "safer" is because it's so crazy that...why
+			would anyone do that? Sure, we could attach the script to a brand
+			new parent archetype to IsLoot, but this is all kinds of weird.
+			In any case, it does not seem to be possible.
+?			I see no way in NewDark 1.27 to safely do find loot and only
+			loot on a global scale. Large-radius stims have limitations if
+			lots of objects are in range, and stuff can be skipped. And we
+			can't narrowly target IsLoot alone throughout the entire level,
+			because we can't find them to put a stim source near them. So if
+			we want to do this, we have these options:
+			1) Stim emanating from the player themselves, hopefully catching
+				IsLoot items as we draw near, and giving up on the global
+				stuff. We might want this stim approach to find things added
+				mid-game anyway, so this could be ideal for that reason too.
+			2) Enumerate through all object IDs in the level. This requires
+				a certain amount of waste, both because we're looking at
+				irrelevant objects, and because...when are we done? There
+				can be gaps in object IDs. Gaps of any length. Do we give up
+				after 100 non-existant objects? 500? 1000? How do we balance
+				safety and efficiency?
+			3) Attach a script to IsLoot and hope for the best. Maybe go the
+				extra mile by adding several different DML files that use
+				fingerprinting to see which script slots are and aren't open?
+				Even after all that work, two possible issues can rear their
+				heads. One is that these protections work and shut this mod
+				down, leaving people wondering why. Another is that these
+				protections are inadequate, because a different mod reuses
+				our script slot, shutting this mod down and leaving people
+				wondering why.
 -		Requires a way to ignore non-physical items. Anything that our
 		radius stim wouldn't have affected in the first place. Ideally,
 		we do this after performance testing, for sake of worst-case

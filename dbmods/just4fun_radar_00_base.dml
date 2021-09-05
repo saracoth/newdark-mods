@@ -23,7 +23,7 @@ CreateArch "MetaProperty" "J4FAllTheThings"
 		"Don't Inherit" FALSE
 	}
 }
-+MetaProp "physical" "J4FAllTheThings"
+//+MetaProp "physical" "J4FAllTheThings"
 
 /*
 ================================================================================
