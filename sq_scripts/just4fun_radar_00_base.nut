@@ -3,61 +3,11 @@ TODO: What remains to make this branch feature complete?
 * Figure out new detection method. Maybe we ditch the radar item and stims,
 	or maybe the radar item just turns the HUD on and off.
 -		Requires a new way of safely flagging loot items.
-?			Links only come into play when objects are dynamically spawned
-			or when creating objects in DromEd. Even if we added an attachment
-			link (ParticleAttachement, DetailAttachement, PhysAttach) to
-			something via DML, that will not affect anything that already
-			exists in the level. This is fine. After all, this allows
-			individual instances of objects to have different links if
-			the level designer wishes. However, it does also mean that we
-			can't use links to attach a new kind of object to all the loot
-			that exists in every level :(
-?			We could go full crazy and add a metaproperty to *Object* (or
-			at least Physical). However, while we can remove metaproperties
-			from objects, I see no way to remove scripts from objects, even
-			after removing the metaproperty that put the script there in the
-			first place. This is an insanely messy approach.
-?			I think I've had radius stims affect the object itself before.
-			Giving IsLoot a tiny, one-time radius stim it responds to could
-			be the safest approach with the smallest footprint. However,
-			that will only work if DML allows Agent/Target properties to
-			add a metaproperty by name. Otherwise, we're back to a catch 22
-			where we need to attach a script to the IsLoot item, so that we
-			can attach our actually desired script to it. We can't stimulate
-			specific objects either, because, again, we don't know their
-			object IDs.
-?			I don't see a way to rearrange the object hierarchy, and that's
-			not really any better than adding scripts directly to IsLoot.
-			IsLoot can have only one parent archetype, and the only reason
-			this option would be "safer" is because it's so crazy that...why
-			would anyone do that? Sure, we could attach the script to a brand
-			new parent archetype to IsLoot, but this is all kinds of weird.
-			In any case, it does not seem to be possible.
-?			I see no way in NewDark 1.27 to safely do find loot and only
-			loot on a global scale. Large-radius stims have limitations if
-			lots of objects are in range, and stuff can be skipped. And we
-			can't narrowly target IsLoot alone throughout the entire level,
-			because we can't find them to put a stim source near them. So if
-			we want to do this, we have these options:
-			1) Stim emanating from the player themselves, hopefully catching
-				IsLoot items as we draw near, and giving up on the global
-				stuff. We might want this stim approach to find things added
-				mid-game anyway, so this could be ideal for that reason too.
-			2) Enumerate through all object IDs in the level. This requires
-				a certain amount of waste, both because we're looking at
-				irrelevant objects, and because...when are we done? There
-				can be gaps in object IDs. Gaps of any length. Do we give up
-				after 100 non-existant objects? 500? 1000? How do we balance
-				safety and efficiency?
-			3) Attach a script to IsLoot and hope for the best. Maybe go the
-				extra mile by adding several different DML files that use
-				fingerprinting to see which script slots are and aren't open?
-				Even after all that work, two possible issues can rear their
-				heads. One is that these protections work and shut this mod
-				down, leaving people wondering why. Another is that these
-				protections are inadequate, because a different mod reuses
-				our script slot, shutting this mod down and leaving people
-				wondering why.
+			By process of elimination, we will detect nearby IsLoot by
+			having the player avatar repeatedly emit a radius stim. IsLoot
+			will respond to that by stimulating the source, in essence
+			reflecting our stim back at us. A ping and respond model just the
+			same as the current radar mod.
 -		Requires a way to ignore non-physical items. Anything that our
 		radius stim wouldn't have affected in the first place. Ideally,
 		we do this after performance testing, for sake of worst-case
