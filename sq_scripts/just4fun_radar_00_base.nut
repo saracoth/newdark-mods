@@ -44,6 +44,9 @@ TODO: What remains to make this branch feature complete?
 -		Use Object.RenderedThisFrame() to uncap or increase range limit?
 */
 
+const MIN_ALPHA = 32;
+const MAX_ALPHA = 100;
+
 // TODO: testing
 class J4FScriptRemovalTest extends SqRootScript
 {
@@ -335,6 +338,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// See comments in DrawHUD() for an explanation of why we need to feed
 	// data into DrawTOverlay like this.
 	toDrawThisFrame = [];
+	// Used for alpha cycling effect.
+	currentWaveStep = 0;
 	
 	function Teardown()
 	{
@@ -528,6 +533,27 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// those coordinates, instead of the top-left corner.
 		local overlayOffset = (useBitmapSize / 2);
 		
+		// We'll do a complete alpha cycle in 120 frames. If and only
+		// if running at 60fps will that take 2 seconds.
+		// TODO: is there a function we can use to track time instead?
+		if (++currentWaveStep > 119)
+		{
+			currentWaveStep = 0;
+		}
+		
+		// Max opacity is 127, min is 0. We'll cycle between our desired
+		// min and max instead, using sine waves to give a more visually
+		// pleasant pulsing effect. The sin() sine function expects
+		// values in radians, ranging from 0 to 2*pi. It returns values
+		// ranging from -1 to 1. We want -1 to result in MIN_ALPHA and
+		// 1 to result in MAX_ALPHA. One option is to start with the
+		// midpoint between the two. Another option is to add 1 to the
+		// sin() result so it becomes 0 to 2.
+		// NOTE: We slightly simplify the 2pi * step/120 to become
+		// pi * step / 60. In any case, the step/120 is meant to act as
+		// a percentage value from 0.0 to 1.0
+		local currentAlpha = MIN_ALPHA + ((sin(PI * currentWaveStep / 60) + 1) * ((MAX_ALPHA - MIN_ALPHA) / 2));
+		
 		// Since draw order doesn't matter, may as well loop through
 		// backwards. This is marginally more efficient, since we only
 		// have to grab the array length once, and we reference fewer
@@ -577,7 +603,10 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// We can reuse an overlay. Start by grabbing it.
 				currentOverlay = overlayArray[usedInPool];
 				
+				// Position it on top of its new target.
 				DarkOverlay.UpdateTOverlayPosition(currentOverlay, x - overlayOffset, y - overlayOffset);
+				// And update its transparency.
+				DarkOverlay.UpdateTOverlayAlpha(currentOverlay, currentAlpha);
 				
 				// NOTE: The engine remembers the contents of the overlay,
 				// so we don't need to re-draw them. We only need to tell
@@ -610,7 +639,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				}
 				*/
 				
-				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x - overlayOffset, y - overlayOffset, 127, newBitmap, true);
+				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x - overlayOffset, y - overlayOffset, currentAlpha, newBitmap, true);
 				overlayArray.append(currentOverlay);
 				
 				// Because we used CreateTOverlayItemFromBitmap(), the
