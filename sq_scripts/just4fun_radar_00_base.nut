@@ -323,6 +323,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	canvasHeight = 0;
 	// TODO: implement resizeNeeded if needed, or else remove that logic
 	resizeNeeded = false;
+	useBitmapSize = 0;
 	displayTargets = {};
 	// This is a table whose keys are strings, indicating the appearance
 	// of the overlay. For example, a specific bitmap path. The keys are
@@ -420,6 +421,21 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		}
     }
 	
+	function DeleteOverlays()
+	{
+		foreach (key,overlays in overlayPool)
+		{
+			// Since the order doesn't matter, may as well loop through
+			// backwards. This is marginally more efficient, since we only
+			// have to grab the array length once, and we reference fewer
+			// variable values and more constant/literal values.
+			for (local i = overlays.len(); --i > -1; )
+			{
+				DarkOverlay.DestroyTOverlayItem(overlays[i]);
+			}
+		}
+	}
+	
 	// Our best option seems to be creating a separate overlay for each
 	// visible indicator, repositioning them as needed. As opposed to,
 	// say, creating a single overlay that covers the whole screen and
@@ -447,6 +463,52 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// rest. The keys match those of overlayPool, but the value is
 		// just an integer counter.
 		local poolUsed = {};
+		
+		// Different screen resolutions (and canvas sizes) are suited
+		// to different image sizes. If this changes, we should replace
+		// the previous overlays with new ones of an appropriate size.
+		// To do this, we just discard what we have, and let the logic
+		// below create new ones if needed.
+		if (resizeNeeded)
+		{
+			resizeNeeded = false;
+			
+			// Let's aim for 5% of the screen height. We have images
+			// available in multiples of: 8, 16, 24, 32, etc. up to 64.
+			// To get 5%, we divide by 20. From there, we want to round
+			// so that 13-20 are 16, 21-28 is 24, etc. Ignoring the
+			// round to 0 possibility for a moment, this scale starts
+			// at 5-12 becoming 8. Subtracting 5, that scale becomes
+			// 0-7, 8-15, etc. That allows us to divide by 8, floor()
+			// the result, add 1, then multiply by 8 again. Or to make
+			// things a little simpler, instead of subtracting 5, we
+			// can add 3. That saves the "add 1" step above.
+			// We then cap to a min of 8 and max of 64.
+			local newBitmapSize = floor(((canvasHeight / 20) + 3) / 8).tointeger() * 8;
+			if (newBitmapSize < 8)
+			{
+				newBitmapSize = 8;
+			}
+			else if (newBitmapSize > 64)
+			{
+				newBitmapSize = 64;
+			}
+			
+			// Check to see if it's actually any different. Not every
+			// resizeNeeded will yield different target bitmap size.
+			if (newBitmapSize != useBitmapSize)
+			{
+				// Remember the value for future use.
+				useBitmapSize = newBitmapSize;
+				
+				// And clear all existing overlays, if any.
+				DeleteOverlays();
+			}
+		}
+		
+		// Added to x/y coordinate to place the center of the bitmap on
+		// those coordinates, instead of the top-left corner.
+		local overlayOffset = 0 - (useBitmapSize / 2);
 		
 		// Since draw order doesn't matter, may as well loop through
 		// backwards. This is marginally more efficient, since we only
@@ -497,8 +559,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// We can reuse an overlay. Start by grabbing it.
 				currentOverlay = overlayArray[usedInPool];
 				
-				// TODO: centered x/y
-				DarkOverlay.UpdateTOverlayPosition(currentOverlay, x, y);
+				DarkOverlay.UpdateTOverlayPosition(currentOverlay, x - overlayOffset, y - overlayOffset);
 				
 				// NOTE: The engine remembers the contents of the overlay,
 				// so we don't need to re-draw them. We only need to tell
@@ -512,7 +573,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// overlay, or can we use one for all? Also, when should we
 				// call DarkOverlay.FlushBitmap()?
 				// TODO: so, parameters are not what I expected...review displayTexture keys :(
-				local newBitmap = DarkOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
+				local newBitmap = DarkOverlay.GetBitmap("RadarW" + useBitmapSize, "j4fres\\");
 				/*
 				// TODO: uh, we actually need to know this always, not just on creation :/
 				// maybe we need to create classes to track our overlay details; if not,
@@ -531,8 +592,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				}
 				*/
 				
-				// TODO: centered x/y
-				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x, y, 127, newBitmap, true);
+				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x - overlayOffset, y - overlayOffset, 127, newBitmap, true);
 				overlayArray.append(currentOverlay);
 				
 				// Because we used CreateTOverlayItemFromBitmap(), the
