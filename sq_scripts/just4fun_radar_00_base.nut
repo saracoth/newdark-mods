@@ -295,6 +295,17 @@ class J4FRadarUi extends SqRootScript
 	}
 }
 
+// According to https://developer.electricimp.com/resources/efficientsquirrel it
+// should be better to have classes rather than generic tables, if we're going
+// to have two or more instances of them. At least, it's more memory efficient.
+// Not sure what's more CPU efficient, but we're probably splitting hairs there.
+class J4FRadarPointOfInterest
+{
+	x = 0;
+	y = 0;
+	displayTexture = "";
+}
+
 // TODO: document class and its contents
 class J4FRadarOverlayHandler extends IDarkOverlayHandler
 {
@@ -318,6 +329,10 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// or DarkOverlay.CreateTOverlayItemFromBitmap()
 	// TODO: do we need to manually clean this up ourselves on Teardown/etc.?
 	overlayPool = {};
+	// Contains 
+	// See comments in DrawHUD() for an explanation of why we need to feed
+	// data into DrawTOverlay like this.
+	toDrawThisFrame = [];
 	
 	function Teardown()
 	{
@@ -356,6 +371,14 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// TODO: just testing
 	function DrawHUD()
 	{
+		// Well, this is really, really awkward. Turns out that WorldToScreen()
+		// and GetObjectScreenBounds() only work in DrawHUD, not in DrawTOverlay.
+		// But if we want things like alpha/opacity, we have to rely on overlays.
+		// So we do some work in DrawHUD, but no drawing. Then in the overlay
+		// drawing phase, we use the information we gathered here to manage the
+		// visible overlays.
+		toDrawThisFrame = [];
+		
 		// TODO:
 		DarkOverlay.DrawString("Hello", 10, 10);
 		
@@ -374,7 +397,19 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// TODO: check whether the targetId needs to be ignored/removed
 			// eg, item picked up, etc.
 			
-			//local targetPos = Object.Position(targetId);
+			local targetPos = Object.Position(targetId);
+			if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
+				continue;
+
+			// TODO: I guess we should do all the other checking as well, including
+			// whether to remove the item ID, whether to ignore it because it's not
+			// currently visible or in range, etc.
+			
+			local metadataForOverlay = J4FRadarPointOfInterest();
+			metadataForOverlay.x = x1_ref.tointeger();
+			metadataForOverlay.y = y1_ref.tointeger();
+			metadataForOverlay.displayTexture = displayTexture;
+			toDrawThisFrame.append(metadataForOverlay);
 			
 			//DarkOverlay.WorldToScreen(targetPos, x, y);
 			if (!DarkOverlay.GetObjectScreenBounds(targetId, x1_ref, y1_ref, x2_ref, y2_ref))
@@ -436,31 +471,19 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// then do the actual removing later.
 		local removeIds = [];
 		
-		foreach (targetId, displayTexture in displayTargets)
+		// TODO: for loop
+		foreach (drawMetadata in toDrawThisFrame)
 		{
-			// TODO:1:
-			print(format("Checking target %i", targetId));
+			local displayTexture = drawMetadata.displayTexture;
+			local x = drawMetadata.x;
+			local y = drawMetadata.y;
 			
 			// TODO: Item IDs can and will be reused, so we have to be careful about that.
 			//	For example, I saw temporary SFX temporarily receive the radar highlight.
 			//	When using the minion summoner, some minions had the highlight as well.
 			// TODO: check whether the targetId needs to be ignored/removed
 			// eg, item picked up, etc.
-			
-			local targetPos = Object.Position(targetId);
-			// TODO:
-			print(format("Getting screen coords for %g/%g/%g", targetPos.x, targetPos.y, targetPos.z));
-			// Make sure we're looking in that general direction.
-			if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
-				continue;
-			
-			// TODO:
-			print("Success!");
-			
 			// TODO: distance-from-player (or camera) check? LOS or was-rendered check?
-			
-			local x = x1_ref.tointeger();
-			local y = y1_ref.tointeger();
 			
 			// We need to find or create an overlay to use for this item.
 			// Start by getting the array of overlays for this type. Create
@@ -483,7 +506,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// empty array to work with.
 				overlayArray = [];
 				// And remember it for future use.
-				overlayPool[displayTexture] = overlayArray;
+				overlayPool[displayTexture] <- overlayArray;
 				// NOTE: We defaulted usedInPool to 0 earlier.
 			}
 			
