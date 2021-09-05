@@ -13,6 +13,7 @@ Which items are detected, if any, depends on which of the optional extras you in
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * [dbmods\just4fun_radar_00_base.dml](../dbmods/just4fun_radar_00_base.dml?raw=1)
 * [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
+* [j4fRes\Radar*.png](../j4fRes) (all the radar files; consider downloading the entire github repo as a zip file to make downloading these easier)
 
 **Optional loot detection**:
 * [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_lootdar.dml?raw=1)
