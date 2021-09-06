@@ -16,20 +16,16 @@ Which items are detected, if any, depends on which of the optional extras you in
 
 **Optional loot detection**: Yellow indicators.
 * [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_lootdar.dml?raw=1)
-* [sq_scripts\just4fun_radar_10_lootdar.nut](../sq_scripts/just4fun_radar_10_lootdar.nut?raw=1)
 
 **Optional equipment detection (arrows, potions, keys, etc.)**: Green indicators.
 * [dbmods\just4fun_radar_10_equipdar.dml](../dbmods/just4fun_radar_10_equipdar.dml?raw=1)
 * [dbmods\just4fun_radar_11_T1_equip.dml](../dbmods/just4fun_radar_11_T1_equip.dml?raw=1)
 * [dbmods\just4fun_radar_11_T2_equip.dml](../dbmods/just4fun_radar_11_T2_equip.dml?raw=1)
-* [sq_scripts\just4fun_radar_10_equipdar.nut](../sq_scripts/just4fun_radar_10_equipdar.nut?raw=1)
 
 **Optional device detection (switches, pressure plates, etc.)**: Purple indicators.
 * [dbmods\just4fun_radar_10_devicedar.dml](../dbmods/just4fun_radar_10_devicedar.dml?raw=1)
-* [sq_scripts\just4fun_radar_10_devicedar.nut](../sq_scripts/just4fun_radar_10_devicedar.nut?raw=1)
 
 **Optional container detection (chests, lockboxes, etc. with items in them)**: Blue indicators.
 * [dbmods\just4fun_radar_10_containerdar.dml](../dbmods/just4fun_radar_10_containerdar.dml?raw=1)
-* [sq_scripts\just4fun_radar_10_containerdar.nut](../sq_scripts/just4fun_radar_10_containerdar.nut?raw=1)
 
 *Modder's Notes*: This mod uses the same scripting features someone would use to create new HUD elements. Instead of positioning them on specific parts of the screen, these overlays are created, destroyed, and repositioned to match the location of objects in the game world. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible, instead creating visible particle effects to indicate nearby items of interest.
