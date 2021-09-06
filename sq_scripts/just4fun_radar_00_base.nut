@@ -7,6 +7,10 @@ const MAX_ALPHA = 100;
 // NOTE: This also helps with various limitations. For example, NewDark
 // v1.27 only allows 64 simultaneous overlays to exist.
 const MAX_DIST = 150;
+// While NewDark v1.27 allows a max of 64, we'll intentionally cap
+// ourselves at a smaller value. After all, we don't want to hog all
+// 64 and not leave any for other, more sanely-written mods!
+const MAX_POI_RENDERED = 32;
 
 // 1 (move) + 2 (script) + 128 (default)
 const INTERESTING_FROB_FLAGS = 131;
@@ -464,11 +468,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			metadataForOverlay.y = (y1_ref.tointeger() + y2_ref.tointeger()) / 2;
 			metadataForOverlay.displayColor = displayColor;
 			metadataForOverlay.distance = targetDistance;
-			// TODO: we're calculating distance for everything now anyway,
-			// so should we sort this array by distance? that way, we can
-			// enforce a max number of radar overlays smaller than 64, to
-			// reduce the risk that this mod blows through that limit and
-			// breaks some other poor, sanely designed mod in the process
 			toDrawThisFrame.append(metadataForOverlay);
 		}
 		
@@ -687,6 +686,13 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		return r;
 	}
 	
+	function SortTargetByDistance(a, b)
+	{
+		if (a.distance < b.distance) return -1;
+		if (a.distance > b.distance) return 1;
+		return 0;
+	}
+	
 	// DrawTOverlay implements an IDarkOverlayHandler method.
 	//
 	// Our best option seems to be creating a separate overlay for each
@@ -713,6 +719,23 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	{
 		if (!enabled)
 			return;
+		
+		// NOTE: this count may be reduced if we truncate the array.
+		local toDrawCount = toDrawThisFrame.len();
+		
+		// Nothing to draw? Then we're done here. At worst, we'll
+		// skip destroying all those overlays we didn't use.
+		if (toDrawCount < 1)
+			return;
+		
+		// If we're over our limit, keep the closest values and
+		// discard the farther ones.
+		if (toDrawCount > MAX_POI_RENDERED)
+		{
+			toDrawThisFrame.sort(SortTargetByDistance);
+			toDrawThisFrame.resize(MAX_POI_RENDERED);
+			toDrawCount = toDrawThisFrame.len();
+		}
 		
 		// Because the number of tracked items will usually be much
 		// bigger than the number of visible items, rather than giving
@@ -752,7 +775,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// backwards. This is marginally more efficient, since we only
 		// have to grab the array length once, and we reference fewer
 		// variable values and more constant/literal values.
-		for (local i = toDrawThisFrame.len(); --i > -1; )
+		for (local i = toDrawCount; --i > -1; )
 		{
 			local drawMetadata = toDrawThisFrame[i];
 			
