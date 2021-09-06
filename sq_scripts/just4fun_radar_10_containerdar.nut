@@ -10,6 +10,7 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 	function BlessItem()
 	{
 		// Bless if has at least one item inside.
-		return base.BlessItem() && (Link.GetOne("Contains", self) > 0);
+		// Also require IsPickup() to be sure we can try to open it.
+		return base.BlessItem() && (Link.GetOne("Contains", self) > 0) && IsPickup();
 	}
 }
