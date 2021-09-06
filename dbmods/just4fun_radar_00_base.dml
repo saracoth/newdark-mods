@@ -34,7 +34,7 @@ CreateArch "Stimulus" "J4FRadarStim"
 
 CreateArch "Compass2" "J4FRadarControlItem"
 {
-	+ObjProp "GameName" = name_j4f_radar_pinger: "Toggle Radar"
+	+ObjProp "GameName" = name_j4f_radar_inactive: "Radar (Inactive)"
 	
 	+ObjProp "ModelName" = compass
 	

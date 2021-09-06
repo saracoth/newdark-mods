@@ -21,7 +21,15 @@ class J4FRadarToggler extends SqRootScript
 {
 	function OnFrobInvEnd()
 	{
-		// TODO: implement, default to off
+		local newState = SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarToggle", self);
+		if (newState)
+		{
+			Property.SetSimple(self, "GameName", "name_j4f_radar_active: \"Radar (Active)\"");
+		}
+		else
+		{
+			Property.SetSimple(self, "GameName", "name_j4f_radar_inactive: \"Radar (Inactive)\"");
+		}
 	}
 }
 
@@ -253,6 +261,9 @@ class J4FRadarUi extends SqRootScript
 		// This is part of NewDark+Squirrel's method of attaching an
 		// overlay handler to the game.
 		DarkOverlay.AddHandler(j4fRadarOverlayInstance);
+		
+		// Remember our enabled state.
+		j4fRadarOverlayInstance.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
 	}
 
 	function OnEndScript()
@@ -290,6 +301,14 @@ class J4FRadarUi extends SqRootScript
 		{
 			delete j4fRadarOverlayInstance.displayTargets[destroyedId];
 		}
+	}
+	
+	function OnJ4FRadarToggle()
+	{
+		local newState = !(IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState"));
+		j4fRadarOverlayInstance.enabled = newState;
+		SetData("J4FRadarEnableState", newState);
+		Reply(newState);
 	}
 }
 
@@ -342,14 +361,18 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	toDrawThisFrame = [];
 	// Used for alpha/opacity/transparency cycling effect.
 	currentWaveStep = 0;
+	// This is persisted elsewhere, on the marker object's script.
+	enabled = false;
 	
 	function Teardown()
 	{
+		enabled = false;
 		displayTargets = {};
 	}
 	
 	function Setup()
 	{
+		enabled = false;
 		displayTargets = {};
 	}
 	
@@ -382,6 +405,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// data for DrawTOverlay later on.
 	function DrawHUD()
 	{
+		if (!enabled)
+			return;
+		
 		// Well, this is really, really awkward. Turns out that WorldToScreen()
 		// and GetObjectScreenBounds() only work in DrawHUD, not in DrawTOverlay.
 		// But if we want things like alpha/opacity, we have to rely on overlays.
@@ -495,6 +521,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// with large numbers of radar points of interest.
 	function DrawTOverlay()
 	{
+		if (!enabled)
+			return;
+		
 		// Because the number of tracked items will usually be much
 		// bigger than the number of visible items, rather than giving
 		// each tracked item its own overlay, we'll have them share a
