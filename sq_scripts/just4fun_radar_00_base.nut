@@ -6,7 +6,7 @@ const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 // TODO: configurable?
 // TODO: reasonable default
-const MAX_DIST = 32000;
+const MAX_DIST = 150;
 
 // 1 (move) + 2 (script) + 128 (default)
 const INTERESTING_FROB_FLAGS = 131;
