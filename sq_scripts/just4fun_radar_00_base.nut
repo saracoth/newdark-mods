@@ -582,8 +582,16 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			}
 			else
 			{
-				// TODO: fallback if we can detect our bitmaps aren't installed?
 				newBitmap = DarkOverlay.GetBitmap(bitmapName, "j4fres\\");
+				
+				// Images not installed in the needed location? Fallback. This
+				// bubble image has nothing to do with anything, but it does
+				// exist in both Thief games....
+				if (newBitmap == -1)
+				{
+					newBitmap = DarkOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
+				}
+				
 				bitmaps[bitmapName] <- newBitmap;
 			}
 			
