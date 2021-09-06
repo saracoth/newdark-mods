@@ -6,6 +6,18 @@
 // TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
 // TODO: if a container or creature detects loot in it, we can add the metaproperty right then and there
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
+// TODO: pickpocketable items may be prone to "don't inherit" in some cases (adding TrigWorldFrob, etc.)
+//	so we may need to extend the radar pinging approach to creatures
+//	also, we can't attach scripts to these objects via metaproperties; can we add them directly?
+//		last time I tried directly adding a script to something via property, the game crashed
+//		~~then again, I was adding a script to the IsLoot metaproperty, not a concrete object in the level~~
+//		I think that's because my proof-of-concept code added a script unconditionally, creating infinite recursion
+//		Which just points to the core issue: even if this works, *all* scripts on the object seem to be triggered again
+//			I don't know if we're attaching duplicates of the other scripts, or just triggering their BeginScript message a second time.
+//			Either way, this is bad.
+// TODO: create a system whereby we can link/attach marker items to script-resistant objects?
+//	how does this behave with stuff like loot, which combines in inventory?
+//	verify whether the marker follows even while the parent is contained
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -101,7 +113,8 @@ class J4FRadarAbstractTarget extends SqRootScript
 		// NOTE: We pass 0 to the second parameter because we don't know
 		// the object ID of our container, or if we're even contained.
 		// TODO: the link data describes the attachment point, and all negative numbers are rendered
-		if (Link.GetOne("Contains", 0, self) != 0)
+		local linkToMyContainer = Link.GetOne("Contains", 0, self);
+		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
 			return false;
 		
 		return true;
@@ -270,6 +283,7 @@ class J4FRadarChildLootDetector extends SqRootScript
 	{
 		local myInventory = Link.GetAll("Contains", self);
 		
+		local genericPoi = ObjID("J4FRadarPointOfInterest");
 		local lootMetaProperty = ObjID("IsLoot");
 		local lootPoiProperty = ObjID("J4FRadarLootPOI");
 		
@@ -283,6 +297,27 @@ class J4FRadarChildLootDetector extends SqRootScript
 			{
 				Object.AddMetaProperty(invItem, lootPoiProperty);
 			}
+			
+			// Some items are flagged to not inherit scripts. This applies
+			// to their archetypes, as well as metaproperties assigned
+			// directly to the object itself. In these cases, the meta-
+			// property is useless to us. The item will not alert the
+			// radar system that it exists, and we cannot benefit from any
+			// bless functions on the item.
+			// TODO: we may need to make this part of our radius stim for everything
+			if (
+				// It is a point of interest.
+				Object.InheritsFrom(invItem, genericPoi)
+				// But it has its very own scripts.
+				&& Property.Possessed(invItem, "Scripts")
+				// And it's ignoring our metaproperty-based scripts.
+				&& Property.Get(invItem, "Scripts", "Don't Inherit")
+			)
+			{
+				// TODO:
+				print(format("%s %i is being rude", Object.GetName(Object.Archetype(invItem)), invItem));
+			}
+			
 		}
 	}
 }
