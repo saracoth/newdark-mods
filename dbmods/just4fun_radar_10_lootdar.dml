@@ -55,3 +55,17 @@ CreateArch "MetaProperty" "J4FRadarEnableLoot"
 		"Then Add" -1.00
 	}
 }
+
+/*
+================================================================================
+== Sneaky Loot Detection =======================================================
+================================================================================
+*/
+
+// This metaproperty is defined in the base DML, but we assign it to interesting
+// things here. We'll check these items to see if they're holding any loot, and
+// flag it as interesting that way, even before we've gotten within range of
+// the player's J4FRadarStim.
+
++MetaProp "Creature" "J4FRadarLootLinkChecker"
++MetaProp "Container" "J4FRadarLootLinkChecker"

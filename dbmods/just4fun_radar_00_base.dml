@@ -288,3 +288,25 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
 	
 	Effect "Abort"
 }
+
+/*
+================================================================================
+== Sneaky Loot Detectors =======================================================
+================================================================================
+*/
+
+// The IsLoot metaproperty is a tricky thing. We can't attach scripts directly,
+// and Agent/Target limitations prevent us from doing anything too clever with
+// the act/react system. So flagging loot items as interesting involves a mix
+// of techniques, including stimulating items near the player. The metaproperty
+// below can be attached to items linked to loot in various ways, allowing them
+// to flag the loot that way.
+
+CreateArch "MetaProperty" "J4FRadarLootLinkChecker"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarChildLootDetector"
+		"Don't Inherit" FALSE
+	}
+}

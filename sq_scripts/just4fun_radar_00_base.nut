@@ -5,6 +5,7 @@
 // TODO: creature radar (what about hostile-only? pickpocketable only?)
 // TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
 // TODO: if a container or creature detects loot in it, we can add the metaproperty right then and there
+// TODO: can we track readables? including tracking whether they've already been read in this mission?
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -99,6 +100,7 @@ class J4FRadarAbstractTarget extends SqRootScript
 		// then our object's location is irrelevant. Hide ourselves.
 		// NOTE: We pass 0 to the second parameter because we don't know
 		// the object ID of our container, or if we're even contained.
+		// TODO: the link data describes the attachment point, and all negative numbers are rendered
 		if (Link.GetOne("Contains", 0, self) != 0)
 			return false;
 		
@@ -257,6 +259,31 @@ class J4FRadarLootTarget extends J4FRadarAbstractTarget
 	function BlessItem()
 	{
 		return base.BlessItem() && IsPickup() && IsRendered();
+	}
+}
+
+// This script goes on anything we think might contain loot, like
+// containers and creatures.
+class J4FRadarChildLootDetector extends SqRootScript
+{
+	function OnBeginScript()
+	{
+		local myInventory = Link.GetAll("Contains", self);
+		
+		local lootMetaProperty = ObjID("IsLoot");
+		local lootPoiProperty = ObjID("J4FRadarLootPOI");
+		
+		foreach (link in myInventory)
+		{
+			local invItem = LinkDest(link);
+			if (
+				Object.InheritsFrom(invItem, lootMetaProperty)
+				&& !Object.InheritsFrom(invItem, lootPoiProperty)
+			)
+			{
+				Object.AddMetaProperty(invItem, lootPoiProperty);
+			}
+		}
 	}
 }
 
