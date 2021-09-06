@@ -5,10 +5,6 @@
 // TODO: creature radar (what about hostile-only? pickpocketable only?)
 // TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
 // TODO: if a container or creature detects loot in it, we can add the metaproperty right then and there
-// TODO: really, do we need all those extra .nut files? make it easier on users by moving those classes here instead
-//	heck, metaproperties as well, why not; just save the assigning of those properties for DML files
-//	plus, this work should help prepare me mentally for the revised container handling TODO
-// TODO: can we meaningfully modify archetypes and metaproperties during gameplay? maybe we can find and fill a script slot for IsLoot if one is open?
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
