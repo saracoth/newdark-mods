@@ -83,16 +83,17 @@ class J4FRadarUtilities extends SqRootScript
 			// Link these items together.
 			local proxyAttach = Link.Create(PROXY_ATTACH_METHOD, proxyMarker, forItem);
 		
-			// Give the proxy marker all the POI metaproperties of the
-			// target item.
-			if (Object.InheritsFrom(forItem, POI_CONTAINER) && !Object.HasMetaProperty(proxyMarker, POI_CONTAINER))
-				Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
-			if (Object.InheritsFrom(forItem, POI_DEVICE) && !Object.HasMetaProperty(proxyMarker, POI_DEVICE))
-				Object.AddMetaProperty(proxyMarker, POI_DEVICE);
-			if (Object.InheritsFrom(forItem, POI_EQUIP) && !Object.HasMetaProperty(proxyMarker, POI_EQUIP))
-				Object.AddMetaProperty(proxyMarker, POI_EQUIP);
+			// Give the proxy marker a POI metaproperty of the
+			// target item. Giving it more than one seems to
+			// cause issues, given the way we implemented things.
 			if (Object.InheritsFrom(forItem, POI_LOOT) && !Object.HasMetaProperty(proxyMarker, POI_LOOT))
 				Object.AddMetaProperty(proxyMarker, POI_LOOT);
+			else if (Object.InheritsFrom(forItem, POI_EQUIP) && !Object.HasMetaProperty(proxyMarker, POI_EQUIP))
+				Object.AddMetaProperty(proxyMarker, POI_EQUIP);
+			else if (Object.InheritsFrom(forItem, POI_DEVICE) && !Object.HasMetaProperty(proxyMarker, POI_DEVICE))
+				Object.AddMetaProperty(proxyMarker, POI_DEVICE);
+			else if (Object.InheritsFrom(forItem, POI_CONTAINER) && !Object.HasMetaProperty(proxyMarker, POI_CONTAINER))
+				Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
 		}
 	}
 }
