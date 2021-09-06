@@ -552,11 +552,19 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		{
 			// We need to create a new overlay. This requires some initial
 			// setup.
-			// TODO: huh...do we need to get a new bitmap handle for each
-			// overlay, or can we use one for all? Also, when should we
-			// call DarkOverlay.FlushBitmap()?
-			// TODO: fallback if we can detect our bitmaps aren't installed?
-			local newBitmap = DarkOverlay.GetBitmap(bitmapName, "j4fres\\");
+			
+			// First, grab a bitmap handle as needed.
+			local newBitmap;
+			if (bitmapName in bitmaps)
+			{
+				newBitmap = bitmaps[bitmapName];
+			}
+			else
+			{
+				// TODO: fallback if we can detect our bitmaps aren't installed?
+				newBitmap = DarkOverlay.GetBitmap(bitmapName, "j4fres\\");
+				bitmaps[bitmapName] <- newBitmap;
+			}
 			
 			currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(targetX - overlayOffset, targetY - overlayOffset, alpha, newBitmap, true);
 			
