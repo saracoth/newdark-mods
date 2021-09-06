@@ -28,4 +28,7 @@ Which items are detected, if any, depends on which of the optional extras you in
 **Optional container detection (chests, lockboxes, etc. with items in them)**: Blue indicators.
 * [dbmods\just4fun_radar_10_containerdar.dml](../dbmods/just4fun_radar_10_containerdar.dml?raw=1)
 
-*Modder's Notes*: This mod uses the same scripting features someone would use to create new HUD elements. Instead of positioning them on specific parts of the screen, these overlays are created, destroyed, and repositioned to match the location of objects in the game world. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible, instead creating visible particle effects to indicate nearby items of interest.
+**Optional pickpocketable detection (purses, quivers, etc.)**: White indicators.
+* [dbmods\just4fun_radar_10_pocketdar.dml](../dbmods/just4fun_radar_10_pocketdar.dml?raw=1)
+
+*Modder's Notes*: This mod uses the same scripting features someone would use to create new HUD elements. Instead of positioning them on specific parts of the screen, these overlays are created, destroyed, and repositioned to match the location of objects in the game world. There's a ton of code to handle corner cases, like "don't inherit" objects we cannot safely script directly. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible, instead creating visible particle effects to indicate nearby items of interest.
