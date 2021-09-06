@@ -2,7 +2,6 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
 // TODO: creature radar (what about hostile-only? pickpocketable only?), ignoring dead creatures
 //	how about we show pickpocketable items when either creatures or the item itself is enabled?
 //	how about we make a sub-mod for the pickpocketable feature?
@@ -37,6 +36,9 @@ const COLOR_CREATURE = "R";
 // Various class, metaproperty, and object name strings.
 const OVERLAY_INTERFACE = "J4FRadarUiInterfacer";
 const FEATURE_LOOT = "J4FRadarEnableLoot";
+const FEATURE_EQUIP = "J4FRadarEnableEquip";
+const FEATURE_DEVICE = "J4FRadarEnableDevice";
+const FEATURE_CONTAINER = "J4FRadarEnableContainer";
 const POI_GENERIC = "J4FRadarPointOfInterest";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
@@ -231,6 +233,10 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	{
 		local target = PoiTarget();
 		
+		// If we're in a container (not in a pickpocket way, but a
+		// regular chest kind of way), our frob status is irrelevant.
+		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		
 		// This property contains our frob flags, if any. We only
 		// care if those flags include interesting options.
 		return (Property.Get(target, "FrobInfo", "World Action") & INTERESTING_FROB_FLAGS) > 0;
@@ -325,14 +331,37 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 		color = COLOR_CONTAINER;
 	}
 	
-	// Ignore empty containers.
+	// Ignore empty containers and containers with points of interest.
+	// If we contain a POI item, the item should already be displaying
+	// us as its visual indicator, so the container itself doesn't
+	// need one of its own.
 	function BlessItem()
 	{
+		// Also require IsPickup() to be sure we can try to open it.
+		if (!base.BlessItem() || !IsPickup() || !IsRendered())
+			return false;
+		
 		local target = PoiTarget();
+		local hasAny = false;
+		
+		local myInventory = Link.GetAll("Contains", target);
+		local genericPoi = ObjID(POI_GENERIC);
+		
+		foreach (link in myInventory)
+		{
+			hasAny = true;
+			
+			// If the item is already some kind of indicator,
+			// we'll assume it's going to bless itself and
+			// use us (the container) to display its location.
+			if (Object.InheritsFrom(LinkDest(link), genericPoi))
+			{
+				return false;
+			}
+		}
 		
 		// Bless if has at least one item inside.
-		// Also require IsPickup() to be sure we can try to open it.
-		return base.BlessItem() && (Link.GetOne("Contains", target) > 0) && IsPickup() && IsRendered();
+		return hasAny;
 	}
 }
 
