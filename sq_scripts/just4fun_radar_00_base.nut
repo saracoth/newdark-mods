@@ -14,6 +14,9 @@ const MAX_ALPHA = 100;
 // TODO: reasonable default
 const MAX_DIST = 32000;
 
+// 1 (move) + 2 (script) + 128 (default)
+const INTERESTING_FROB_FLAGS = 131;
+
 // This script goes on an inventory item the player can use to turn the
 // radar effect on and off.
 class J4FRadarToggler extends SqRootScript
@@ -69,17 +72,29 @@ class J4FRadarAbstractTarget extends SqRootScript
 	// false and rely on timers to review it periodically.
 	isBlessed = false;
 	
-	// TODO: Item IDs can and will be reused, so we have to be careful about that.
-	//	For example, I saw temporary SFX temporarily receive the radar highlight.
-	//	When using the minion summoner, some minions had the highlight as well.
-	
-	// TODO: when do we use this now?
 	// Subclasses can override this to define how items can become temporarily
 	// interesting or ininteresting. As opposed to a more permanent, one-time veto.
 	function BlessItem()
 	{
-		// TODO: default bless implementation (ignore non-physical, maybe)
+		// If we're contained by a thing (with a reverse "Contains" link),
+		// then our object's location is irrelevant. Hide ourselves.
+		// NOTE: We pass 0 to the second parameter because we don't know
+		// the object ID of our container, or if we're even contained.
+		if (Link.GetOne("Contains", 0, self) != 0)
+			return false;
+		
+		// TODO: ignore non-rendered things?
+		
 		return true;
+	}
+	
+	// This is a common need for many points of interest, and implemented
+	// here so they can add it to their BlessItem() if desired.
+	function IsPickup()
+	{
+		// This property contains our frob flags, if any. We only
+		// care if those flags include interesting options.
+		return (Property.Get(self, "FrobInfo", "World Action") & INTERESTING_FROB_FLAGS) > 0;
 	}
 	
 	// This will fire on mission start and on reloading a save.

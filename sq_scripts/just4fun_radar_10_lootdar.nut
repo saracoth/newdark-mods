@@ -7,5 +7,9 @@ class J4FRadarLootTarget extends J4FRadarAbstractTarget
 		color = "Y";
 	}
 	
-	// TODO: bless only non-zero loot value? to ignore loot used as decoration
+	// Ignore decorative/etc. "loot" we can't pick up.
+	function BlessItem()
+	{
+		return base.BlessItem() && IsPickup();
+	}
 }
