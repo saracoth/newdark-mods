@@ -187,19 +187,38 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		return whoAmI;
 	}
 	
+	function DisplayTarget()
+	{
+		// Generally, we display the item itself.
+		local target = PoiTarget();
+		
+		// But if the item is in a container in a non-visible way, we'll
+		// display the container instead. Note that the link data for
+		// "Contains" can indicate pickpocketable belt items, etc. All
+		// negative enum values are rendered, while 0 and up are hidden
+		// inside the container itself.
+		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
+		{
+			// There's a handy LinkDest() function, but to get the source we need
+			// to instantiate the whole link object.
+			target = sLink(linkToMyContainer).source;
+		}
+		
+		return target;
+	}
+	
 	// Subclasses can override this to define how items can become temporarily
 	// interesting or ininteresting. As opposed to a more permanent, one-time veto.
 	function BlessItem()
 	{
 		local target = PoiTarget();
 		
-		// If we're contained by a thing (with a reverse "Contains" link),
-		// then our object's location is irrelevant. Hide ourselves.
-		// NOTE: We pass 0 to the second parameter because we don't know
-		// the object ID of our container, or if we're even contained.
-		// TODO: the link data describes the attachment point, and all negative numbers are rendered
+		// Ignore anything contained by the player.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
-		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
+		// There's a handy LinkDest() function, but to get the source we need
+		// to instantiate the whole link object.
+		if (linkToMyContainer != 0 && Object.InheritsFrom(sLink(linkToMyContainer).source, "Avatar"))
 			return false;
 		
 		return true;
@@ -266,7 +285,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		if (message().name != "J4FRadarTargetReview")
 			return;
 		
-		local target = PoiTarget();
 		local newBlessed = BlessItem();
 		
 		// If our blessing status changes, add or remove us from the list
@@ -275,7 +293,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			if (newBlessed)
 			{
-				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, target, color);
+				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, DisplayTarget(), color);
 			}
 			else
 			{
