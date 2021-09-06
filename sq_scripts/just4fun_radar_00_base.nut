@@ -36,10 +36,12 @@ const COLOR_CREATURE = "R";
 // Various class, metaproperty, and object name strings.
 const OVERLAY_INTERFACE = "J4FRadarUiInterfacer";
 const FEATURE_LOOT = "J4FRadarEnableLoot";
+const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
 const FEATURE_CONTAINER = "J4FRadarEnableContainer";
-const POI_GENERIC = "J4FRadarPointOfInterest";
+const POI_ANY = "J4FRadarPointOfInterest";
+const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
 const POI_EQUIP = "J4FRadarEquipPOI";
@@ -65,7 +67,7 @@ class J4FRadarUtilities extends SqRootScript
 	{
 		if (
 			// It is a point of interest.
-			Object.InheritsFrom(forItem, POI_GENERIC)
+			Object.InheritsFrom(forItem, POI_ANY)
 			// And it's not proxied yet.
 			&& !Object.HasMetaProperty(forItem, POI_PROXY_FLAG)
 			// But it has its very own scripts.
@@ -88,14 +90,30 @@ class J4FRadarUtilities extends SqRootScript
 			// Give the proxy marker a POI metaproperty of the
 			// target item. Giving it more than one seems to
 			// cause issues, given the way we implemented things.
-			if (Object.InheritsFrom(forItem, POI_LOOT) && !Object.HasMetaProperty(proxyMarker, POI_LOOT))
-				Object.AddMetaProperty(proxyMarker, POI_LOOT);
-			else if (Object.InheritsFrom(forItem, POI_EQUIP) && !Object.HasMetaProperty(proxyMarker, POI_EQUIP))
-				Object.AddMetaProperty(proxyMarker, POI_EQUIP);
-			else if (Object.InheritsFrom(forItem, POI_DEVICE) && !Object.HasMetaProperty(proxyMarker, POI_DEVICE))
-				Object.AddMetaProperty(proxyMarker, POI_DEVICE);
-			else if (Object.InheritsFrom(forItem, POI_CONTAINER) && !Object.HasMetaProperty(proxyMarker, POI_CONTAINER))
-				Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
+			if (Object.InheritsFrom(forItem, POI_ANY) && !Object.InheritsFrom(proxyMarker, POI_ANY))
+			{
+				if (Object.InheritsFrom(forItem, POI_LOOT))
+				{
+					Object.AddMetaProperty(proxyMarker, POI_LOOT);
+				}
+				else if (Object.InheritsFrom(forItem, POI_EQUIP))
+				{
+					Object.AddMetaProperty(proxyMarker, POI_EQUIP);
+				}
+				else if (Object.InheritsFrom(forItem, POI_DEVICE))
+				{
+					Object.AddMetaProperty(proxyMarker, POI_DEVICE);
+				}
+				else if (Object.InheritsFrom(forItem, POI_CONTAINER))
+				{
+					Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
+				}
+				// last resort
+				else
+				{
+					Object.AddMetaProperty(proxyMarker, POI_GENERIC);
+				}
+			}
 		}
 	}
 }
@@ -136,18 +154,16 @@ class J4FRadarEchoReceiver extends J4FRadarUtilities
 		// required to enable these effects, because otherwise the enable
 		// metaproperty won't exist.
 		
-		local lootPointOfInterest = ObjID(POI_LOOT);
-		
 		if (
 			// The optional loot module is installed.
 			ObjID(FEATURE_LOOT) < 0
 			// And it's a loot item.
 			&& Object.InheritsFrom(newPointOfInterest, "IsLoot")
-			// But it does not yet have the loot POI metaproperty.
-			&& !Object.HasMetaProperty(newPointOfInterest, lootPointOfInterest)
+			// But it does not yet have any POI metaproperty.
+			&& !Object.InheritsFrom(newPointOfInterest, POI_ANY)
 		)
 		{
-			Object.AddMetaProperty(newPointOfInterest, lootPointOfInterest);
+			Object.AddMetaProperty(newPointOfInterest, POI_LOOT);
 		}
 		
 		SetupProxyIfNeeded(newPointOfInterest);
@@ -331,6 +347,17 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	}
 }
 
+// Various things only matter if we can pick them up (or they're in
+// a container and we can grab them from there, etc.)
+class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
+{
+	// Ignore decorative/etc. things we can't pick up.
+	function BlessItem()
+	{
+		return base.BlessItem() && IsPickup() && IsRendered();
+	}
+}
+
 // This script goes on the container of interest.
 class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 {
@@ -353,7 +380,7 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 		local hasAny = false;
 		
 		local myInventory = Link.GetAll("Contains", target);
-		local genericPoi = ObjID(POI_GENERIC);
+		local anyKindOfPoi = ObjID(POI_ANY);
 		
 		foreach (link in myInventory)
 		{
@@ -362,7 +389,7 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 			// If the item is already some kind of indicator,
 			// we'll assume it's going to bless itself and
 			// use us (the container) to display its location.
-			if (Object.InheritsFrom(LinkDest(link), genericPoi))
+			if (Object.InheritsFrom(LinkDest(link), anyKindOfPoi))
 			{
 				return false;
 			}
@@ -392,61 +419,72 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 }
 
 // This script goes on the equipment of interest.
-class J4FRadarEquipTarget extends J4FRadarAbstractTarget
+class J4FRadarEquipTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
 		color = COLOR_EQUIP;
 	}
-	
-	// Ignore decorative/etc. equipment we can't pick up.
-	function BlessItem()
-	{
-		return base.BlessItem() && IsPickup() && IsRendered();
-	}
 }
 
 // This script goes on the loot of interest.
-class J4FRadarLootTarget extends J4FRadarAbstractTarget
+class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
 		color = COLOR_LOOT;
 	}
-	
-	// Ignore decorative/etc. "loot" we can't pick up.
-	function BlessItem()
-	{
-		return base.BlessItem() && IsPickup() && IsRendered();
-	}
 }
 
 // This script goes on anything we think might contain loot, like
 // containers and creatures.
-class J4FRadarChildLootDetector extends J4FRadarUtilities
+class J4FRadarChildDetector extends J4FRadarUtilities
 {
 	function OnBeginScript()
 	{
 		local myInventory = Link.GetAll("Contains", self);
 		
-		local genericPoi = ObjID(POI_GENERIC);
+		local anyKindOfPoi = ObjID(POI_ANY);
+		local fallbackPoi = ObjID(POI_GENERIC);
 		local lootEnabled = ObjID(FEATURE_LOOT) < 0;
+		local pickPocketEnabled = ObjID(FEATURE_PICKPOCKET) < 0;
 		local lootMetaProperty = ObjID("IsLoot");
 		local lootPoiProperty = ObjID(POI_LOOT);
 		
 		foreach (link in myInventory)
 		{
 			local invItem = LinkDest(link);
+			
+			// Check to see if we need to add metaproperties directly
+			// to the contained item.
 			if (
 				// The optional loot module is installed.
 				lootEnabled
 				// And it's a loot item.
 				&& Object.InheritsFrom(invItem, lootMetaProperty)
-				// But it does not yet have the loot POI metaproperty.
-				&& !Object.InheritsFrom(invItem, lootPoiProperty)
+				// But it does not yet have any POI metaproperty.
+				&& !Object.InheritsFrom(invItem, anyKindOfPoi)
 			)
 			{
 				Object.AddMetaProperty(invItem, lootPoiProperty);
+			}
+			else if (
+				// The optional pickpocket module is installed.
+				pickPocketEnabled
+				// And it does not yet have any POI metaproperty.
+				&& !Object.InheritsFrom(invItem, anyKindOfPoi)
+				// But it's on the creature's belt or alternate slot.
+				// Those are what the game uses to track the pockets
+				// picked for the end-of-mission stats.
+				&& (
+					// Belt
+					LinkTools.LinkGetData(link, "") == -1
+					// Alternate (quiver arrows, etc.)
+					|| LinkTools.LinkGetData(link, "") == -3
+				)
+			)
+			{
+				Object.AddMetaProperty(invItem, fallbackPoi);
 			}
 			
 			// If needed, create a proxy item to represent the target for
@@ -592,6 +630,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		local lootEnabled = ObjID(FEATURE_LOOT) < 0;
 		local lootMetaProperty = ObjID("IsLoot");
 		local lootPoiProperty = ObjID(POI_LOOT);
+		local anyKindOfPoi = ObjID(POI_ANY);
 		
 		// Loop through all the item IDs we're going to test this time.
 		for (local i = scanFromInclusive - 1; ++i < scanCapExclusive; )
@@ -608,8 +647,8 @@ class J4FRadarUi extends J4FRadarUtilities
 					lootEnabled
 					// And it's a loot item.
 					&& Object.InheritsFrom(i, lootMetaProperty)
-					// But it does not yet have the loot POI metaproperty.
-					&& !Object.InheritsFrom(i, lootPoiProperty)
+					// But it does not yet have any POI metaproperty.
+					&& !Object.InheritsFrom(i, anyKindOfPoi)
 				)
 				{
 					Object.AddMetaProperty(i, lootPoiProperty);

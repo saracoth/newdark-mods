@@ -238,6 +238,17 @@ CreateArch "MetaProperty" "J4FRadarEnabledPlayer"
 
 CreateArch "MetaProperty" "J4FRadarPointOfInterest"
 
+// This is used when we don't have a more specific POI type to assign, but
+// know we're interested in a thing.
+CreateArch "J4FRadarPointOfInterest" "J4FRadarFallbackPOI"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarGrabbableTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 CreateArch "J4FRadarPointOfInterest" "J4FRadarContainerPOI"
 {
 	+ObjProp "Scripts"
@@ -306,7 +317,7 @@ CreateArch "MetaProperty" "J4FRadarLootLinkChecker"
 {
 	+ObjProp "Scripts"
 	{
-		"Script 0" "J4FRadarChildLootDetector"
+		"Script 0" "J4FRadarChildDetector"
 		"Don't Inherit" FALSE
 	}
 }
