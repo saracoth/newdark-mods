@@ -10,6 +10,7 @@ Which items are detected, if any, depends on which of the optional extras you in
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * [dbmods\just4fun_radar_00_base.dml](../dbmods/just4fun_radar_00_base.dml?raw=1)
+* [dbmods\miss_all\just4fun_radar_ui.dml](../dbmods/miss_all/just4fun_radar_ui.dml?raw=1)
 * [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
 * [j4fRes\Radar*.png](../j4fRes) (All the radar files. Consider downloading the entire github repo as a zip file to make downloading these easier.)
 
