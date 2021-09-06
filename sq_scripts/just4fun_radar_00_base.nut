@@ -253,6 +253,12 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	{
 		local target = PoiTarget();
 		
+		// If we're in a container (not in a pickpocket way, but a
+		// regular chest kind of way), our render status is irrelevant.
+		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
+			return true;
+		
 		// We'll assume invisible render statuses are irrelevant.
 		if (Property.Possessed(target, "INVISIBLE") && Property.Get(target, "INVISIBLE"))
 			return false;
