@@ -6,7 +6,6 @@ const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 // NOTE: This also helps with various limitations. For example, NewDark
 // v1.27 only allows 64 simultaneous overlays to exist.
-// TODO: configurable?
 const MAX_DIST = 150;
 
 // 1 (move) + 2 (script) + 128 (default)
@@ -560,6 +559,12 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			local newBitmap = DarkOverlay.GetBitmap(bitmapName, "j4fres\\");
 			
 			currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(targetX - overlayOffset, targetY - overlayOffset, alpha, newBitmap, true);
+			
+			// If we failed, best to abort now.
+			if (currentOverlay == -1)
+				return - 1;
+			
+			// If we succeeded, keep a reference to the new handle.
 			overlayArray.append(currentOverlay);
 			
 			// TODO: we'll get errors for bitmaps of non-power-of-2 sizes.
@@ -709,14 +714,36 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// out for us.
 			local currentOverlay = CreateOrUpdateOverlay(drawMetadata.displayColor, currentAlpha, useBitmapSize, drawMetadata.x, drawMetadata.y);
 			
-			// And whether or not we drew the contents of the overlay earlier,
-			// we need to instruct it to draw the overlay itself this frame.
-			DarkOverlay.DrawTOverlayItem(currentOverlay);
+			// I've seen -1 returned when we try to create an overlay after
+			// too many already exist :(
+			if (currentOverlay != -1)
+			{
+				// And whether or not we drew the contents of the overlay earlier,
+				// we need to instruct it to draw the overlay itself this frame.
+				DarkOverlay.DrawTOverlayItem(currentOverlay);
+			}
 		}
 		
-		// TODO: compare to overlayPool to poolUsedThisFrame (remember that we may
-		// have no poolUsedThisFrame record for completely unused pool arrays) and
-		// destroy unneeded stuff
+		// Destroy any pool overlays we didn't need this frame.
+		foreach (poolKey, poolArray in overlayPool)
+		{
+			local keepThisIndexAndBelow = -1;
+			
+			// If we used this pool this frame, figure out how many times.
+			if (poolKey in poolUsedThisFrame)
+			{
+				// This is a 1-based counter, but we're dealing in 0-based
+				// array indexes, so adjust down by one.
+				keepThisIndexAndBelow = poolUsedThisFrame[poolKey] - 1;
+			}
+			
+			// More backwards looping. This time it also lets us take
+			// advantage of pop() to reduce the array size as we go.
+			for (local i = poolArray.len(); --i > keepThisIndexAndBelow; )
+			{
+				DarkOverlay.DestroyTOverlayItem(poolArray.pop());
+			}
+		}
 	}
 }
 
