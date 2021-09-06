@@ -2,7 +2,6 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: creature radar (what about hostile-only? pickpocketable only?), ignoring dead creatures
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
 // TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
 //	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
@@ -108,6 +107,10 @@ class J4FRadarUtilities extends SqRootScript
 				{
 					Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
 				}
+				else if (Object.InheritsFrom(forItem, POI_CREATURE))
+				{
+					Object.AddMetaProperty(proxyMarker, POI_CREATURE);
+				}
 				// last resort
 				else
 				{
@@ -173,24 +176,22 @@ class J4FRadarEchoReceiver extends J4FRadarUtilities
 // This a superclass for all items that the radar can display.
 class J4FRadarAbstractTarget extends J4FRadarUtilities
 {
-	// Subclass's constructor() should specify this if desired. No
-	// save/load persistence is necessary, because when classes are
-	// (re)constructed, they'll set this value again.
-	color = "W";
-	// Persistence is optional here, because we'll default this to
-	// false and rely on timers to review it periodically.
-	isBlessed = false;
-	// Not bothering with persistence because PoiTarget() will set
-	// this cached value as needed.
-	whoAmI = 0;
+	constructor(color = "W")
+	{
+		SetData("J4FRadarColor", color);
+	}
 	
 	// Our point-of-interest metaproperties and their scripts might
 	// be attached to a proxy marker object instead. So the item of
 	// interest may be self, or it may be something linked to self.
 	function PoiTarget()
 	{
-		if (whoAmI != 0)
-			return whoAmI;
+		if (IsDataSet("J4FPoiTargetCache"))
+		{
+			return GetData("J4FPoiTargetCache");
+		}
+		
+		local whoAmI;
 		
 		if (Object.InheritsFrom(self, POI_PROXY_MARKER))
 		{
@@ -202,6 +203,8 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			whoAmI = self;
 		}
+		
+		SetData("J4FPoiTargetCache", whoAmI);
 		
 		return whoAmI;
 	}
@@ -243,6 +246,31 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		return true;
 	}
 	
+	// This isn't for pickpocketable things, but for chests and such.
+	function IsInOpenableContainer()
+	{
+		local target = PoiTarget();
+		
+		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		// Are we contained by something in a way that prevent us from rendering?
+		if (
+			// We are contained.
+			linkToMyContainer != 0
+			// In a non-visible way. (Negative values are for visible
+			// contents, like on a creature's belt.)
+			&& LinkTools.LinkGetData(linkToMyContainer, "") >= 0
+			// And our container is a...Container.
+			// As opposed to a creature or some other presumably
+			// non-openable item.
+			&& Object.InheritsFrom(sLink(linkToMyContainer).source, "Container")
+		)
+		{
+			return true;
+		}
+		
+		return false;
+	}
+	
 	// This is a common need for many points of interest, and implemented
 	// here so they can add it to their BlessItem() if desired.
 	function IsPickup()
@@ -251,8 +279,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		// If we're in a container (not in a pickpocket way, but a
 		// regular chest kind of way), our frob status is irrelevant.
-		local linkToMyContainer = Link.GetOne("Contains", 0, target);
-		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
+		if (IsInOpenableContainer())
 			return true;
 		
 		// This property contains our frob flags, if any. We only
@@ -271,8 +298,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		// If we're in a container (not in a pickpocket way, but a
 		// regular chest kind of way), our render status is irrelevant.
-		local linkToMyContainer = Link.GetOne("Contains", 0, target);
-		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
+		if (IsInOpenableContainer())
 			return true;
 		
 		// We'll assume invisible render statuses are irrelevant.
@@ -302,6 +328,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// This will fire on mission start and on reloading a save.
 	function OnBeginScript()
 	{
+		// Default to false, because we'll have cleared out the overlay
+		// data at this point as well. If we become blessed, we need to
+		// add ourselves back in.
+		SetData("J4FRadarLastBless", false);
+		
 		// Depending on which order objects are set up, things like the
 		// overlay marker may not be ready yet. We'll add a slight
 		// startup delay before registering our existence with them.
@@ -317,21 +348,30 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			return;
 		
 		local newBlessed = BlessItem();
+		local wasBlessed = GetData("J4FRadarLastBless");
 		
 		// If our blessing status changes, add or remove us from the list
 		// of targets to review and display.
-		if (isBlessed != newBlessed)
+		if (wasBlessed != newBlessed)
 		{
+			// TODO:
+			print(format("Blessing: %s %i now %s", Object.GetName(Object.Archetype(PoiTarget())), PoiTarget(), newBlessed.tostring()));
+			
 			if (newBlessed)
 			{
-				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, DisplayTarget(), color);
+				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, DisplayTarget(), GetData("J4FRadarColor"));
 			}
 			else
 			{
 				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", self);
 			}
 			
-			isBlessed = newBlessed;
+			SetData("J4FRadarLastBless", newBlessed);
+		}
+		else
+		{
+			// TODO:
+			print(format("Blessing: %s %i still %s", Object.GetName(Object.Archetype(PoiTarget())), PoiTarget(), newBlessed.tostring()));
 		}
 		
 		// Periodically review our blessing status.
@@ -351,7 +391,7 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		color = COLOR_CREATURE;
+		base.constructor(COLOR_CREATURE);
 	}
 	
 	// Ignore frozen, dead, and nonhostile creatures.
@@ -387,6 +427,11 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 // a container and we can grab them from there, etc.)
 class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
 {
+	constructor(color = "W")
+	{
+		base.constructor(color);
+	}
+	
 	// Ignore decorative/etc. things we can't pick up.
 	function BlessItem()
 	{
@@ -399,7 +444,7 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		color = COLOR_CONTAINER;
+		base.constructor(COLOR_CONTAINER);
 	}
 	
 	// Ignore empty containers and containers with points of interest.
@@ -441,7 +486,7 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		color = COLOR_DEVICE;
+		base.constructor(COLOR_DEVICE);
 	}
 	
 	// Ignore invisible devices, which are sometimes used by
@@ -459,7 +504,7 @@ class J4FRadarEquipTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		color = COLOR_EQUIP;
+		base.constructor(COLOR_EQUIP);
 	}
 }
 
@@ -468,7 +513,7 @@ class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		color = COLOR_LOOT;
+		base.constructor(COLOR_LOOT);
 	}
 }
 
@@ -725,6 +770,9 @@ class J4FRadarUi extends J4FRadarUtilities
 		// We sent the point-of-interest item object ID in "data"
 		local detectedId = message().data;
 		
+		// TODO:
+		print(format("Adding POI %s %i", Object.GetName(Object.Archetype(detectedId)), detectedId));
+		
 		// If the POI item is not already in the list, put it there.
 		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
 		{
@@ -734,7 +782,6 @@ class J4FRadarUi extends J4FRadarUtilities
 			// We sent the radar color indicator in "data3"
 			poiMetadata.displayColor = message().data3
 			
-			local displayId = message().data2;
 			j4fRadarOverlayInstance.displayTargets[detectedId] <- poiMetadata;
 		}
 	}
@@ -745,6 +792,9 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
 		// We sent the point-of-interest item object ID in "data"
 		local destroyedId = message().data;
+		
+		// TODO:
+		print(format("Removing POI %s %i", Object.GetName(Object.Archetype(destroyedId)), destroyedId));
 		
 		// If the POI item is in the list, remove it.
 		if (destroyedId in j4fRadarOverlayInstance.displayTargets)
@@ -918,13 +968,12 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			if (!Object.RenderedThisFrame(targetId) && targetDistance > MAX_DIST)
 				continue;
 			
-			local metadataForOverlay = J4FRadarPointOfInterest();
 			// Pick a point in the center of the object bounds.
-			metadataForOverlay.x = (x1_ref.tointeger() + x2_ref.tointeger()) / 2;
-			metadataForOverlay.y = (y1_ref.tointeger() + y2_ref.tointeger()) / 2;
-			metadataForOverlay.displayColor = displayColor;
-			metadataForOverlay.distance = targetDistance;
-			toDrawThisFrame.append(metadataForOverlay);
+			poiMetadata.x = (x1_ref.tointeger() + x2_ref.tointeger()) / 2;
+			poiMetadata.y = (y1_ref.tointeger() + y2_ref.tointeger()) / 2;
+			poiMetadata.displayColor = displayColor;
+			poiMetadata.distance = targetDistance;
+			toDrawThisFrame.append(poiMetadata);
 		}
 		
 		// If we've slated any items for removal, process that list.
