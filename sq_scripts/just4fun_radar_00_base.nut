@@ -4,20 +4,7 @@
 
 // TODO: creature radar (what about hostile-only? pickpocketable only?)
 // TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
-// TODO: if a container or creature detects loot in it, we can add the metaproperty right then and there
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
-// TODO: pickpocketable items may be prone to "don't inherit" in some cases (adding TrigWorldFrob, etc.)
-//	so we may need to extend the radar pinging approach to creatures
-//	also, we can't attach scripts to these objects via metaproperties; can we add them directly?
-//		last time I tried directly adding a script to something via property, the game crashed
-//		~~then again, I was adding a script to the IsLoot metaproperty, not a concrete object in the level~~
-//		I think that's because my proof-of-concept code added a script unconditionally, creating infinite recursion
-//		Which just points to the core issue: even if this works, *all* scripts on the object seem to be triggered again
-//			I don't know if we're attaching duplicates of the other scripts, or just triggering their BeginScript message a second time.
-//			Either way, this is bad.
-// TODO: create a system whereby we can link/attach marker items to script-resistant objects?
-//	how does this behave with stuff like loot, which combines in inventory?
-//	verify whether the marker follows even while the parent is contained
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -41,6 +28,8 @@ const COLOR_CONTAINER = "B";
 const COLOR_CREATURE = "R";
 
 // Various class, metaproperty, and object name strings.
+const OVERLAY_INTERFACE = "J4FRadarUiInterfacer";
+const FEATURE_LOOT = "J4FRadarEnableLoot";
 const POI_GENERIC = "J4FRadarPointOfInterest";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
@@ -57,29 +46,47 @@ const PROXY_ATTACH_METHOD = "PhysAttach";
 // these utility methods.
 class J4FRadarUtilities extends SqRootScript
 {
-	function SetupProxy(forItem)
+	// Some items are flagged to not inherit scripts. This applies
+	// to their archetypes, as well as metaproperties assigned
+	// directly to the object itself. In these cases, the meta-
+	// property is useless to us. The item will not alert the
+	// radar system that it exists, and we cannot benefit from any
+	// bless functions on the item.
+	function SetupProxyIfNeeded(forItem)
 	{
-		// Flag the target item as having been proxied.
-		Object.AddMetaProperty(forItem, POI_PROXY_FLAG);
+		if (
+			// It is a point of interest.
+			Object.InheritsFrom(forItem, POI_GENERIC)
+			// And it's not proxied yet.
+			&& !Object.HasMetaProperty(forItem, POI_PROXY_FLAG)
+			// But it has its very own scripts.
+			&& Property.Possessed(forItem, "Scripts")
+			// And it's ignoring our metaproperty-based scripts.
+			&& Property.Get(forItem, "Scripts", "Don't Inherit")
+		)
+		{
+			// Flag the target item as having been proxied.
+			Object.AddMetaProperty(forItem, POI_PROXY_FLAG);
 		
-		// Create a new proxy marker on top of the item it is proxying.
-		local proxyMarker = Object.BeginCreate(POI_PROXY_MARKER);
-		Object.Teleport(proxyMarker, Object.Position(forItem), Object.Facing(forItem));
-		Object.EndCreate(proxyMarker);
+			// Create a new proxy marker on top of the item it is proxying.
+			local proxyMarker = Object.BeginCreate(POI_PROXY_MARKER);
+			Object.Teleport(proxyMarker, Object.Position(forItem), Object.Facing(forItem));
+			Object.EndCreate(proxyMarker);
 		
-		// Link these items together.
-		local proxyAttach = Link.Create(PROXY_ATTACH_METHOD, proxyMarker, forItem);
+			// Link these items together.
+			local proxyAttach = Link.Create(PROXY_ATTACH_METHOD, proxyMarker, forItem);
 		
-		// Give the proxy marker all the POI metaproperties of the
-		// target item.
-		if (Object.InheritsFrom(forItem, POI_CONTAINER) && !Object.HasMetaProperty(proxyMarker, POI_CONTAINER))
-			Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
-		if (Object.InheritsFrom(forItem, POI_DEVICE) && !Object.HasMetaProperty(proxyMarker, POI_DEVICE))
-			Object.AddMetaProperty(proxyMarker, POI_DEVICE);
-		if (Object.InheritsFrom(forItem, POI_EQUIP) && !Object.HasMetaProperty(proxyMarker, POI_EQUIP))
-			Object.AddMetaProperty(proxyMarker, POI_EQUIP);
-		if (Object.InheritsFrom(forItem, POI_LOOT) && !Object.HasMetaProperty(proxyMarker, POI_LOOT))
-			Object.AddMetaProperty(proxyMarker, POI_LOOT);
+			// Give the proxy marker all the POI metaproperties of the
+			// target item.
+			if (Object.InheritsFrom(forItem, POI_CONTAINER) && !Object.HasMetaProperty(proxyMarker, POI_CONTAINER))
+				Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
+			if (Object.InheritsFrom(forItem, POI_DEVICE) && !Object.HasMetaProperty(proxyMarker, POI_DEVICE))
+				Object.AddMetaProperty(proxyMarker, POI_DEVICE);
+			if (Object.InheritsFrom(forItem, POI_EQUIP) && !Object.HasMetaProperty(proxyMarker, POI_EQUIP))
+				Object.AddMetaProperty(proxyMarker, POI_EQUIP);
+			if (Object.InheritsFrom(forItem, POI_LOOT) && !Object.HasMetaProperty(proxyMarker, POI_LOOT))
+				Object.AddMetaProperty(proxyMarker, POI_LOOT);
+		}
 	}
 }
 
@@ -89,7 +96,7 @@ class J4FRadarToggler extends SqRootScript
 {
 	function OnFrobInvEnd()
 	{
-		local newState = SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarToggle", self);
+		local newState = SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarToggle", self);
 		if (newState)
 		{
 			Property.SetSimple(self, "GameName", "name_j4f_radar_active: \"Radar (Active)\"");
@@ -101,7 +108,7 @@ class J4FRadarToggler extends SqRootScript
 	}
 }
 
-class J4FRadarEchoReceiver extends SqRootScript
+class J4FRadarEchoReceiver extends J4FRadarUtilities
 {
 	// Most items of interest don't need this, and will instead directly
 	// register themselves with the radar system. Other items are trickier,
@@ -123,7 +130,7 @@ class J4FRadarEchoReceiver extends SqRootScript
 		
 		if (
 			// The optional loot module is installed.
-			ObjID("J4FRadarEnableLoot") < 0
+			ObjID(FEATURE_LOOT) < 0
 			// And it's a loot item.
 			&& Object.InheritsFrom(newPointOfInterest, "IsLoot")
 			// But it does not yet have the loot POI metaproperty.
@@ -132,6 +139,8 @@ class J4FRadarEchoReceiver extends SqRootScript
 		{
 			Object.AddMetaProperty(newPointOfInterest, lootPointOfInterest);
 		}
+		
+		SetupProxyIfNeeded(newPointOfInterest);
 	}
 }
 
@@ -259,11 +268,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			if (newBlessed)
 			{
-				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", target, color);
+				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", target, color);
 			}
 			else
 			{
-				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", target);
+				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", target);
 			}
 			
 			isBlessed = newBlessed;
@@ -278,7 +287,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// random arrow or blood splatter as a point of interest.
 	function OnDestroy()
 	{
-		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", PoiTarget());
+		SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", PoiTarget());
 	}
 }
 
@@ -365,35 +374,21 @@ class J4FRadarChildLootDetector extends J4FRadarUtilities
 		{
 			local invItem = LinkDest(link);
 			if (
-				Object.InheritsFrom(invItem, lootMetaProperty)
+				// The optional loot module is installed.
+				ObjID(FEATURE_LOOT) < 0
+				// And it's a loot item.
+				&& Object.InheritsFrom(invItem, lootMetaProperty)
+				// But it does not yet have the loot POI metaproperty.
 				&& !Object.InheritsFrom(invItem, lootPoiProperty)
 			)
 			{
 				Object.AddMetaProperty(invItem, lootPoiProperty);
 			}
 			
-			// Some items are flagged to not inherit scripts. This applies
-			// to their archetypes, as well as metaproperties assigned
-			// directly to the object itself. In these cases, the meta-
-			// property is useless to us. The item will not alert the
-			// radar system that it exists, and we cannot benefit from any
-			// bless functions on the item.
-			// TODO: we may need to make this part of our radius stim for everything
-			if (
-				// It is a point of interest.
-				Object.InheritsFrom(invItem, genericPoi)
-				// And it's not proxied yet.
-				&& !Object.HasMetaProperty(invItem, POI_PROXY_FLAG)
-				// But it has its very own scripts.
-				&& Property.Possessed(invItem, "Scripts")
-				// And it's ignoring our metaproperty-based scripts.
-				&& Property.Get(invItem, "Scripts", "Don't Inherit")
-			)
-			{
-				// Create a proxy item to represent the target for
-				// radar system purposes.
-				SetupProxy(invItem);
-			}
+			// If needed, create a proxy item to represent the target for
+			// radar system purposes.
+			// TODO: testing
+			//SetupProxyIfNeeded(invItem);
 		}
 	}
 }
