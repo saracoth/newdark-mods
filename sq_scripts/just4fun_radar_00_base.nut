@@ -4,11 +4,8 @@
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
-// NOTE: This also helps with various limitations. I've seen, for example,
-// that in some busy missions, we seem to run out of overlays before we
-// can render stuff like loot. This seems irrelevant to how many overlays
-// are rendered on screen at the moment, and likely has to do with a max
-// number of created overlay handles.
+// NOTE: This also helps with various limitations. For example, NewDark
+// v1.27 only allows 64 simultaneous overlays to exist.
 // TODO: configurable?
 const MAX_DIST = 150;
 
@@ -349,12 +346,15 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	canvasHeight = 0;
 	resizeNeeded = false;
 	useBitmapSize = 0;
+	// Filename keys, bitmap handle values.
+	bitmaps = {};
 	displayTargets = {};
 	// This is a table whose keys are strings, indicating the color of the
 	// overlay. For example, "W" for white, "Y" for yellow, etc. The keys are
 	// arrays of overlay handles created with DarkOverlay.CreateTOverlayItem()
 	// or DarkOverlay.CreateTOverlayItemFromBitmap()
 	overlayPool = {};
+	poolUsedThisFrame = {};
 	// Contains a list of points of interest to render on the current frame.
 	// See comments in DrawHUD() for an explanation of why we need to feed
 	// data into DrawTOverlay like this.
@@ -490,6 +490,103 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		}
 	}
 	
+	// The extra overhead of calling another function may not be
+	// desirable, but it's probably worth it just to separate out
+	// all this logic.
+	// Returns an int handle to the overlay, and updates poolUsedThisFrame.
+	function CreateOrUpdateOverlay(color, alpha, size, targetX, targetY)
+	{
+		// Subtracted from x/y coordinate to place the center of the
+		// bitmap on those coordinates, instead of the top-left corner.
+		local overlayOffset = (size / 2);
+		
+		local bitmapName = "Radar" + color + size;
+		
+		// We need to find or create an overlay to use for this item.
+		// Start by getting the array of overlays for this type. Create
+		// it if needed.
+		local overlayArray;
+		local usedInPool = 0;
+		if (bitmapName in overlayPool)
+		{
+			// The array exists, so grab it.
+			overlayArray = overlayPool[bitmapName];
+			
+			// But is this the first time we've grabbed it this frame?
+			// If not, we need to load the appropriate usedInPool value.
+			if (bitmapName in poolUsedThisFrame)
+			{
+				usedInPool = poolUsedThisFrame[bitmapName];
+			}
+			// Otherwise, we defaulted usedInPool to 0 earlier.
+		}
+		else
+		{
+			// First time we've ever seen this one. Create a new,
+			// empty array to work with.
+			overlayArray = [];
+			// And remember it for future use.
+			overlayPool[bitmapName] <- overlayArray;
+			// NOTE: We defaulted usedInPool to 0 earlier.
+		}
+		
+		// Now overlayArray and usedInPool are populated. Next step is to
+		// either pick an existing overlay we haven't used this frame,
+		// or we create a new overlay and add it to the array for current
+		// and future use.
+		local currentOverlay;
+		if (usedInPool < overlayArray.len())
+		{
+			// We can reuse an overlay. Start by grabbing it.
+			currentOverlay = overlayArray[usedInPool];
+			
+			// Position it on top of its new target.
+			DarkOverlay.UpdateTOverlayPosition(currentOverlay, targetX - overlayOffset, targetY - overlayOffset);
+			// And update its transparency.
+			DarkOverlay.UpdateTOverlayAlpha(currentOverlay, alpha);
+			
+			// NOTE: The engine remembers the contents of the overlay,
+			// so we don't need to re-draw them. We only need to tell
+			// it to draw the overlay itself later.
+		}
+		else
+		{
+			// We need to create a new overlay. This requires some initial
+			// setup.
+			// TODO: huh...do we need to get a new bitmap handle for each
+			// overlay, or can we use one for all? Also, when should we
+			// call DarkOverlay.FlushBitmap()?
+			// TODO: fallback if we can detect our bitmaps aren't installed?
+			local newBitmap = DarkOverlay.GetBitmap(bitmapName, "j4fres\\");
+			
+			currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(targetX - overlayOffset, targetY - overlayOffset, alpha, newBitmap, true);
+			overlayArray.append(currentOverlay);
+			
+			// TODO: we'll get errors for bitmaps of non-power-of-2 sizes.
+			// in these cases, we should create an overlay item manually
+			// and draw the bitmap in its center
+			
+			// Because we used CreateTOverlayItemFromBitmap(), the
+			// contents of the overlay are taken care of for us.
+			// Otherwise, we'd want to do something like this:
+			/*
+			if (DarkOverlay.BeginTOverlayUpdate(currentOverlay))
+			{
+				// Do whatever drawing operations we need here.
+				
+				// Tell the engine we're done drawing the overlay contents.
+				DarkOverlay.EndTOverlayUpdate();
+			}
+			*/
+		}
+		
+		// Regardless of how we got here, we're using another overlay of
+		// this type and need to make note of that.
+		poolUsedThisFrame[bitmapName] <- usedInPool + 1;
+		
+		return currentOverlay;
+	}
+	
 	// DrawTOverlay implements an IDarkOverlayHandler method.
 	//
 	// Our best option seems to be creating a separate overlay for each
@@ -510,15 +607,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// Murkbell, a rather large map) that there are no performance issues
 	// on my machine, even if handling all radar-enabled items at all
 	// distances, including non-physical items that would otherwise be
-	// ignored. However, I also noticed some radar indicators flickering
-	// on and off as I moved my camera a little. These were near the
-	// center of the screen, so the most likely explanation is there is
-	// some kind of hard limit. Either there's a time limit to how long
-	// our DrawTOverlay can take, or there's a limit to how many overlays
-	// can be drawn on the screen, or there's a limit to how many
-	// overlays can be defined at all. In any case, this is probably a
-	// net win, since it can only help maintain performance when faced
-	// with large numbers of radar points of interest.
+	// ignored. However, things like NewDark 1.27's limit of 64 overlay
+	// handles probably contributes to keeping that performing well.
 	function DrawTOverlay()
 	{
 		if (!enabled)
@@ -535,7 +625,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// we needed this frame, so we can either hide or destroy the
 		// rest. The keys match those of overlayPool, but the value is
 		// just an integer counter.
-		local poolUsed = {};
+		poolUsedThisFrame = {};
 		
 		// Different screen resolutions (and canvas sizes) are suited
 		// to different image sizes. If this changes, we should replace
@@ -586,10 +676,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			}
 		}
 		
-		// Subtracted from x/y coordinate to place the center of the
-		// bitmap on those coordinates, instead of the top-left corner.
-		local overlayOffset = (useBitmapSize / 2);
-		
 		// We'll do a complete alpha cycle in 120 frames. If and only
 		// if running at 60fps will that take 2 seconds.
 		// TODO: is there a function we can use to track time instead?
@@ -618,99 +704,18 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		for (local i = toDrawThisFrame.len(); --i > -1; )
 		{
 			local drawMetadata = toDrawThisFrame[i];
-			local displayColor = drawMetadata.displayColor;
-			local x = drawMetadata.x;
-			local y = drawMetadata.y;
 			
-			// We need to find or create an overlay to use for this item.
-			// Start by getting the array of overlays for this type. Create
-			// it if needed.
-			local overlayArray;
-			local usedInPool = 0;
-			if (displayColor in overlayPool)
-			{
-				// The array exists, so grab it.
-				overlayArray = overlayPool[displayColor];
-				
-				// But is this the first time we've grabbed it this frame?
-				// If not, we need to load the appropriate usedInPool value.
-				if (displayColor in poolUsed)
-				{
-					usedInPool = poolUsed[displayColor];
-				}
-				// Otherwise, we defaulted usedInPool to 0 earlier.
-			}
-			else
-			{
-				// First time we've ever seen this one. Create a new,
-				// empty array to work with.
-				overlayArray = [];
-				// And remember it for future use.
-				overlayPool[displayColor] <- overlayArray;
-				// NOTE: We defaulted usedInPool to 0 earlier.
-			}
-			
-			// Now overlayArray and usedInPool are populated. Next step is to
-			// either pick an existing overlay we haven't used this frame,
-			// or we create a new overlay and add it to the array for current
-			// and future use.
-			local currentOverlay;
-			if (usedInPool < overlayArray.len())
-			{
-				// We can reuse an overlay. Start by grabbing it.
-				currentOverlay = overlayArray[usedInPool];
-				
-				// Position it on top of its new target.
-				DarkOverlay.UpdateTOverlayPosition(currentOverlay, x - overlayOffset, y - overlayOffset);
-				// And update its transparency.
-				DarkOverlay.UpdateTOverlayAlpha(currentOverlay, currentAlpha);
-				
-				// NOTE: The engine remembers the contents of the overlay,
-				// so we don't need to re-draw them. We only need to tell
-				// it to draw the overlay itself later.
-			}
-			else
-			{
-				// We need to create a new overlay. This requires some initial
-				// setup.
-				// TODO: huh...do we need to get a new bitmap handle for each
-				// overlay, or can we use one for all? Also, when should we
-				// call DarkOverlay.FlushBitmap()?
-				// TODO: fallback if we can detect our bitmaps aren't installed?
-				local newBitmap = DarkOverlay.GetBitmap("Radar" + displayColor + useBitmapSize, "j4fres\\");
-				
-				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x - overlayOffset, y - overlayOffset, currentAlpha, newBitmap, true);
-				overlayArray.append(currentOverlay);
-				
-				// TODO: we'll get errors for bitmaps of non-power-of-2 sizes.
-				// in these cases, we should create an overlay item manually
-				// and draw the bitmap in its center
-				
-				// Because we used CreateTOverlayItemFromBitmap(), the
-				// contents of the overlay are taken care of for us.
-				// Otherwise, we'd want to do something like this:
-				/*
-				if (DarkOverlay.BeginTOverlayUpdate(currentOverlay))
-				{
-					// Do whatever drawing operations we need here.
-					
-					// Tell the engine we're done drawing the overlay contents.
-					DarkOverlay.EndTOverlayUpdate();
-				}
-				*/
-			}
-			
-			// Regardless of how we got here, we're using another overlay of
-			// this type and need to make note of that.
-			poolUsed[displayColor] <- usedInPool + 1;
+			// Our method will make sure the X/Y/alpha/etc. is all sorted
+			// out for us.
+			local currentOverlay = CreateOrUpdateOverlay(drawMetadata.displayColor, currentAlpha, useBitmapSize, drawMetadata.x, drawMetadata.y);
 			
 			// And whether or not we drew the contents of the overlay earlier,
 			// we need to instruct it to draw the overlay itself this frame.
 			DarkOverlay.DrawTOverlayItem(currentOverlay);
 		}
 		
-		// TODO: compare to overlayPool to poolUsed (remember that we may
-		// have no poolUsed record for completely unused pool arrays) and
+		// TODO: compare to overlayPool to poolUsedThisFrame (remember that we may
+		// have no poolUsedThisFrame record for completely unused pool arrays) and
 		// destroy unneeded stuff
 	}
 }
