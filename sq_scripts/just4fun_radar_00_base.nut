@@ -6,22 +6,13 @@ TODO: What remains to make this branch feature complete?
 		radius stim wouldn't have affected in the first place. Ideally,
 		we do this after performance testing, for sake of worst-case
 		testing.
-* Figure out how to remove (and/or hide) items later on. For example, to
-	remove an indicator after an item is picked up, or a container after
-	it gets emptied.
--		Is it worth doing all those checks on every frame? If not, how
-		can we have the scripts on the individual items track this info,
-		but give the overlay access to it? Do we need to push those status
-		changes to the overlay, or can the overlay easily pull them? I
-		assume we'll have to push them.
-* Once done with performance and other testing, define a distance limit.
-	First implement the distance checking, and then implement hiding
-	based on distance, for worst-case performance cost testing.
--		Use Object.RenderedThisFrame() to uncap or increase range limit?
 */
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
+// TODO: configurable?
+// TODO: reasonable default
+const MAX_DIST = 32000;
 
 // This script goes on an inventory item the player can use to turn the
 // radar effect on and off.
@@ -70,18 +61,24 @@ class J4FRadarEchoReceiver extends SqRootScript
 // puff in response to a ping.
 class J4FRadarAbstractTarget extends SqRootScript
 {
-	// Subclass's constructor() should specify this if desired.
+	// Subclass's constructor() should specify this if desired. No
+	// save/load persistence is necessary, because when classes are
+	// (re)constructed, they'll set this value again.
 	color = "W";
+	// Persistence is optional here, because we'll default this to
+	// false and rely on timers to review it periodically.
+	isBlessed = false;
 	
 	// TODO: Item IDs can and will be reused, so we have to be careful about that.
 	//	For example, I saw temporary SFX temporarily receive the radar highlight.
 	//	When using the minion summoner, some minions had the highlight as well.
 	
 	// TODO: when do we use this now?
-	// Subclasses can override this to ignore items that accepted the
-	// stimulus, but can turn out to be uninteresting after all.
-	function BlessItem(itemToBless)
+	// Subclasses can override this to define how items can become temporarily
+	// interesting or ininteresting. As opposed to a more permanent, one-time veto.
+	function BlessItem()
 	{
+		// TODO: default bless implementation (ignore non-physical, maybe)
 		return true;
 	}
 	
@@ -94,15 +91,44 @@ class J4FRadarAbstractTarget extends SqRootScript
 		// We use our item ID to help stagger startup times when there
 		// are a lot of items in the level. We could generate a random
 		// delay, but that carries a CPU cost of its own.
-		SetOneShotTimer("J4FRadarTargetInit", ((self % 900) + 100) / 1000.0);
+		SetOneShotTimer("J4FRadarTargetReview", ((self % 900) + 100) / 1000.0);
+		
+		// We also need to regularly review our blessed status.
 	}
 	
 	function OnTimer()
 	{
-		if (message().name != "J4FRadarTargetInit")
+		if (message().name != "J4FRadarTargetReview")
 			return;
 		
-		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self, color);
+		local newBlessed = BlessItem();
+		
+		// If our blessing status changes, add or remove us from the list
+		// of targets to review and display.
+		if (isBlessed != newBlessed)
+		{
+			if (newBlessed)
+			{
+				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self, color);
+			}
+			else
+			{
+				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", self);
+			}
+			
+			isBlessed = newBlessed;
+		}
+		
+		// Periodically review our blessing status.
+		SetOneShotTimer("J4FRadarTargetReview", 0.25);
+	}
+	
+	// Because item IDs can be reused, we need to be sure a destroyed
+	// item is removed from the list. Otherwise, we could treat some
+	// random arrow or blood splatter as a point of interest.
+	function OnDestroy()
+	{
+		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", self);
 	}
 }
 
@@ -207,6 +233,20 @@ class J4FRadarUi extends SqRootScript
 		{
 			// We sent the radar color indicator in "data2"
 			j4fRadarOverlayInstance.displayTargets[detectedId] <- message().data2;
+		}
+	}
+	
+	// Rather than have radar points of interest communicate directly
+	// with the overlay instance, we'll have them communicate with us.
+	function OnJ4FRadarDestroyed()
+	{
+		// We sent the point-of-interest item object ID in "data"
+		local destroyedId = message().data;
+		
+		// If the POI item is in the list, remove it.
+		if (destroyedId in j4fRadarOverlayInstance.displayTargets)
+		{
+			delete j4fRadarOverlayInstance.displayTargets[destroyedId];
 		}
 	}
 }
@@ -317,6 +357,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// then do the actual removing later.
 		local removeIds = [];
 		
+		// We'll use this for distance checking.
+		local cameraPos = Camera.GetPosition();
+		
 		foreach (targetId, displayColor in displayTargets)
 		{
 			// Well, WorldToScreen() looked promising, but it appears to pick a corner
@@ -340,9 +383,10 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			DarkOverlay.DrawLine(x2_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y1_ref.tointeger());
 			//*/
 			
-			// TODO: I guess we should do all the other checking as well, including
-			// whether to remove the item ID, whether to ignore it because it's not
-			// currently visible or in range, etc.
+			// Only include rendered items (presumably they're visible) and
+			// nearby items.
+			if (!Object.RenderedThisFrame(targetId) && (Object.Position(targetId) - cameraPos).Length() > MAX_DIST)
+				continue;
 			
 			local metadataForOverlay = J4FRadarPointOfInterest();
 			// Pick a point in the center of the object bounds.

@@ -7,9 +7,9 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 	}
 	
 	// Ignore empty containers.
-	function BlessItem(itemToBless)
+	function BlessItem()
 	{
 		// Bless if has at least one item inside.
-		return Link.GetOne("Contains", itemToBless) > 0;
+		return base.BlessItem() && (Link.GetOne("Contains", self) > 0);
 	}
 }
