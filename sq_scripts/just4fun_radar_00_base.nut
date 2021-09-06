@@ -363,6 +363,12 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// This is persisted elsewhere, on the marker object's script.
 	enabled = false;
 	
+	// This is used instead of log() functions to check for the power-
+	// of-twoness of a given value. Used in checking bitmap sizes.
+	powersOfTwo = {[1]=true,[2]=true,[4]=true,[8]=true,[16]=true,[32]=true,[64]=true};
+	// We may need this "constant" repeatedly, so grab it once.
+	logOfTwo = log(2);
+	
 	function Teardown()
 	{
 		enabled = false;
@@ -493,13 +499,28 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// desirable, but it's probably worth it just to separate out
 	// all this logic.
 	// Returns an int handle to the overlay, and updates poolUsedThisFrame.
-	function CreateOrUpdateOverlay(color, alpha, size, targetX, targetY)
+	function CreateOrUpdateOverlay(color, alpha, bitmapSize, targetX, targetY)
 	{
+		// The bitmaps can be whatever, but we'll flood the log file
+		// with "fatal" errors if the overlay's width or height is not
+		// a power of 2. So some bitmaps require overlays larger than
+		// the bitmap itself.
+		local overlaySize = bitmapSize;
+		
+		if (!(bitmapSize in powersOfTwo))
+		{
+			// We want to solve for 2^x=size, which is x = log(size) / log(2)
+			// We then ceil() that value to round up to a whole power of 2.
+			// Then grab an integer because floating point precision is
+			// nasty stuff in any language.
+			overlaySize = pow(2, ceil(log(bitmapSize) / logOfTwo).tointeger());
+		}
+		
 		// Subtracted from x/y coordinate to place the center of the
 		// bitmap on those coordinates, instead of the top-left corner.
-		local overlayOffset = (size / 2);
+		local overlayOffset = (overlaySize / 2);
 		
-		local bitmapName = "Radar" + color + size;
+		local bitmapName = "Radar" + color + bitmapSize;
 		
 		// We need to find or create an overlay to use for this item.
 		// Start by getting the array of overlays for this type. Create
@@ -566,31 +587,45 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				bitmaps[bitmapName] <- newBitmap;
 			}
 			
-			currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(targetX - overlayOffset, targetY - overlayOffset, alpha, newBitmap, true);
-			
-			// If we failed, best to abort now.
-			if (currentOverlay == -1)
-				return - 1;
+			// Power-of-2 bitmaps are easier, since we can turn them directly
+			// into an overlay.
+			if (bitmapSize == overlaySize)
+			{
+				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(targetX - overlayOffset, targetY - overlayOffset, alpha, newBitmap, true);
+				
+				// If we failed, best to abort now.
+				if (currentOverlay == -1)
+					return - 1;
+			}
+			else
+			{
+				// Otherwise, we need to round up to the nearest power of
+				// two, create an empty overlay, and draw the bitmap in its
+				// center by hand.
+				
+				currentOverlay = DarkOverlay.CreateTOverlayItem(targetX - overlayOffset, targetY - overlayOffset, overlaySize, overlaySize, alpha, true);
+				
+				// If we failed, best to abort now.
+				if (currentOverlay == -1)
+					return - 1;
+				
+				// We'll need this to center the bitmap inside the new overlay.
+				local upgradedOffset = (overlaySize - bitmapSize) / 2;
+				
+				if (DarkOverlay.BeginTOverlayUpdate(currentOverlay))
+				{
+					// These x/y coordinates are relative to the overlay itself.
+					// So 0,0 is the top-left corner of the overlay, no matter
+					// where we end up drawing it on the screen later.
+					DarkOverlay.DrawBitmap(newBitmap, upgradedOffset, upgradedOffset);
+				
+					// Tell the engine we're done drawing the overlay contents.
+					DarkOverlay.EndTOverlayUpdate();
+				}
+			}
 			
 			// If we succeeded, keep a reference to the new handle.
 			overlayArray.append(currentOverlay);
-			
-			// TODO: we'll get errors for bitmaps of non-power-of-2 sizes.
-			// in these cases, we should create an overlay item manually
-			// and draw the bitmap in its center
-			
-			// Because we used CreateTOverlayItemFromBitmap(), the
-			// contents of the overlay are taken care of for us.
-			// Otherwise, we'd want to do something like this:
-			/*
-			if (DarkOverlay.BeginTOverlayUpdate(currentOverlay))
-			{
-				// Do whatever drawing operations we need here.
-				
-				// Tell the engine we're done drawing the overlay contents.
-				DarkOverlay.EndTOverlayUpdate();
-			}
-			*/
 		}
 		
 		// Regardless of how we got here, we're using another overlay of
