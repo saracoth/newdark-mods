@@ -236,6 +236,8 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// If we're in a container (not in a pickpocket way, but a
 		// regular chest kind of way), our frob status is irrelevant.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
+			return true;
 		
 		// This property contains our frob flags, if any. We only
 		// care if those flags include interesting options.
