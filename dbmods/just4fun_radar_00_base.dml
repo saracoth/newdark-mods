@@ -226,3 +226,65 @@ CreateArch "MetaProperty" "J4FRadarEnabledPlayer"
 // metaproperty to prevent automatically giving the item to the player!
 
 +MetaProp "Garrett" "J4FRadarEnabledPlayer"
+
+/*
+================================================================================
+== Point of Interest Metaproperties ============================================
+================================================================================
+*/
+
+// This is nonfunctional on its own, but serves as a common parent type for all
+// metaproperties that mark an item as interesting.
+
+CreateArch "MetaProperty" "J4FRadarPointOfInterest"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarContainerPOI"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarContainerTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarDevicePOI"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarDeviceTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarEquipTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Once loot has been identified, we'll flag it with this metaproperty. That
+// will attach the desired script to the item and nullify the radar stim from
+// now on.
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarLootTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+++Receptron "J4FRadarLootPOI" "J4FRadarStim"
+{
+	Min None
+	Max None
+	
+	Target Me
+	Agent Source
+	
+	Effect "Abort"
+}

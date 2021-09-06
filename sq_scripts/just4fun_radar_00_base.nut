@@ -8,6 +8,7 @@
 // TODO: really, do we need all those extra .nut files? make it easier on users by moving those classes here instead
 //	heck, metaproperties as well, why not; just save the assigning of those properties for DML files
 //	plus, this work should help prepare me mentally for the revised container handling TODO
+// TODO: can we meaningfully modify archetypes and metaproperties during gameplay? maybe we can find and fill a script slot for IsLoot if one is open?
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -22,6 +23,13 @@ const MAX_POI_RENDERED = 32;
 
 // 1 (move) + 2 (script) + 128 (default)
 const INTERESTING_FROB_FLAGS = 131;
+
+// These correspond to the various RadarX64.png filenames.
+const COLOR_LOOT = "Y";
+const COLOR_EQUIP = "G";
+const COLOR_DEVICE = "P";
+const COLOR_CONTAINER = "B";
+const COLOR_CREATURE = "R";
 
 // This script goes on an inventory item the player can use to turn the
 // radar effect on and off.
@@ -56,13 +64,14 @@ class J4FRadarEchoReceiver extends SqRootScript
 		
 		// Rather than keep all the loot-specific logic in its own module,
 		// it's easier to keep it here. The loot module files are still
-		// required to enable these effects, because otherwise the POI
+		// required to enable these effects, because otherwise the enable
 		// metaproperty won't exist.
+		
 		local lootPointOfInterest = ObjID("J4FRadarLootPOI");
 		
 		if (
 			// The optional loot module is installed.
-			lootPointOfInterest < 0
+			ObjID("J4FRadarEnableLoot") < 0
 			// And it's a loot item.
 			&& Object.InheritsFrom(newPointOfInterest, "IsLoot")
 			// But it does not yet have the loot POI metaproperty.
@@ -187,6 +196,71 @@ class J4FRadarAbstractTarget extends SqRootScript
 	function OnDestroy()
 	{
 		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", self);
+	}
+}
+
+// This script goes on the equipment of interest.
+class J4FRadarContainerTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		color = COLOR_CONTAINER;
+	}
+	
+	// Ignore empty containers.
+	function BlessItem()
+	{
+		// Bless if has at least one item inside.
+		// Also require IsPickup() to be sure we can try to open it.
+		return base.BlessItem() && (Link.GetOne("Contains", self) > 0) && IsPickup() && IsRendered();
+	}
+}
+
+// This script goes on the equipment of interest.
+class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		color = COLOR_DEVICE;
+	}
+	
+	// Ignore invisible devices, which are sometimes used by
+	// mission authors to trigger scripted events. Note that
+	// we don't check IsPickup(), because that would prevent
+	// pressure plates from being indicated.
+	function BlessItem()
+	{
+		return base.BlessItem() && IsRendered();
+	}
+}
+
+// This script goes on the equipment of interest.
+class J4FRadarEquipTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		color = COLOR_EQUIP;
+	}
+	
+	// Ignore decorative/etc. equipment we can't pick up.
+	function BlessItem()
+	{
+		return base.BlessItem() && IsPickup() && IsRendered();
+	}
+}
+
+// This script goes on the loot of interest.
+class J4FRadarLootTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		color = COLOR_LOOT;
+	}
+	
+	// Ignore decorative/etc. "loot" we can't pick up.
+	function BlessItem()
+	{
+		return base.BlessItem() && IsPickup() && IsRendered();
 	}
 }
 

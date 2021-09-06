@@ -12,6 +12,20 @@ FINGERPRINT
 
 /*
 ================================================================================
+== Enable Dynamic Features =====================================================
+================================================================================
+*/
+
+// This is a nonfunctional metaproperty we don't even assign to anything. We
+// instead use its existence to control certain behaviors in the .nut files. In
+// theory we could use custom values in config files and Engine.ConfigGetRaw()
+// as well, but I'm trying to stick with the "just drop the files in place"
+// approach, rather than instructing people to edit config files by hand.
+
+CreateArch "MetaProperty" "J4FRadarEnableLoot"
+
+/*
+================================================================================
 == IsLoot Handling =============================================================
 ================================================================================
 */
@@ -40,34 +54,4 @@ FINGERPRINT
 		"Multiply By" 0.00
 		"Then Add" -1.00
 	}
-}
-
-/*
-================================================================================
-== Identified Loot =============================================================
-================================================================================
-*/
-
-// Once loot has been identified, we'll flag it with this metaproperty. That
-// will attach the desired script to the item and nullify the radar stim from
-// now on.
-
-CreateArch "MetaProperty" "J4FRadarLootPOI"
-{
-	+ObjProp "Scripts"
-	{
-		"Script 0" "J4FRadarLootTarget"
-		"Don't Inherit" FALSE
-	}
-}
-
-++Receptron "J4FRadarLootPOI" "J4FRadarStim"
-{
-	Min None
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	Effect "Abort"
 }
