@@ -4,8 +4,12 @@
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
+// NOTE: This also helps with various limitations. I've seen, for example,
+// that in some busy missions, we seem to run out of overlays before we
+// can render stuff like loot. This seems irrelevant to how many overlays
+// are rendered on screen at the moment, and likely has to do with a max
+// number of created overlay handles.
 // TODO: configurable?
-// TODO: reasonable default
 const MAX_DIST = 150;
 
 // 1 (move) + 2 (script) + 128 (default)
@@ -513,6 +517,11 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		{
 			resizeNeeded = false;
 			
+			// TODO: I don't like losing the sense of scale/distance.
+			// can we choose from a variety of sizes? if we do, how
+			// does that change our tracking? I guess instead of
+			// color, the keys will have to be full filenames
+			
 			// Let's aim for 5% of the screen height. We have images
 			// available in multiples of: 8, 16, 24, 32, etc. up to 64.
 			// To get 5%, we divide by 20. From there, we want to round
@@ -644,6 +653,10 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(x - overlayOffset, y - overlayOffset, currentAlpha, newBitmap, true);
 				overlayArray.append(currentOverlay);
 				
+				// TODO: we'll get errors for bitmaps of non-power-of-2 sizes.
+				// in these cases, we should create an overlay item manually
+				// and draw the bitmap in its center
+				
 				// Because we used CreateTOverlayItemFromBitmap(), the
 				// contents of the overlay are taken care of for us.
 				// Otherwise, we'd want to do something like this:
@@ -666,6 +679,10 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// we need to instruct it to draw the overlay itself this frame.
 			DarkOverlay.DrawTOverlayItem(currentOverlay);
 		}
+		
+		// TODO: compare to overlayPool to poolUsed (remember that we may
+		// have no poolUsed record for completely unused pool arrays) and
+		// destroy unneeded stuff
 	}
 }
 
