@@ -464,6 +464,11 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			metadataForOverlay.y = (y1_ref.tointeger() + y2_ref.tointeger()) / 2;
 			metadataForOverlay.displayColor = displayColor;
 			metadataForOverlay.distance = targetDistance;
+			// TODO: we're calculating distance for everything now anyway,
+			// so should we sort this array by distance? that way, we can
+			// enforce a max number of radar overlays smaller than 64, to
+			// reduce the risk that this mod blows through that limit and
+			// breaks some other poor, sanely designed mod in the process
 			toDrawThisFrame.append(metadataForOverlay);
 		}
 		
@@ -477,23 +482,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			delete displayTargets[removeIds[i]];
 		}
     }
-	
-	// In some circumstances, we want to gracefully destroy all
-	// overlay objects.
-	function DeleteOverlays()
-	{
-		foreach (key,overlays in overlayPool)
-		{
-			// Since the order doesn't matter, may as well loop through
-			// backwards. This is marginally more efficient, since we only
-			// have to grab the array length once, and we reference fewer
-			// variable values and more constant/literal values.
-			for (local i = overlays.len(); --i > -1; )
-			{
-				DarkOverlay.DestroyTOverlayItem(overlays[i]);
-			}
-		}
-	}
 	
 	// The extra overhead of calling another function may not be
 	// desirable, but it's probably worth it just to separate out
