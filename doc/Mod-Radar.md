@@ -17,10 +17,13 @@ Which items are detected, if any, depends on which of the optional extras you in
 **Optional loot detection**: Yellow indicators.
 * [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_lootdar.dml?raw=1)
 
-**Optional equipment detection (arrows, potions, keys, etc.)**: Green indicators.
+**Optional equipment detection (keys, arrows, potions, etc.)**: Green indicators.
 * [dbmods\just4fun_radar_10_equipdar.dml](../dbmods/just4fun_radar_10_equipdar.dml?raw=1)
 * [dbmods\just4fun_radar_11_T1_equip.dml](../dbmods/just4fun_radar_11_T1_equip.dml?raw=1)
 * [dbmods\just4fun_radar_11_T2_equip.dml](../dbmods/just4fun_radar_11_T2_equip.dml?raw=1)
+
+**Optional hostile creature detection (ignores rats, etc.)**: Red indicators.
+* [dbmods\just4fun_radar_10_creaturedar.dml](../dbmods/just4fun_radar_10_creaturedar.dml?raw=1)
 
 **Optional device detection (switches, pressure plates, etc.)**: Purple indicators.
 * [dbmods\just4fun_radar_10_devicedar.dml](../dbmods/just4fun_radar_10_devicedar.dml?raw=1)

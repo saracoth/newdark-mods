@@ -3,8 +3,6 @@
 // For example, for the IsLoot handling.
 
 // TODO: creature radar (what about hostile-only? pickpocketable only?), ignoring dead creatures
-//	how about we show pickpocketable items when either creatures or the item itself is enabled?
-//	how about we make a sub-mod for the pickpocketable feature?
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
 // TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
 //	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
@@ -40,12 +38,14 @@ const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
 const FEATURE_CONTAINER = "J4FRadarEnableContainer";
+const FEATURE_CREATURE = "J4FRadarEnableCreature";
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
 const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_LOOT = "J4FRadarLootPOI";
+const POI_CREATURE = "J4FRadarCreaturePOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_PROXY_FLAG = "J4FRadarProxied";
 const PROXY_ATTACH_METHOD = "PhysAttach";
@@ -345,6 +345,42 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	{
 		SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", self);
 	}
+}
+
+class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		color = COLOR_CREATURE;
+	}
+	
+	// Ignore frozen, dead, and nonhostile creatures.
+	function BlessItem()
+	{
+		if (!base.BlessItem() || !IsRendered())
+			return false;
+		
+		local target = PoiTarget();
+		
+		// Other states: Asleep, Efficient, Super Efficient, Normal, and Combat
+		if (Property.Get(target, "AI_Mode") == eAIMode.kAIM_Dead)
+			return false;
+		
+		// Ignore nonhostiles. Of course, mission scripts and such can
+		// turn neutrals and allies into enemies, but this should help
+		// avoid drawing our attention to rats and such in Thief 2.
+		// TODO: what if people want to see neutrals? good? both? for the "scorched earth" completionists
+		switch (Property.Get(target, "AI_Team"))
+		{
+			case eAITeam.kAIT_Good:
+				// intentional fall-through
+			case eAITeam.kAIT_Neutral:
+				return false;
+		}
+		
+		return true;
+	}
+	
 }
 
 // Various things only matter if we can pick them up (or they're in
