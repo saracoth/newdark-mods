@@ -317,6 +317,7 @@ class J4FRadarPointOfInterest
 	x = 0;
 	y = 0;
 	displayColor = "W";
+	distance = 0;
 }
 
 // This is the actual overlay handler, following along with both squirrel
@@ -343,7 +344,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// safe to lose track of on save/load, and we don't try to persist them.
 	canvasWidth = 0;
 	canvasHeight = 0;
-	resizeNeeded = false;
 	useBitmapSize = 0;
 	// Filename keys, bitmap handle values.
 	bitmaps = {};
@@ -395,13 +395,11 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		if (newCanvasWidth != canvasWidth)
 		{
 			canvasWidth = newCanvasWidth;
-			resizeNeeded = true;
 		}
 		
 		if (newCanvasHeight != canvasHeight)
 		{
 			canvasHeight = newCanvasHeight;
-			resizeNeeded = true;
 		}
 	}
 	
@@ -456,7 +454,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			
 			// Only include rendered items (presumably they're visible) and
 			// nearby items.
-			if (!Object.RenderedThisFrame(targetId) && (Object.Position(targetId) - cameraPos).Length() > MAX_DIST)
+			local targetDistance = (Object.Position(targetId) - cameraPos).Length();
+			if (!Object.RenderedThisFrame(targetId) && targetDistance > MAX_DIST)
 				continue;
 			
 			local metadataForOverlay = J4FRadarPointOfInterest();
@@ -464,6 +463,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			metadataForOverlay.x = (x1_ref.tointeger() + x2_ref.tointeger()) / 2;
 			metadataForOverlay.y = (y1_ref.tointeger() + y2_ref.tointeger()) / 2;
 			metadataForOverlay.displayColor = displayColor;
+			metadataForOverlay.distance = targetDistance;
 			toDrawThisFrame.append(metadataForOverlay);
 		}
 		
@@ -643,6 +643,62 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		return currentOverlay;
 	}
 	
+	// This function tries to pick a bitmap size that will fill
+	// X% of the screen height. However, it will round to the
+	// available bitmap sizes (multiples of 8, from 8 to 64).
+	function GetTargetBitmapSizeFromScreenPercent(forScreenPercent)
+	{
+		// Let's aim for X% of the screen height. We have images
+		// available in multiples of: 8, 16, 24, 32, etc. up to 64.
+		// After applying forScreenPercent, we want to round
+		// so that 13-20 are 16, 21-28 is 24, etc. Ignoring the
+		// round to 0 possibility for a moment, this scale starts
+		// at 5-12 becoming 8. Subtracting 5, that scale becomes
+		// 0-7, 8-15, etc. That allows us to divide by 8, floor()
+		// the result, add 1, then multiply by 8 again. Or to make
+		// things a little simpler, instead of subtracting 5, we
+		// can add 3. That saves the "add 1" step above.
+		// tl;dr This math picks a multiple of 8 nearest 5% of the
+		// screen height.
+		// We then cap to a min of 8 and max of 64.
+		local r = floor(((canvasHeight * forScreenPercent) + 3) / 8).tointeger() * 8;
+		if (r < 8)
+		{
+			return 8;
+		}
+		else if (r > 64)
+		{
+			return 64;
+		}
+		return r;
+	}
+	
+	// This function tries to pick a bitmap size based on the
+	// range of available bitmap sizes (multiples of 8, from 8 to 64).
+	// So 100% will return 64, 0% will return 8, 50% is around 32, etc.
+	function GetTargetBitmapSizeFromRangePercent(forRangePercent)
+	{
+		// Start by getting a target pixel value. We then round
+		// so that 13-20 are 16, 21-28 is 24, etc. Ignoring the
+		// round to 0 possibility for a moment, this scale starts
+		// at 5-12 becoming 8. Subtracting 5, that scale becomes
+		// 0-7, 8-15, etc. That allows us to divide by 8, floor()
+		// the result, add 1, then multiply by 8 again. Or to make
+		// things a little simpler, instead of subtracting 5, we
+		// can add 3. That saves the "add 1" step above.
+		// We then cap to a min of 8 and max of 64.
+		local r = floor(((64 * forRangePercent) + 3) / 8).tointeger() * 8;
+		if (r < 8)
+		{
+			return 8;
+		}
+		else if (r > 64)
+		{
+			return 64;
+		}
+		return r;
+	}
+	
 	// DrawTOverlay implements an IDarkOverlayHandler method.
 	//
 	// Our best option seems to be creating a separate overlay for each
@@ -683,55 +739,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// just an integer counter.
 		poolUsedThisFrame = {};
 		
-		// Different screen resolutions (and canvas sizes) are suited
-		// to different image sizes. If this changes, we should replace
-		// the previous overlays with new ones of an appropriate size.
-		// To do this, we just discard what we have, and let the logic
-		// below create new ones if needed.
-		if (resizeNeeded)
-		{
-			resizeNeeded = false;
-			
-			// TODO: I don't like losing the sense of scale/distance.
-			// can we choose from a variety of sizes? if we do, how
-			// does that change our tracking? I guess instead of
-			// color, the keys will have to be full filenames
-			
-			// Let's aim for 5% of the screen height. We have images
-			// available in multiples of: 8, 16, 24, 32, etc. up to 64.
-			// To get 5%, we divide by 20. From there, we want to round
-			// so that 13-20 are 16, 21-28 is 24, etc. Ignoring the
-			// round to 0 possibility for a moment, this scale starts
-			// at 5-12 becoming 8. Subtracting 5, that scale becomes
-			// 0-7, 8-15, etc. That allows us to divide by 8, floor()
-			// the result, add 1, then multiply by 8 again. Or to make
-			// things a little simpler, instead of subtracting 5, we
-			// can add 3. That saves the "add 1" step above.
-			// tl;dr This math picks a multiple of 8 nearest 5% of the
-			// screen height.
-			// We then cap to a min of 8 and max of 64.
-			local newBitmapSize = floor(((canvasHeight / 20) + 3) / 8).tointeger() * 8;
-			if (newBitmapSize < 8)
-			{
-				newBitmapSize = 8;
-			}
-			else if (newBitmapSize > 64)
-			{
-				newBitmapSize = 64;
-			}
-			
-			// Check to see if it's actually any different. Not every
-			// resizeNeeded will yield different target bitmap size.
-			if (newBitmapSize != useBitmapSize)
-			{
-				// Remember the value for future use.
-				useBitmapSize = newBitmapSize;
-				
-				// And clear all existing overlays, if any.
-				DeleteOverlays();
-			}
-		}
-		
 		// We'll do a complete alpha cycle in 120 frames. If and only
 		// if running at 60fps will that take 2 seconds.
 		// TODO: is there a function we can use to track time instead?
@@ -760,6 +767,27 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		for (local i = toDrawThisFrame.len(); --i > -1; )
 		{
 			local drawMetadata = toDrawThisFrame[i];
+			
+			// Consider the following. If an object takes up 50% of the screen
+			// height at distance X, it takes up 25% at distance 2X, and only
+			// 1/8th the screen at distance 4X. That's an inverse linear
+			// relationship. It also means that if we follow that for
+			// determining our desired screen %, most of the bitmap sizes will
+			// be completely wasted. For example, staying at 8px until you
+			// get within 10', then rapidly swelling through the other seven
+			// sizes as you close that meager distance.
+			// Example: 50% of screen size at a distance of 1 unit
+			//	local useBitmapSize = GetTargetBitmapSizeFromScreenPercent(0.5 / drawMetadata.distance);
+			//
+			// The upside is that this is what feels most natural to us, and
+			// has the simplest math. We could possibly do something different
+			// to spread each bitmap size over various ranges. For example, if
+			// our max distance were 128, each bitmap size would correspond to
+			// a range of 16 units. But translated into screen size %, that's
+			// basically saying we want 0-7 to be X, 8-15 to be 0.875X, 16-23
+			// to be 0.75X, 24-31 to be 0.625X, and so on. This is also a linear
+			// relationship, where the multiplier to X is (1 - distance/max_distance).
+			local useBitmapSize = GetTargetBitmapSizeFromRangePercent(1 - (drawMetadata.distance / MAX_DIST));
 			
 			// Our method will make sure the X/Y/alpha/etc. is all sorted
 			// out for us.
