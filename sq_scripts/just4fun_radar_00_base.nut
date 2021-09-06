@@ -5,6 +5,8 @@
 // TODO: creature radar (what about hostile-only? pickpocketable only?)
 // TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
+// TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
+//	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -16,6 +18,8 @@ const MAX_DIST = 150;
 // ourselves at a smaller value. After all, we don't want to hog all
 // 64 and not leave any for other, more sanely-written mods!
 const MAX_POI_RENDERED = 32;
+const MAX_SCANNED_PER_LOOP = 100;
+const MAX_EMPTY_SCAN_GROUPS = 3;
 
 // 1 (move) + 2 (script) + 128 (default)
 const INTERESTING_FROB_FLAGS = 131;
@@ -367,6 +371,7 @@ class J4FRadarChildLootDetector extends J4FRadarUtilities
 		local myInventory = Link.GetAll("Contains", self);
 		
 		local genericPoi = ObjID(POI_GENERIC);
+		local lootEnabled = ObjID(FEATURE_LOOT) < 0;
 		local lootMetaProperty = ObjID("IsLoot");
 		local lootPoiProperty = ObjID(POI_LOOT);
 		
@@ -375,7 +380,7 @@ class J4FRadarChildLootDetector extends J4FRadarUtilities
 			local invItem = LinkDest(link);
 			if (
 				// The optional loot module is installed.
-				ObjID(FEATURE_LOOT) < 0
+				lootEnabled
 				// And it's a loot item.
 				&& Object.InheritsFrom(invItem, lootMetaProperty)
 				// But it does not yet have the loot POI metaproperty.
@@ -387,8 +392,7 @@ class J4FRadarChildLootDetector extends J4FRadarUtilities
 			
 			// If needed, create a proxy item to represent the target for
 			// radar system purposes.
-			// TODO: testing
-			//SetupProxyIfNeeded(invItem);
+			SetupProxyIfNeeded(invItem);
 		}
 	}
 }
@@ -443,7 +447,7 @@ class J4FGiveRadarItem extends SqRootScript
 // This script goes on the marker we add to every mission. It sets up and
 // tears down the overlay handler. We also use it to pass along messages
 // to the overlay handler, including persisted data with SetData()/GetData()
-class J4FRadarUi extends SqRootScript
+class J4FRadarUi extends J4FRadarUtilities
 {
 	// A destructor function that removes the handler is a best practice
 	// recommended by the sample overlay code that comes with NewDark.
@@ -483,6 +487,101 @@ class J4FRadarUi extends SqRootScript
 		// the handler, all that code was moved to the destructor, which
 		// we can call by hand.
 		destructor();
+	}
+	
+	// Some items are stubbornly difficult to detect. In addition to
+	// flagging certain things with metaproperties, some require proxy
+	// objects because we still can't safely add scripts to them. And
+	// all sorts of IsLoot items are unsafe to script directly. So to
+	// help detect all items in the level, even at a distance, we'll
+	// loop through every object in the game world. Sort of. For now,
+	// we'll initialize the looping process. We only need this to
+	// happen once, when the mission starts.
+    function OnSim()
+	{
+        if (message().starting)
+		{
+			// Start with objects 1 through whatever.
+			SetData("AddToScanId", 1);
+			SetData("ConsecutiveEmptyGroups", 0);
+			
+			SetOneShotTimer("J4FRadarMissionScan", 0.01);
+        }
+    }
+	
+	// So the thing is, we don't know how many objects are in the
+	// mission. We know they have numeric IDs, generally starting
+	// from about 1 or so, and they count up from there. However,
+	// gaps are possible if items are ever deleted. So we'll loop
+	// through until we find enough "missing" items to feel like
+	// we've found everything we're ever going to find.
+	function OnTimer()
+	{
+		if (message().name != "J4FRadarMissionScan")
+			return;
+		
+		// We will scan objects down to and including this value.
+		local scanFromInclusive = GetData("AddToScanId");
+		// We will scan objects up to and excluding this value.
+		local scanCapExclusive = scanFromInclusive + MAX_SCANNED_PER_LOOP;
+		SetData("AddToScanId", scanCapExclusive);
+		local consecutiveEmptyGroups = GetData("ConsecutiveEmptyGroups");
+		local scannedAny = false;
+		
+		// We need these IDs several times throughout the loop, so
+		// let's grab them once instead.
+		local lootEnabled = ObjID(FEATURE_LOOT) < 0;
+		local lootMetaProperty = ObjID("IsLoot");
+		local lootPoiProperty = ObjID(POI_LOOT);
+		
+		// Loop through all the item IDs we're going to test this time.
+		for (local i = scanFromInclusive - 1; ++i < scanCapExclusive; )
+		{
+			if (Object.Exists(i))
+			{
+				scannedAny = true;
+				
+				// IsLoot items are hard to target directly, because
+				// we can never safely script them nor add a metaproperty,
+				// because IsLoot *is* a metaproperty.
+				if (
+					// The optional loot module is installed.
+					lootEnabled
+					// And it's a loot item.
+					&& Object.InheritsFrom(i, lootMetaProperty)
+					// But it does not yet have the loot POI metaproperty.
+					&& !Object.InheritsFrom(i, lootPoiProperty)
+				)
+				{
+					Object.AddMetaProperty(i, lootPoiProperty);
+				}
+				
+				SetupProxyIfNeeded(i);
+			}
+		}
+		
+		// Track how many consecutive scan groups came up empty and,
+		// if needed, halt scanning.
+		if (!scannedAny)
+		{
+			// Increment and test consecutiveEmptyGroups.
+			if (++consecutiveEmptyGroups > MAX_EMPTY_SCAN_GROUPS)
+			{
+				// We're done! Break the loop.
+				return;
+			}
+			
+			SetData("ConsecutiveEmptyGroups", consecutiveEmptyGroups);
+		}
+		else if (consecutiveEmptyGroups > 0)
+		{
+			// Back to a clean slate.
+			SetData("ConsecutiveEmptyGroups", 0);
+		}
+		
+		// Repeat! We're staggering the scans over time to avoid a
+		// huge lag spike at the beginning of large levels.
+		SetOneShotTimer("J4FRadarMissionScan", 0.1);
 	}
 	
 	// Rather than have radar points of interest communicate directly
