@@ -322,7 +322,7 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
 // below can be attached to items linked to loot in various ways, allowing them
 // to flag the loot that way.
 
-CreateArch "MetaProperty" "J4FRadarLootLinkChecker"
+CreateArch "MetaProperty" "J4FRadarContentLinkChecker"
 {
 	+ObjProp "Scripts"
 	{
@@ -330,6 +330,9 @@ CreateArch "MetaProperty" "J4FRadarLootLinkChecker"
 		"Don't Inherit" FALSE
 	}
 }
+
++MetaProp "Creature" "J4FRadarContentLinkChecker"
++MetaProp "Container" "J4FRadarContentLinkChecker"
 
 /*
 ================================================================================

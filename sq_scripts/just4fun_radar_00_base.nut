@@ -76,6 +76,8 @@ class J4FRadarUtilities extends SqRootScript
 		)
 		{
 			// Flag the target item as having been proxied.
+			// TODO:
+			print(format("Add: Proxied flag for %s %i", Object.GetName(Object.Archetype(forItem)), forItem));
 			Object.AddMetaProperty(forItem, POI_PROXY_FLAG);
 		
 			// Create a new proxy marker on top of the item it is proxying.
@@ -91,6 +93,8 @@ class J4FRadarUtilities extends SqRootScript
 			// cause issues, given the way we implemented things.
 			if (Object.InheritsFrom(forItem, POI_ANY) && !Object.InheritsFrom(proxyMarker, POI_ANY))
 			{
+				// TODO:
+				print(format("Add: POI to proxy from %s %i", Object.GetName(Object.Archetype(forItem)), forItem));
 				if (Object.InheritsFrom(forItem, POI_LOOT))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_LOOT);
@@ -125,6 +129,12 @@ class J4FRadarUtilities extends SqRootScript
 // radar effect on and off.
 class J4FRadarToggler extends SqRootScript
 {
+	
+	// TODO:
+	function OnBeginScript()
+	{
+		print(format("Begin toggler %s %i", Object.GetName(Object.Archetype(self)), self));
+	}
 	function OnFrobInvEnd()
 	{
 		local newState = SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarToggle", self);
@@ -141,6 +151,12 @@ class J4FRadarToggler extends SqRootScript
 
 class J4FRadarEchoReceiver extends J4FRadarUtilities
 {
+	
+	// TODO:
+	function OnBeginScript()
+	{
+		print(format("Begin receiver %s %i", Object.GetName(Object.Archetype(self)), self));
+	}
 	// Most items of interest don't need this, and will instead directly
 	// register themselves with the radar system. Other items are trickier,
 	// and rely on the radius stim bursts to detect them as we draw near.
@@ -166,6 +182,8 @@ class J4FRadarEchoReceiver extends J4FRadarUtilities
 			&& !Object.InheritsFrom(newPointOfInterest, POI_ANY)
 		)
 		{
+			// TODO:
+			print(format("Add: loot POI via echo to %s %i", Object.GetName(Object.Archetype(newPointOfInterest)), newPointOfInterest));
 			Object.AddMetaProperty(newPointOfInterest, POI_LOOT);
 		}
 		
@@ -320,18 +338,38 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			}
 		}
 		
+		// Some types of containment make us invisible. Note that we
+		// also checked IsInOpenableContainer() above, which means
+		// it's okay if we're in a chest or something. This is to
+		// hide us when we can't be rendered because we're inside
+		// some other container, like a creature.
+		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		// Are we contained by something in a way that prevent us from rendering?
+		if (
+			// We are contained.
+			linkToMyContainer != 0
+			// In a non-visible way. (Negative values are for visible
+			// contents, like on a creature's belt.)
+			&& LinkTools.LinkGetData(linkToMyContainer, "") >= 0
+		)
+		{
+			return false;
+		}
+		
 		// I dunno, I guess it's rendered. I suppose we also need things
-		// like a model and to not be contained inside something.
+		// like a model and whatever.
 		return true;
 	}
 	
 	// This will fire on mission start and on reloading a save.
 	function OnBeginScript()
 	{
-		// Default to false, because we'll have cleared out the overlay
-		// data at this point as well. If we become blessed, we need to
-		// add ourselves back in.
-		SetData("J4FRadarLastBless", false);
+		// TODO:
+		print(format("Begin POI %s %i", Object.GetName(Object.Archetype(self)), self));
+		
+		// Default to unknown on a reload. Mostly so that we can be
+		// sure to add or remove us from the overlay.
+		ClearData("J4FRadarLastBless");
 		
 		// Depending on which order objects are set up, things like the
 		// overlay marker may not be ready yet. We'll add a slight
@@ -348,15 +386,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			return;
 		
 		local newBlessed = BlessItem();
-		local wasBlessed = GetData("J4FRadarLastBless");
 		
 		// If our blessing status changes, add or remove us from the list
 		// of targets to review and display.
-		if (wasBlessed != newBlessed)
+		if (!IsDataSet("J4FRadarLastBless") || (GetData("J4FRadarLastBless") != newBlessed))
 		{
-			// TODO:
-			print(format("Blessing: %s %i now %s", Object.GetName(Object.Archetype(PoiTarget())), PoiTarget(), newBlessed.tostring()));
-			
 			if (newBlessed)
 			{
 				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, DisplayTarget(), GetData("J4FRadarColor"));
@@ -367,11 +401,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			}
 			
 			SetData("J4FRadarLastBless", newBlessed);
-		}
-		else
-		{
-			// TODO:
-			print(format("Blessing: %s %i still %s", Object.GetName(Object.Archetype(PoiTarget())), PoiTarget(), newBlessed.tostring()));
 		}
 		
 		// Periodically review our blessing status.
@@ -523,6 +552,9 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 {
 	function OnBeginScript()
 	{
+		// TODO:
+		print(format("Begin child %s %i", Object.GetName(Object.Archetype(self)), self));
+		
 		local myInventory = Link.GetAll("Contains", self);
 		
 		local anyKindOfPoi = ObjID(POI_ANY);
@@ -538,34 +570,37 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 			
 			// Check to see if we need to add metaproperties directly
 			// to the contained item.
-			if (
-				// The optional loot module is installed.
-				lootEnabled
-				// And it's a loot item.
-				&& Object.InheritsFrom(invItem, lootMetaProperty)
-				// But it does not yet have any POI metaproperty.
-				&& !Object.InheritsFrom(invItem, anyKindOfPoi)
-			)
+			if (!Object.InheritsFrom(invItem, anyKindOfPoi))
 			{
-				Object.AddMetaProperty(invItem, lootPoiProperty);
-			}
-			else if (
-				// The optional pickpocket module is installed.
-				pickPocketEnabled
-				// And it does not yet have any POI metaproperty.
-				&& !Object.InheritsFrom(invItem, anyKindOfPoi)
-				// But it's on the creature's belt or alternate slot.
-				// Those are what the game uses to track the pockets
-				// picked for the end-of-mission stats.
-				&& (
-					// Belt
-					LinkTools.LinkGetData(link, "") == -1
-					// Alternate (quiver arrows, etc.)
-					|| LinkTools.LinkGetData(link, "") == -3
+				if (
+					// The optional loot module is installed.
+					lootEnabled
+					// And it's a loot item.
+					&& Object.InheritsFrom(invItem, lootMetaProperty)
 				)
-			)
-			{
-				Object.AddMetaProperty(invItem, fallbackPoi);
+				{
+					// TODO:
+					print(format("Add: loot POI via container to %s %i", Object.GetName(Object.Archetype(invItem)), invItem));
+					Object.AddMetaProperty(invItem, lootPoiProperty);
+				}
+				else if (
+					// The optional pickpocket module is installed.
+					pickPocketEnabled
+					// And it's on the creature's belt or alternate slot.
+					// Those are what the game uses to track the pockets
+					// picked for the end-of-mission stats.
+					&& (
+						// Belt
+						LinkTools.LinkGetData(link, "") == -1
+						// Alternate (quiver arrows, etc.)
+						|| LinkTools.LinkGetData(link, "") == -3
+					)
+				)
+				{
+					// TODO:
+					print(format("Add: generic POI via container to %s %i", Object.GetName(Object.Archetype(invItem)), invItem));
+					Object.AddMetaProperty(invItem, fallbackPoi);
+				}
 			}
 			
 			// If needed, create a proxy item to represent the target for
@@ -578,6 +613,12 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 // This script will be called on the player when the game starts, giving them the radar item.
 class J4FGiveRadarItem extends SqRootScript
 {
+	
+	// TODO:
+	function OnBeginScript()
+	{
+		print(format("Begin giver %s %i", Object.GetName(Object.Archetype(self)), self));
+	}
 	// We only need this script to fire once, when the game simulation first starts.
     function OnSim()
 	{
@@ -646,6 +687,9 @@ class J4FRadarUi extends J4FRadarUtilities
 
 	function OnBeginScript()
 	{
+		// TODO:
+		print(format("Begin UI marker %s %i", Object.GetName(Object.Archetype(self)), self));
+		
 		// Call our custom setup method, to do whatever we need to do
 		// when preparing the overlay in a new mission, after loading
 		// a save, or when re-loading a save or moving to next mission.
@@ -732,6 +776,8 @@ class J4FRadarUi extends J4FRadarUtilities
 					&& !Object.InheritsFrom(i, anyKindOfPoi)
 				)
 				{
+					// TODO:
+					print(format("Add: loot POI via scan to %s %i", Object.GetName(Object.Archetype(i)), i));
 					Object.AddMetaProperty(i, lootPoiProperty);
 				}
 				
@@ -770,9 +816,6 @@ class J4FRadarUi extends J4FRadarUtilities
 		// We sent the point-of-interest item object ID in "data"
 		local detectedId = message().data;
 		
-		// TODO:
-		print(format("Adding POI %s %i", Object.GetName(Object.Archetype(detectedId)), detectedId));
-		
 		// If the POI item is not already in the list, put it there.
 		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
 		{
@@ -792,9 +835,6 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
 		// We sent the point-of-interest item object ID in "data"
 		local destroyedId = message().data;
-		
-		// TODO:
-		print(format("Removing POI %s %i", Object.GetName(Object.Archetype(destroyedId)), destroyedId));
 		
 		// If the POI item is in the list, remove it.
 		if (destroyedId in j4fRadarOverlayInstance.displayTargets)

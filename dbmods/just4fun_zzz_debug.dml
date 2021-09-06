@@ -25,3 +25,6 @@ CreateArch "MetaProperty" "J4FDebugMe"
 }
 
 // Assign the new metaproperty to whatever we want to take a closer look at.
+// +MetaProp "_______________" "J4FDebugMe"
++MetaProp "broadhead" "J4FDebugMe"
++MetaProp "Garrett" "J4FDebugMe"
