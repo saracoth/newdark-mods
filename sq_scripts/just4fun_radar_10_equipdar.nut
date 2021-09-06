@@ -9,6 +9,6 @@ class J4FRadarEquipTarget extends J4FRadarAbstractTarget
 	// Ignore decorative/etc. equipment we can't pick up.
 	function BlessItem()
 	{
-		return base.BlessItem() && IsPickup();
+		return base.BlessItem() && IsPickup() && IsRendered();
 	}
 }

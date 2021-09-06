@@ -1,12 +1,6 @@
-/*
-TODO: What remains to make this branch feature complete?
-* Figure out new detection method. Maybe we ditch the radar item and stims,
-	or maybe the radar item just turns the HUD on and off.
--		Requires a way to ignore non-physical items. Anything that our
-		radius stim wouldn't have affected in the first place. Ideally,
-		we do this after performance testing, for sake of worst-case
-		testing.
-*/
+// NOTE: this script is mostly isolated from the optional modules, but there
+// may be some cases where it's easier to write code here to support them.
+// For example, for the IsLoot handling.
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -83,8 +77,6 @@ class J4FRadarAbstractTarget extends SqRootScript
 		if (Link.GetOne("Contains", 0, self) != 0)
 			return false;
 		
-		// TODO: ignore non-rendered things?
-		
 		return true;
 	}
 	
@@ -95,6 +87,37 @@ class J4FRadarAbstractTarget extends SqRootScript
 		// This property contains our frob flags, if any. We only
 		// care if those flags include interesting options.
 		return (Property.Get(self, "FrobInfo", "World Action") & INTERESTING_FROB_FLAGS) > 0;
+	}
+	
+	// NOTE: This is not a truly reliable check for whether a given object
+	// can be rendered. Instead, it just checks for certain things that
+	// are known to prevent rendering. There are others, like being
+	// contained inside a different object, not having a model, or
+	// having a model which is effectively empty.
+	function IsRendered()
+	{
+		// We'll assume invisible render statuses are irrelevant.
+		if (Property.Possessed(self, "INVISIBLE") && Property.Get(self, "INVISIBLE"))
+			return false;
+		
+		// Likewise ignore things with unusual, undesirable render types.
+		// These include type 1 (not at all) and 3 (editor only).
+		if (Property.Possessed(self, "RenderType"))
+		{
+			switch (Property.Get(self, "RenderType"))
+			{
+				// not-at-all
+				case 1:
+					// intentional fall-through to next case statement
+				// editor-only
+				case 3:
+					return false;
+			}
+		}
+		
+		// I dunno, I guess it's rendered. I suppose we also need things
+		// like a model and to not be contained inside something.
+		return true;
 	}
 	
 	// This will fire on mission start and on reloading a save.
@@ -277,7 +300,6 @@ class J4FRadarPointOfInterest
 	displayColor = "W";
 }
 
-// TODO: document class and its contents
 // This is the actual overlay handler, following along with both squirrel
 // documentation and things like T2OverlaySample.nut. Rather than a generic
 // list of elements, we use a variable-sized pool of elements we manage on
@@ -309,7 +331,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// overlay. For example, "W" for white, "Y" for yellow, etc. The keys are
 	// arrays of overlay handles created with DarkOverlay.CreateTOverlayItem()
 	// or DarkOverlay.CreateTOverlayItemFromBitmap()
-	// TODO: do we need to manually clean this up ourselves on Teardown/etc.?
 	overlayPool = {};
 	// Contains a list of points of interest to render on the current frame.
 	// See comments in DrawHUD() for an explanation of why we need to feed

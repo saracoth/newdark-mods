@@ -10,6 +10,6 @@ class J4FRadarLootTarget extends J4FRadarAbstractTarget
 	// Ignore decorative/etc. "loot" we can't pick up.
 	function BlessItem()
 	{
-		return base.BlessItem() && IsPickup();
+		return base.BlessItem() && IsPickup() && IsRendered();
 	}
 }
