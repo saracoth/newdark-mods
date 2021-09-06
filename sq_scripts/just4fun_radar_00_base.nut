@@ -40,6 +40,49 @@ const COLOR_DEVICE = "P";
 const COLOR_CONTAINER = "B";
 const COLOR_CREATURE = "R";
 
+// Various class, metaproperty, and object name strings.
+const POI_GENERIC = "J4FRadarPointOfInterest";
+const POI_CONTAINER = "J4FRadarContainerPOI";
+const POI_DEVICE = "J4FRadarDevicePOI";
+const POI_EQUIP = "J4FRadarEquipPOI";
+const POI_LOOT = "J4FRadarLootPOI";
+const POI_PROXY_MARKER = "J4FRadarProxyPOI";
+const POI_PROXY_FLAG = "J4FRadarProxied";
+const PROXY_ATTACH_METHOD = "PhysAttach";
+
+// Between the lack of a true static/utility method class concept
+// in squirrel and to avoid questions about when we do or don't
+// have access to API-reference_services.txt stuff, we're using
+// this superclass for any of our scripts that might benefit from
+// these utility methods.
+class J4FRadarUtilities extends SqRootScript
+{
+	function SetupProxy(forItem)
+	{
+		// Flag the target item as having been proxied.
+		Object.AddMetaProperty(forItem, POI_PROXY_FLAG);
+		
+		// Create a new proxy marker on top of the item it is proxying.
+		local proxyMarker = Object.BeginCreate(POI_PROXY_MARKER);
+		Object.Teleport(proxyMarker, Object.Position(forItem), Object.Facing(forItem));
+		Object.EndCreate(proxyMarker);
+		
+		// Link these items together.
+		local proxyAttach = Link.Create(PROXY_ATTACH_METHOD, proxyMarker, forItem);
+		
+		// Give the proxy marker all the POI metaproperties of the
+		// target item.
+		if (Object.InheritsFrom(forItem, POI_CONTAINER) && !Object.HasMetaProperty(proxyMarker, POI_CONTAINER))
+			Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
+		if (Object.InheritsFrom(forItem, POI_DEVICE) && !Object.HasMetaProperty(proxyMarker, POI_DEVICE))
+			Object.AddMetaProperty(proxyMarker, POI_DEVICE);
+		if (Object.InheritsFrom(forItem, POI_EQUIP) && !Object.HasMetaProperty(proxyMarker, POI_EQUIP))
+			Object.AddMetaProperty(proxyMarker, POI_EQUIP);
+		if (Object.InheritsFrom(forItem, POI_LOOT) && !Object.HasMetaProperty(proxyMarker, POI_LOOT))
+			Object.AddMetaProperty(proxyMarker, POI_LOOT);
+	}
+}
+
 // This script goes on an inventory item the player can use to turn the
 // radar effect on and off.
 class J4FRadarToggler extends SqRootScript
@@ -76,7 +119,7 @@ class J4FRadarEchoReceiver extends SqRootScript
 		// required to enable these effects, because otherwise the enable
 		// metaproperty won't exist.
 		
-		local lootPointOfInterest = ObjID("J4FRadarLootPOI");
+		local lootPointOfInterest = ObjID(POI_LOOT);
 		
 		if (
 			// The optional loot module is installed.
@@ -92,9 +135,8 @@ class J4FRadarEchoReceiver extends SqRootScript
 	}
 }
 
-// This a subclass of script goes on pingable items, to generate a visible
-// puff in response to a ping.
-class J4FRadarAbstractTarget extends SqRootScript
+// This a superclass for all items that the radar can display.
+class J4FRadarAbstractTarget extends J4FRadarUtilities
 {
 	// Subclass's constructor() should specify this if desired. No
 	// save/load persistence is necessary, because when classes are
@@ -103,17 +145,44 @@ class J4FRadarAbstractTarget extends SqRootScript
 	// Persistence is optional here, because we'll default this to
 	// false and rely on timers to review it periodically.
 	isBlessed = false;
+	// Not bothering with persistence because PoiTarget() will set
+	// this cached value as needed.
+	whoAmI = 0;
+	
+	// Our point-of-interest metaproperties and their scripts might
+	// be attached to a proxy marker object instead. So the item of
+	// interest may be self, or it may be something linked to self.
+	function PoiTarget()
+	{
+		if (whoAmI != 0)
+			return whoAmI;
+		
+		if (Object.InheritsFrom(self, POI_PROXY_MARKER))
+		{
+			// What are we pointing at? The attach link is from us
+			// to the real point of interest.
+			whoAmI = LinkDest(Link.GetOne(PROXY_ATTACH_METHOD, self));
+		}
+		else
+		{
+			whoAmI = self;
+		}
+		
+		return whoAmI;
+	}
 	
 	// Subclasses can override this to define how items can become temporarily
 	// interesting or ininteresting. As opposed to a more permanent, one-time veto.
 	function BlessItem()
 	{
+		local target = PoiTarget();
+		
 		// If we're contained by a thing (with a reverse "Contains" link),
 		// then our object's location is irrelevant. Hide ourselves.
 		// NOTE: We pass 0 to the second parameter because we don't know
 		// the object ID of our container, or if we're even contained.
 		// TODO: the link data describes the attachment point, and all negative numbers are rendered
-		local linkToMyContainer = Link.GetOne("Contains", 0, self);
+		local linkToMyContainer = Link.GetOne("Contains", 0, target);
 		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
 			return false;
 		
@@ -124,9 +193,11 @@ class J4FRadarAbstractTarget extends SqRootScript
 	// here so they can add it to their BlessItem() if desired.
 	function IsPickup()
 	{
+		local target = PoiTarget();
+		
 		// This property contains our frob flags, if any. We only
 		// care if those flags include interesting options.
-		return (Property.Get(self, "FrobInfo", "World Action") & INTERESTING_FROB_FLAGS) > 0;
+		return (Property.Get(target, "FrobInfo", "World Action") & INTERESTING_FROB_FLAGS) > 0;
 	}
 	
 	// NOTE: This is not a truly reliable check for whether a given object
@@ -136,15 +207,17 @@ class J4FRadarAbstractTarget extends SqRootScript
 	// having a model which is effectively empty.
 	function IsRendered()
 	{
+		local target = PoiTarget();
+		
 		// We'll assume invisible render statuses are irrelevant.
-		if (Property.Possessed(self, "INVISIBLE") && Property.Get(self, "INVISIBLE"))
+		if (Property.Possessed(target, "INVISIBLE") && Property.Get(target, "INVISIBLE"))
 			return false;
 		
 		// Likewise ignore things with unusual, undesirable render types.
 		// These include type 1 (not at all) and 3 (editor only).
-		if (Property.Possessed(self, "RenderType"))
+		if (Property.Possessed(target, "RenderType"))
 		{
-			switch (Property.Get(self, "RenderType"))
+			switch (Property.Get(target, "RenderType"))
 			{
 				// not-at-all
 				case 1:
@@ -170,8 +243,6 @@ class J4FRadarAbstractTarget extends SqRootScript
 		// are a lot of items in the level. We could generate a random
 		// delay, but that carries a CPU cost of its own.
 		SetOneShotTimer("J4FRadarTargetReview", ((self % 900) + 100) / 1000.0);
-		
-		// We also need to regularly review our blessed status.
 	}
 	
 	function OnTimer()
@@ -179,6 +250,7 @@ class J4FRadarAbstractTarget extends SqRootScript
 		if (message().name != "J4FRadarTargetReview")
 			return;
 		
+		local target = PoiTarget();
 		local newBlessed = BlessItem();
 		
 		// If our blessing status changes, add or remove us from the list
@@ -187,11 +259,11 @@ class J4FRadarAbstractTarget extends SqRootScript
 		{
 			if (newBlessed)
 			{
-				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", self, color);
+				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDetected", target, color);
 			}
 			else
 			{
-				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", self);
+				SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", target);
 			}
 			
 			isBlessed = newBlessed;
@@ -206,11 +278,11 @@ class J4FRadarAbstractTarget extends SqRootScript
 	// random arrow or blood splatter as a point of interest.
 	function OnDestroy()
 	{
-		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", self);
+		SendMessage(ObjID("J4FRadarUiInterfacer"), "J4FRadarDestroyed", PoiTarget());
 	}
 }
 
-// This script goes on the equipment of interest.
+// This script goes on the container of interest.
 class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 {
 	constructor()
@@ -221,13 +293,15 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 	// Ignore empty containers.
 	function BlessItem()
 	{
+		local target = PoiTarget();
+		
 		// Bless if has at least one item inside.
 		// Also require IsPickup() to be sure we can try to open it.
-		return base.BlessItem() && (Link.GetOne("Contains", self) > 0) && IsPickup() && IsRendered();
+		return base.BlessItem() && (Link.GetOne("Contains", target) > 0) && IsPickup() && IsRendered();
 	}
 }
 
-// This script goes on the equipment of interest.
+// This script goes on the device of interest.
 class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 {
 	constructor()
@@ -277,15 +351,15 @@ class J4FRadarLootTarget extends J4FRadarAbstractTarget
 
 // This script goes on anything we think might contain loot, like
 // containers and creatures.
-class J4FRadarChildLootDetector extends SqRootScript
+class J4FRadarChildLootDetector extends J4FRadarUtilities
 {
 	function OnBeginScript()
 	{
 		local myInventory = Link.GetAll("Contains", self);
 		
-		local genericPoi = ObjID("J4FRadarPointOfInterest");
+		local genericPoi = ObjID(POI_GENERIC);
 		local lootMetaProperty = ObjID("IsLoot");
-		local lootPoiProperty = ObjID("J4FRadarLootPOI");
+		local lootPoiProperty = ObjID(POI_LOOT);
 		
 		foreach (link in myInventory)
 		{
@@ -308,16 +382,18 @@ class J4FRadarChildLootDetector extends SqRootScript
 			if (
 				// It is a point of interest.
 				Object.InheritsFrom(invItem, genericPoi)
+				// And it's not proxied yet.
+				&& !Object.HasMetaProperty(invItem, POI_PROXY_FLAG)
 				// But it has its very own scripts.
 				&& Property.Possessed(invItem, "Scripts")
 				// And it's ignoring our metaproperty-based scripts.
 				&& Property.Get(invItem, "Scripts", "Don't Inherit")
 			)
 			{
-				// TODO:
-				print(format("%s %i is being rude", Object.GetName(Object.Archetype(invItem)), invItem));
+				// Create a proxy item to represent the target for
+				// radar system purposes.
+				SetupProxy(invItem);
 			}
-			
 		}
 	}
 }

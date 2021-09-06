@@ -310,3 +310,32 @@ CreateArch "MetaProperty" "J4FRadarLootLinkChecker"
 		"Don't Inherit" FALSE
 	}
 }
+
+/*
+================================================================================
+== Unscriptable Item Workaround ================================================
+================================================================================
+*/
+
+// An item (be it an archetype or, more likely, an individual object in a level)
+// can be set to not inherit scripts. That includes those from metaproperties,
+// whether assigned to an archetype or to that specific object itself. And we
+// can't *safely* attach scripts directly to an object in squirrel. Yes, we can
+// modify the Scripts property. However, even just filling an empty slot with a
+// new script has side effects. The other scripts already on the object fire off
+// new BeginScript events. So either existing instances of scripts undergo weird
+// lifecycle changes, or perhaps additional copies of those scripts are being
+// attached instead. Either way, when something is marked as Don't Inherit, I
+// don't see any safe way to attach scripts to it.
+//
+// Enter these invisible markers. These act as stand-ins for unscriptable items,
+// and are attached to those items through links.
+
+// This is the proxy object marker itself.
+CreateArch "Marker" "J4FRadarProxyPOI"
+
+// This non-functional metaproperty is used to flag whether an item has a proxy.
+// It's quicker than searching through all its links to see if any of the linked
+// items happens to be a proxy, and speeds up simple "do I have a proxy yet?"
+// checks.
+CreateArch "MetaProperty" "J4FRadarProxied"
