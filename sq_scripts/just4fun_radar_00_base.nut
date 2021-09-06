@@ -2,11 +2,14 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: creature radar (what about hostile-only? pickpocketable only?)
 // TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
+// TODO: creature radar (what about hostile-only? pickpocketable only?), ignoring dead creatures
+//	how about we show pickpocketable items when either creatures or the item itself is enabled?
+//	how about we make a sub-mod for the pickpocketable feature?
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
 // TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
 //	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
+//	should we repeat the object scan/sweep periodically, to find newly-spawned items?
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -272,11 +275,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			if (newBlessed)
 			{
-				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", target, color);
+				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, target, color);
 			}
 			else
 			{
-				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", target);
+				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", self);
 			}
 			
 			isBlessed = newBlessed;
@@ -291,7 +294,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// random arrow or blood splatter as a point of interest.
 	function OnDestroy()
 	{
-		SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", PoiTarget());
+		SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", self);
 	}
 }
 
@@ -594,8 +597,14 @@ class J4FRadarUi extends J4FRadarUtilities
 		// If the POI item is not already in the list, put it there.
 		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
 		{
-			// We sent the radar color indicator in "data2"
-			j4fRadarOverlayInstance.displayTargets[detectedId] <- message().data2;
+			local poiMetadata = J4FRadarPointOfInterest();
+			// We sent the display item ID in "data2"
+			poiMetadata.displayId = message().data2;
+			// We sent the radar color indicator in "data3"
+			poiMetadata.displayColor = message().data3
+			
+			local displayId = message().data2;
+			j4fRadarOverlayInstance.displayTargets[detectedId] <- poiMetadata;
 		}
 	}
 	
@@ -630,6 +639,7 @@ class J4FRadarPointOfInterest
 {
 	x = 0;
 	y = 0;
+	displayId = 0;
 	displayColor = "W";
 	distance = 0;
 }
@@ -661,6 +671,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	useBitmapSize = 0;
 	// Filename keys, bitmap handle values.
 	bitmaps = {};
+	// Object ID integer keys (potentially pointing to proxy marker objects)
+	// with J4FRadarPointOfInterest instances for values.
 	displayTargets = {};
 	// This is a table whose keys are strings, indicating the color of the
 	// overlay. For example, "W" for white, "Y" for yellow, etc. The keys are
@@ -743,8 +755,11 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// We'll use this for distance checking.
 		local cameraPos = Camera.GetPosition();
 		
-		foreach (targetId, displayColor in displayTargets)
+		foreach (managerId, poiMetadata in displayTargets)
 		{
+			local targetId = poiMetadata.displayId;
+			local displayColor = poiMetadata.displayColor;
+			
 			// Well, WorldToScreen() looked promising, but it appears to pick a corner
 			// of the object. If we want something more...centered, we'll have to use
 			// GetObjectScreenBounds() instead.
