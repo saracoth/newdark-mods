@@ -2,10 +2,18 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
+// TODO: creature radar (what about hostile-only? pickpocketable only?)
+// TODO: revise handling of containers and attachments -- show radar for pickpocket items, container contents, etc.
+// TODO: if a container or creature detects loot in it, we can add the metaproperty right then and there
+// TODO: really, do we need all those extra .nut files? make it easier on users by moving those classes here instead
+//	heck, metaproperties as well, why not; just save the assigning of those properties for DML files
+//	plus, this work should help prepare me mentally for the revised container handling TODO
+
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 // NOTE: This also helps with various limitations. For example, NewDark
 // v1.27 only allows 64 simultaneous overlays to exist.
+// TODO: uncap how far away we'll consider POIs to display, then performance test all the sorting
 const MAX_DIST = 150;
 // While NewDark v1.27 allows a max of 64, we'll intentionally cap
 // ourselves at a smaller value. After all, we don't want to hog all
