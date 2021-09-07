@@ -34,6 +34,9 @@ const MAX_EMPTY_SCAN_GROUPS = 3;
 // 1 (move) + 2 (script) + 128 (default)
 const INTERESTING_FROB_FLAGS = 131;
 
+// We just want a character not likely to be used in the text IDs.
+const READ_LIST_SEPARATOR = ";";
+
 // These correspond to the various RadarX64.png filenames.
 const COLOR_DEFAULT = "W";
 const COLOR_LOOT = "Y";
@@ -41,7 +44,7 @@ const COLOR_EQUIP = "G";
 const COLOR_DEVICE = "P";
 const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
-const COLOR_READABLE = "R";
+const COLOR_READABLE = "B";
 
 // Various class, metaproperty, and object name strings.
 const OVERLAY_INTERFACE = "J4FRadarUiInterfacer";
@@ -49,12 +52,14 @@ const FEATURE_LOOT = "J4FRadarEnableLoot";
 const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
+const FEATURE_READABLE = "J4FRadarEnableReadable";
 const FEATURE_CONTAINER = "J4FRadarEnableContainer";
 const FEATURE_CREATURE = "J4FRadarEnableCreature";
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
+const POI_READABLE = "J4FRadarReadablePOI";
 const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_LOOT = "J4FRadarLootPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
@@ -123,6 +128,10 @@ class J4FRadarUtilities extends SqRootScript
 				else if (Object.InheritsFrom(forItem, POI_CREATURE))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_CREATURE);
+				}
+				else if (Object.InheritsFrom(forItem, POI_READABLE))
+				{
+					Object.AddMetaProperty(proxyMarker, POI_READABLE);
 				}
 				// last resort
 				else
@@ -544,6 +553,68 @@ class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 	}
 }
 
+// This script goes on the readable of interest. We're applying this only to
+// grabbables, because we need them to be interactable in some way.
+class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_READABLE);
+	}
+	
+	// Looking for a frob event is the only way we can tell when we've been
+	// read. Even that might have weird corner cases through scripting, but
+	// this should be at least 99% effective.
+	
+	function OnFrobWorldEnd()
+	{
+		local myText = Property.Possessed(self, "Book") ? Property.Get(self, "Book") : "";
+		if (myText != "")
+		{
+			PostMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarReadFlag", myText)
+		}
+	}
+	
+	function OnFrobInvEnd()
+	{
+		local myText = Property.Possessed(self, "Book") ? Property.Get(self, "Book") : "";
+		if (myText != "")
+		{
+			PostMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarReadFlag", myText)
+		}
+	}
+	
+	function BlessItem()
+	{
+		if (!base.BlessItem())
+			return false;
+		
+		local target = PoiTarget();
+		
+		// Proper readables should have both book text and book art. Otherwise
+		// they're probably just little name tags, brief plaques, etc.
+		
+		// Lack of BookArt means the text just displays briefly at the top
+		// of the screen. This is probably brief and uninteresting text, so
+		// skip those.
+		if (!Property.Possessed(target, "BookArt") || Property.Get(target, "BookArt") == "")
+			return false;
+		
+		// We need to have text to be a proper readable.
+		local myText = Property.Possessed(target, "Book") ? Property.Get(target, "Book") : "";
+		if (myText == "")
+			return false;
+		
+		// Have we read this one yet? Note that because some readables can
+		// be duplicates, we'll try to track this globally rather than for
+		// individual items.
+		if (SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarReadCheck", myText))
+			return false;
+		
+		return true;
+	}
+}
+
 // This script goes on anything we think might contain loot, like
 // containers and creatures.
 class J4FRadarChildDetector extends J4FRadarUtilities
@@ -846,6 +917,47 @@ class J4FRadarUi extends J4FRadarUtilities
 		j4fRadarOverlayInstance.enabled = newState;
 		SetData("J4FRadarEnableState", newState);
 		Reply(newState);
+	}
+	
+	function OnJ4FRadarReadCheck()
+	{
+		// If we've never read anything, we haven't read you.
+		if (!IsDataSet("J4FRadarReadList"))
+		{
+			Reply(false);
+			return;
+		}
+		
+		// What have we read?
+		local readText = GetData("J4FRadarReadList");
+		
+		// What are you? The text ID should have been sent in "data"
+		// but we'll wrap it in the divider to help our string search.
+		local checkText = READ_LIST_SEPARATOR + message().data + READ_LIST_SEPARATOR;
+		
+		// We'll use .find() rather than splitting the string into an
+		// array. We only need to find one value and can stop immediately
+		// upon finding it. Splitting into an array is just extra effort.
+		Reply(readText.find(checkText) != null);
+	}
+	
+	function OnJ4FRadarReadFlag()
+	{
+		// What we've read so far (if any).
+		local readText = IsDataSet("J4FRadarReadList") ? GetData("J4FRadarReadList") : READ_LIST_SEPARATOR;
+		
+		// What are we reading now? Append a separator in case we store this later.
+		local checkText = message().data + READ_LIST_SEPARATOR;
+		
+		// If already in the list, no need to make it bigger.
+		// NOTE: We have to prepend the separator because we didn't
+		// do that earlier.
+		if (readText.find(READ_LIST_SEPARATOR + checkText) != null)
+			return;
+		
+		// Append to the list. The separator characters are already
+		// taken care of.
+		SetData("J4FRadarReadList", readText + checkText);
 	}
 }
 

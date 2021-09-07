@@ -285,6 +285,15 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarCreaturePOI"
 	}
 }
 
+CreateArch "J4FRadarPointOfInterest" "J4FRadarReadablePOI"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarReadableTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 // Once loot has been identified, we'll flag it with this metaproperty. That
 // will attach the desired script to the item and nullify the radar stim from
 // now on.
