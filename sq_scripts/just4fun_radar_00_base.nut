@@ -12,6 +12,7 @@ const MAX_DIST = 150;
 // 64 and not leave any for other, more sanely-written mods!
 const MAX_POI_RENDERED = 32;
 const MAX_SCANNED_PER_LOOP = 100;
+const MAX_INITIALIZED_PER_LOOP = 10;
 const MAX_EMPTY_SCAN_GROUPS = 3;
 
 // 1 (move) + 2 (script) + 128 (default)
@@ -122,7 +123,10 @@ class J4FRadarUtilities extends SqRootScript
 					Object.AddMetaProperty(proxyMarker, POI_GENERIC);
 				}
 			}
+			return true;
 		}
+		
+		return false;
 	}
 }
 
@@ -440,7 +444,6 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 		
 		return true;
 	}
-	
 }
 
 // Various things only matter if we can pick them up (or they're in
@@ -803,6 +806,10 @@ class J4FRadarUi extends J4FRadarUtilities
 		SetData("AddToScanId", scanCapExclusive);
 		local consecutiveEmptyGroups = GetData("ConsecutiveEmptyGroups");
 		local scannedAny = false;
+		// The game really, really struggles (or even crashes) when a
+		// ton of scripts initialize themselves at the same time. So
+		// limit how many scanned items we enable for radar here.
+		local initializeCount = 0;
 		
 		// We need these IDs several times throughout the loop, so
 		// let's grab them once instead.
@@ -822,6 +829,13 @@ class J4FRadarUi extends J4FRadarUtilities
 		// Loop through all the item IDs we're going to test this time.
 		for (local i = scanFromInclusive - 1; ++i < scanCapExclusive; )
 		{
+			// If we exceeded our limit, save this index for later.
+			if (initializeCount > MAX_INITIALIZED_PER_LOOP)
+			{
+				SetData("AddToScanId", i);
+				break;
+			}
+			
 			if (Object.Exists(i))
 			{
 				scannedAny = true;
@@ -858,6 +872,7 @@ class J4FRadarUi extends J4FRadarUtilities
 					{
 						Object.AddMetaProperty(i, lootPoiProperty);
 						checkProxy = true;
+						++initializeCount;
 					}
 					else if (
 						// The optional keys (equipment) module is installed.
@@ -870,6 +885,7 @@ class J4FRadarUi extends J4FRadarUtilities
 					{
 						Object.AddMetaProperty(i, keyPoiProperty);
 						checkProxy = true;
+						++initializeCount;
 					}
 					else if (
 						// The optional readables module is installed.
@@ -883,12 +899,13 @@ class J4FRadarUi extends J4FRadarUtilities
 					{
 						Object.AddMetaProperty(i, readablePoiProperty);
 						checkProxy = true;
+						++initializeCount;
 					}
 				}
 				
-				if (checkProxy)
+				if (checkProxy && SetupProxyIfNeeded(i))
 				{
-					SetupProxyIfNeeded(i);
+					++initializeCount;
 				}
 			}
 		}
