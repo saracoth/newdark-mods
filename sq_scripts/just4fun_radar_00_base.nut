@@ -24,11 +24,13 @@ const MAX_EMPTY_SCAN_GROUPS = 3;
 const INTERESTING_FROB_FLAGS = 131;
 
 // These correspond to the various RadarX64.png filenames.
+const COLOR_DEFAULT = "W";
 const COLOR_LOOT = "Y";
 const COLOR_EQUIP = "G";
 const COLOR_DEVICE = "P";
-const COLOR_CONTAINER = "B";
+const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
+const COLOR_READABLE = "R";
 
 // Various class, metaproperty, and object name strings.
 const OVERLAY_INTERFACE = "J4FRadarUiInterfacer";
@@ -176,7 +178,7 @@ class J4FRadarEchoReceiver extends J4FRadarUtilities
 // This a superclass for all items that the radar can display.
 class J4FRadarAbstractTarget extends J4FRadarUtilities
 {
-	constructor(color = "W")
+	constructor(color = COLOR_DEFAULT)
 	{
 		SetData("J4FRadarColor", color);
 	}
@@ -441,7 +443,7 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 // a container and we can grab them from there, etc.)
 class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
 {
-	constructor(color = "W")
+	constructor(color = COLOR_DEFAULT)
 	{
 		base.constructor(color);
 	}
@@ -845,7 +847,7 @@ class J4FRadarPointOfInterest
 	x = 0;
 	y = 0;
 	displayId = 0;
-	displayColor = "W";
+	displayColor = COLOR_DEFAULT;
 	distance = 0;
 }
 

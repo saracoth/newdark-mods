@@ -28,7 +28,7 @@ Which items are detected, if any, depends on which of the optional extras you in
 **Optional device detection (switches, pressure plates, etc.)**: Purple indicators.
 * [dbmods\just4fun_radar_10_devicedar.dml](../dbmods/just4fun_radar_10_devicedar.dml?raw=1)
 
-**Optional container detection (chests, lockboxes, etc. with items in them)**: Blue indicators.
+**Optional container detection (chests, lockboxes, etc. with items in them)**: White indicators.
 * [dbmods\just4fun_radar_10_containerdar.dml](../dbmods/just4fun_radar_10_containerdar.dml?raw=1)
 
 **Optional pickpocketable detection (purses, quivers, etc.)**: White indicators.
