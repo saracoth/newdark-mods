@@ -2,13 +2,6 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: I'm not sure if MAX_INITIALIZED_PER_LOOP is needed, but what I do see
-// is that when the Soulforge mission crashes on startup, it only happens when
-// I add "J4FRadarEquipPOI" to "Grenadz." I also see doubled messages in the
-// log files when I add J4FDebugMe to Grenadz. And this happens *super* early,
-// to the point we get doubled up OnSim events! So this is happening before
-// our object scanning even fires.
-
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 // NOTE: This also helps with various limitations. For example, NewDark
@@ -19,7 +12,9 @@ const MAX_DIST = 150;
 // 64 and not leave any for other, more sanely-written mods!
 const MAX_POI_RENDERED = 32;
 const MAX_SCANNED_PER_LOOP = 100;
-const MAX_INITIALIZED_PER_LOOP = 10;
+// Set this to lower than MAX_SCANNED_PER_LOOP to limit dynamic
+// adding of POI scripts or proxy objects in the scanning routine.
+const MAX_INITIALIZED_PER_LOOP = 100;
 const MAX_EMPTY_SCAN_GROUPS = 3;
 
 // 1 (move) + 2 (script) + 128 (default)
@@ -370,12 +365,18 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// Depending on which order objects are set up, things like the
 		// overlay marker may not be ready yet. We'll add a slight
 		// startup delay before registering our existence with them.
-		// We use our item ID to help stagger startup times when there
-		// are a lot of items in the level. We could generate a random
-		// delay, but that carries a CPU cost of its own.
+		// We also randomize the startup delay, partly to work around
+		// issues like duplicated scripts. For unknown reasons, one
+		// object can end up with multiple copies of our script so
+		// early in the mission setup that it happens before we use
+		// scripts to add metaproperties/scripts to anything. In fact,
+		// with Grenadz objects in "Sabotage at Soulforge", I was
+		// able to see these objects receive duplicate scripts so
+		// early that both scripts were given an OnSim message for
+		// the level start.
 		if (!IsDataSet("J4FRadarTargetReviewTimer"))
 		{
-			local beginTimer = SetOneShotTimer("J4FRadarTargetReview", ((self % 900) + 100) / 1000.0);
+			local beginTimer = SetOneShotTimer("J4FRadarTargetReview", (Data.RandFlt0to1() * 1.9) + 0.1);
 			SetData("J4FRadarTargetReviewTimer", beginTimer);
 		}
 	}
@@ -387,6 +388,15 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		ClearData("J4FRadarTargetReviewTimer");
 		
+		// Does our interface exist yet?
+		local interfaceId = ObjID(OVERLAY_INTERFACE);
+		if (interfaceId < 1)
+		{
+			// Try again later.
+			SetOneShotTimer("J4FRadarTargetReview", 0.25);
+			return;
+		}
+		
 		local newBlessed = BlessItem();
 		
 		// If our blessing status changes, add or remove us from the list
@@ -395,11 +405,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			if (newBlessed)
 			{
-				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, DisplayTarget(), GetData("J4FRadarColor") + (GetData("J4FRadarUncapDistance") ? "1" : "0"));
+				SendMessage(interfaceId, "J4FRadarDetected", self, DisplayTarget(), GetData("J4FRadarColor") + (GetData("J4FRadarUncapDistance") ? "1" : "0"));
 			}
 			else
 			{
-				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", self);
+				SendMessage(interfaceId, "J4FRadarDestroyed", self);
 			}
 			
 			SetData("J4FRadarLastBless", newBlessed);
@@ -414,7 +424,12 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// random arrow or blood splatter as a point of interest.
 	function OnDestroy()
 	{
-		SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDestroyed", self);
+		// Does our interface exist yet?
+		local interfaceId = ObjID(OVERLAY_INTERFACE);
+		if (interfaceId < 1)
+			return;
+		
+		SendMessage(interfaceId, "J4FRadarDestroyed", self);
 	}
 }
 
@@ -617,10 +632,12 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 	{
 		// Stagger these out with timers. If there's a ton of containers
 		// with this script going off at the same time, there's a chance
-		// the game will overstress itself and crash.
+		// the game will overstress itself and crash. (Those issues may
+		// also be related to duplicate scripts being attached to
+		// objects for reasons unknown. Possible engine bug?)
 		if (!IsDataSet("J4FRadarContentReviewTimer"))
 		{
-			local beginTimer = SetOneShotTimer("J4FRadarContentReview", ((self % 900) + 100) / 1000.0);
+			local beginTimer = SetOneShotTimer("J4FRadarContentReview", (Data.RandFlt0to1() * 1.9) + 0.1);
 			SetData("J4FRadarContentReviewTimer", beginTimer);
 		}
 	}
