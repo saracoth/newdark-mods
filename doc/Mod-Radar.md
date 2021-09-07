@@ -41,4 +41,10 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 **Optional pickpocketable detection (purses, quivers, etc.)**: White indicators.
 * [dbmods\just4fun_radar_10_pocketdar.dml](../dbmods/just4fun_radar_10_pocketdar.dml?raw=1)
 
-*Modder's Notes*: This mod uses the same scripting features someone would use to create new HUD elements. Instead of positioning them on specific parts of the screen, these overlays are created, destroyed, and repositioned to match the location of objects in the game world. There's a ton of code to handle corner cases, like "don't inherit" objects we cannot safely script directly. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible, instead creating visible particle effects to indicate nearby items of interest.
+## Modder's Notes
+
+This mod uses the same scripting features someone would use to create new HUD elements. Instead of positioning them on specific parts of the screen, these overlays are created, destroyed, and repositioned to match the location of objects in the game world.
+
+There's a ton of code to handle corner cases, like "don't inherit" objects we cannot safely script directly. In addition to using metaproperties directly where able, the mod also scans every object at mission start to flag items of interest. At least on my machine, none of this processing results in FPS drops. Some processes are capped or staggered over time to help keep it that way.
+
+The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible, instead creating visible particle effects to indicate nearby items of interest.
