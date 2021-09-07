@@ -2,7 +2,6 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: why is Thief 2 randomly crashing on starting the first OM? seems to occur with FEATURE_LOOT specificially, as all other DML files are fine. commenting out the lootdar receptron has no effect, either
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
 // TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
 //	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
@@ -77,8 +76,6 @@ class J4FRadarUtilities extends SqRootScript
 		)
 		{
 			// Flag the target item as having been proxied.
-			// TODO:
-			print(format("Add: Proxied flag for %s %i", Object.GetName(Object.Archetype(forItem)), forItem));
 			Object.AddMetaProperty(forItem, POI_PROXY_FLAG);
 		
 			// Create a new proxy marker on top of the item it is proxying.
@@ -94,8 +91,6 @@ class J4FRadarUtilities extends SqRootScript
 			// cause issues, given the way we implemented things.
 			if (Object.InheritsFrom(forItem, POI_ANY) && !Object.InheritsFrom(proxyMarker, POI_ANY))
 			{
-				// TODO:
-				print(format("Add: POI to proxy from %s %i", Object.GetName(Object.Archetype(forItem)), forItem));
 				if (Object.InheritsFrom(forItem, POI_LOOT))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_LOOT);
@@ -130,12 +125,6 @@ class J4FRadarUtilities extends SqRootScript
 // radar effect on and off.
 class J4FRadarToggler extends SqRootScript
 {
-	
-	// TODO:
-	function OnBeginScript()
-	{
-		print(format("Begin toggler %s %i", Object.GetName(Object.Archetype(self)), self));
-	}
 	function OnFrobInvEnd()
 	{
 		local newState = SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarToggle", self);
@@ -152,12 +141,6 @@ class J4FRadarToggler extends SqRootScript
 
 class J4FRadarEchoReceiver extends J4FRadarUtilities
 {
-	
-	// TODO:
-	function OnBeginScript()
-	{
-		print(format("Begin receiver %s %i", Object.GetName(Object.Archetype(self)), self));
-	}
 	// Most items of interest don't need this, and will instead directly
 	// register themselves with the radar system. Other items are trickier,
 	// and rely on the radius stim bursts to detect them as we draw near.
@@ -183,8 +166,6 @@ class J4FRadarEchoReceiver extends J4FRadarUtilities
 			&& !Object.InheritsFrom(newPointOfInterest, POI_ANY)
 		)
 		{
-			// TODO:
-			print(format("Add: loot POI via echo to %s %i", Object.GetName(Object.Archetype(newPointOfInterest)), newPointOfInterest));
 			Object.AddMetaProperty(newPointOfInterest, POI_LOOT);
 		}
 		
@@ -365,9 +346,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// This will fire on mission start and on reloading a save.
 	function OnBeginScript()
 	{
-		// TODO:
-		print(format("Begin POI %s %i", Object.GetName(Object.Archetype(self)), self));
-		
 		// Default to unknown on a reload. Mostly so that we can be
 		// sure to add or remove us from the overlay.
 		ClearData("J4FRadarLastBless");
@@ -378,13 +356,19 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// We use our item ID to help stagger startup times when there
 		// are a lot of items in the level. We could generate a random
 		// delay, but that carries a CPU cost of its own.
-		SetOneShotTimer("J4FRadarTargetReview", ((self % 900) + 100) / 1000.0);
+		if (!IsDataSet("J4FRadarTargetReviewTimer"))
+		{
+			local beginTimer = SetOneShotTimer("J4FRadarTargetReview", ((self % 900) + 100) / 1000.0);
+			SetData("J4FRadarTargetReviewTimer", beginTimer);
+		}
 	}
 	
 	function OnTimer()
 	{
 		if (message().name != "J4FRadarTargetReview")
 			return;
+		
+		ClearData("J4FRadarTargetReviewTimer");
 		
 		local newBlessed = BlessItem();
 		
@@ -570,9 +554,6 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 		
 		ClearData("J4FRadarContentReviewTimer");
 		
-		// TODO:
-		print(format("Begin child %s %i", Object.GetName(Object.Archetype(self)), self));
-		
 		local myInventory = Link.GetAll("Contains", self);
 		
 		local anyKindOfPoi = ObjID(POI_ANY);
@@ -597,8 +578,6 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 					&& Object.InheritsFrom(invItem, lootMetaProperty)
 				)
 				{
-					// TODO:
-					print(format("Add: loot POI via container to %s %i", Object.GetName(Object.Archetype(invItem)), invItem));
 					Object.AddMetaProperty(invItem, lootPoiProperty);
 				}
 				else if (
@@ -615,8 +594,6 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 					)
 				)
 				{
-					// TODO:
-					print(format("Add: generic POI via container to %s %i", Object.GetName(Object.Archetype(invItem)), invItem));
 					Object.AddMetaProperty(invItem, fallbackPoi);
 				}
 			}
@@ -631,12 +608,6 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 // This script will be called on the player when the game starts, giving them the radar item.
 class J4FGiveRadarItem extends SqRootScript
 {
-	
-	// TODO:
-	function OnBeginScript()
-	{
-		print(format("Begin giver %s %i", Object.GetName(Object.Archetype(self)), self));
-	}
 	// We only need this script to fire once, when the game simulation first starts.
     function OnSim()
 	{
@@ -705,9 +676,6 @@ class J4FRadarUi extends J4FRadarUtilities
 
 	function OnBeginScript()
 	{
-		// TODO:
-		print(format("Begin UI marker %s %i", Object.GetName(Object.Archetype(self)), self));
-		
 		// Call our custom setup method, to do whatever we need to do
 		// when preparing the overlay in a new mission, after loading
 		// a save, or when re-loading a save or moving to next mission.
@@ -794,8 +762,6 @@ class J4FRadarUi extends J4FRadarUtilities
 					&& !Object.InheritsFrom(i, anyKindOfPoi)
 				)
 				{
-					// TODO:
-					print(format("Add: loot POI via scan to %s %i", Object.GetName(Object.Archetype(i)), i));
 					Object.AddMetaProperty(i, lootPoiProperty);
 				}
 				
