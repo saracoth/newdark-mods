@@ -2,6 +2,7 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
+// TODO: why is Thief 2 randomly crashing on starting the first OM? seems to occur with FEATURE_LOOT specificially, as all other DML files are fine.
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
 // TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
 //	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
