@@ -1,4 +1,4 @@
-# Radar (Thief 1/Gold/2)
+# X-Raydar (Thief 1/Gold/2)
 
 When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to show or hide the location of nearby points of interest. Can be useful in finding hidden things, or those pesky little coins.
 

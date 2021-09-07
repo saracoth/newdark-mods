@@ -23,7 +23,7 @@ For curious modders, I'd rank these mods from least complex to most complex, in 
 
 ### Fairy Light (Thief 1/Gold/2)
 
-A controllable, movable light. Probably as close as Thief gets to a flashlight mod, considering the way the lighting engine works and the limitations related to that.
+A controllable, movable light. A blend between a flashlight and a carriable lantern.
 
 For more information or to install this mod, check out the [Fairy Light](doc/Mod-FairyLight.md) documentation.
 
@@ -45,9 +45,9 @@ Sample, simple mod that spawns minions on command.
 
 For more information or to install this mod, check out the [Minion Summoner](doc/Mod-MinionSummoner.md) documentation.
 
-### Radar (Thief 1/Gold/2)
+### X-Raydar (Thief 1/Gold/2)
 
-Makeshift "radar" effect that helps find nearby loot or other items of interest. Useful for tracking down those pesky little coins and other hard-to-spot items.
+Visual that helps find nearby loot or other items of interest. Useful for tracking down those pesky little coins and other hard-to-spot items.
 
 For more information or to install this mod, check out the [Radar](doc/Mod-Radar.md) documentation.
 
