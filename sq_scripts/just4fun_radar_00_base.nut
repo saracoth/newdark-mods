@@ -3,9 +3,20 @@
 // For example, for the IsLoot handling.
 
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
+//	We do have access to the "Book" property, which is a string saying what the contents are
+//	And the "BookArt" string if that helps for any reason.
+//	Biggest obstacle I see is we can't do much about don't-inherit scripted readables. The only way
+//		we can detect that the item has been read is through frob events, which require us to put
+//		our scripts on the target item. I think we've officially reached the end of surmountable
+//		obstacles. We can add support for readables, and they'll often work, but in *some* cases a
+//		readable item will be forever on the radar indicators.
+//	Scroll, Book, Plaque, and *maybe* Sign seem like good targets in both games
 // TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
 //	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
 //	should we repeat the object scan/sweep periodically, to find newly-spawned items?
+// TODO: detect nonstandard stuff if feature enabled? Eg, loot with the "Loot" property but not the "IsLoot" metaproperty
+//	stuff with a "KeySrc" that isn't a key
+//	weird readables not in the standard list
 
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
