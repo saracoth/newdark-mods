@@ -2,18 +2,6 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: can we track readables? including tracking whether they've already been read in this mission?
-//	We do have access to the "Book" property, which is a string saying what the contents are
-//	And the "BookArt" string if that helps for any reason.
-//	Biggest obstacle I see is we can't do much about don't-inherit scripted readables. The only way
-//		we can detect that the item has been read is through frob events, which require us to put
-//		our scripts on the target item. I think we've officially reached the end of surmountable
-//		obstacles. We can add support for readables, and they'll often work, but in *some* cases a
-//		readable item will be forever on the radar indicators.
-//	Scroll, Book, Plaque, and *maybe* Sign seem like good targets in both games
-// TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
-//	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
-//	should we repeat the object scan/sweep periodically, to find newly-spawned items?
 // TODO: detect nonstandard stuff if feature enabled? Eg, loot with the "Loot" property but not the "IsLoot" metaproperty
 //	stuff with a "KeySrc" that isn't a key
 //	weird readables not in the standard list
@@ -22,7 +10,6 @@ const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 // NOTE: This also helps with various limitations. For example, NewDark
 // v1.27 only allows 64 simultaneous overlays to exist.
-// TODO: uncap how far away we'll consider POIs to display, then performance test all the sorting
 const MAX_DIST = 150;
 // While NewDark v1.27 allows a max of 64, we'll intentionally cap
 // ourselves at a smaller value. After all, we don't want to hog all
@@ -198,9 +185,10 @@ class J4FRadarEchoReceiver extends J4FRadarUtilities
 // This a superclass for all items that the radar can display.
 class J4FRadarAbstractTarget extends J4FRadarUtilities
 {
-	constructor(color = COLOR_DEFAULT)
+	constructor(color = COLOR_DEFAULT, uncapDistance = false)
 	{
 		SetData("J4FRadarColor", color);
+		SetData("J4FRadarUncapDistance", uncapDistance);
 	}
 	
 	// Our point-of-interest metaproperties and their scripts might
@@ -400,7 +388,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			if (newBlessed)
 			{
-				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, DisplayTarget(), GetData("J4FRadarColor"));
+				SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarDetected", self, DisplayTarget(), GetData("J4FRadarColor") + (GetData("J4FRadarUncapDistance") ? "1" : "0"));
 			}
 			else
 			{
@@ -427,7 +415,7 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_CREATURE);
+		base.constructor(COLOR_CREATURE, true);
 	}
 	
 	// Ignore frozen, dead, and nonhostile creatures.
@@ -463,9 +451,9 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 // a container and we can grab them from there, etc.)
 class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
 {
-	constructor(color = COLOR_DEFAULT)
+	constructor(color = COLOR_DEFAULT, uncapDistance = false)
 	{
-		base.constructor(color);
+		base.constructor(color, uncapDistance);
 	}
 	
 	// Ignore decorative/etc. things we can't pick up.
@@ -480,7 +468,7 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_CONTAINER);
+		base.constructor(COLOR_CONTAINER, true);
 	}
 	
 	// Ignore empty containers and containers with points of interest.
@@ -540,7 +528,7 @@ class J4FRadarEquipTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_EQUIP);
+		base.constructor(COLOR_EQUIP, true);
 	}
 }
 
@@ -549,7 +537,7 @@ class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_LOOT);
+		base.constructor(COLOR_LOOT, true);
 	}
 }
 
@@ -559,7 +547,7 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_READABLE);
+		base.constructor(COLOR_READABLE, true);
 	}
 	
 	// Looking for a frob event is the only way we can tell when we've been
@@ -890,8 +878,13 @@ class J4FRadarUi extends J4FRadarUtilities
 			local poiMetadata = J4FRadarPointOfInterest();
 			// We sent the display item ID in "data2"
 			poiMetadata.displayId = message().data2;
-			// We sent the radar color indicator in "data3"
-			poiMetadata.displayColor = message().data3
+			// We sent the radar color indicator in "data3".
+			// Later we abused this to include the uncapped
+			// distance indicator as well. So instead of
+			// "W" for white, it's "W0" for white with capped
+			// distance and "W1" for white with uncapped.
+			poiMetadata.displayColor = message().data3.slice(0, 1);
+			poiMetadata.uncappedDistance = message().data3.slice(1, 2) == "1";
 			
 			j4fRadarOverlayInstance.displayTargets[detectedId] <- poiMetadata;
 		}
@@ -971,6 +964,7 @@ class J4FRadarPointOfInterest
 	y = 0;
 	displayId = 0;
 	displayColor = COLOR_DEFAULT;
+	uncappedDistance = false;
 	distance = 0;
 }
 
@@ -1130,7 +1124,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// Only include rendered items (presumably they're visible) and
 			// nearby items.
 			local targetDistance = (Object.Position(targetId) - cameraPos).Length();
-			if (!Object.RenderedThisFrame(targetId) && targetDistance > MAX_DIST)
+			if (!poiMetadata.uncappedDistance && !Object.RenderedThisFrame(targetId) && targetDistance > MAX_DIST)
 				continue;
 			
 			// Pick a point in the center of the object bounds.
