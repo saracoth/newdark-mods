@@ -2,10 +2,6 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: detect nonstandard stuff if feature enabled? Eg, loot with the "Loot" property but not the "IsLoot" metaproperty
-//	stuff with a "KeySrc" that isn't a key
-//	weird readables not in the standard list
-
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 // NOTE: This also helps with various limitations. For example, NewDark
@@ -810,9 +806,17 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		// We need these IDs several times throughout the loop, so
 		// let's grab them once instead.
+		
+		local keysEnabled = ObjID(FEATURE_EQUIP) < 0;
+		local keyPoiProperty = ObjID(POI_EQUIP);
+		
+		local readablesEnabled = ObjID(FEATURE_READABLE) < 0;
+		local readablePoiProperty = ObjID(POI_READABLE);
+		
 		local lootEnabled = ObjID(FEATURE_LOOT) < 0;
 		local lootMetaProperty = ObjID("IsLoot");
 		local lootPoiProperty = ObjID(POI_LOOT);
+		
 		local anyKindOfPoi = ObjID(POI_ANY);
 		
 		// Loop through all the item IDs we're going to test this time.
@@ -822,22 +826,70 @@ class J4FRadarUi extends J4FRadarUtilities
 			{
 				scannedAny = true;
 				
-				// IsLoot items are hard to target directly, because
-				// we can never safely script them nor add a metaproperty,
-				// because IsLoot *is* a metaproperty.
-				if (
-					// The optional loot module is installed.
-					lootEnabled
-					// And it's a loot item.
-					&& Object.InheritsFrom(i, lootMetaProperty)
-					// But it does not yet have any POI metaproperty.
-					&& !Object.InheritsFrom(i, anyKindOfPoi)
-				)
+				local checkProxy = false;
+				
+				// Do we need to manually add a POI metaproperty to the
+				// scanned item? Useful for weird kinds of loot, keys,
+				// and readables.
+				if (Object.InheritsFrom(i, anyKindOfPoi))
 				{
-					Object.AddMetaProperty(i, lootPoiProperty);
+					checkProxy = true;
+				}
+				else
+				{
+					// IsLoot items are hard to target directly, because
+					// we can never safely script them nor add a metaproperty,
+					// because IsLoot *is* a metaproperty.
+					if (
+						// The optional loot module is installed.
+						lootEnabled
+						// And it's a loot item.
+						&& (
+							// "IsLoot" items might be repurposed as valueless
+							// decorations, but we can worry about that in the
+							// bless functions.
+							Object.InheritsFrom(i, lootMetaProperty)
+							// It's possible that the loot will have no value
+							// and no special flags, but we can worry about
+							// that in the bless functions.
+							|| Property.Possessed(i, "Loot")
+						)
+					)
+					{
+						Object.AddMetaProperty(i, lootPoiProperty);
+						checkProxy = true;
+					}
+					else if (
+						// The optional keys (equipment) module is installed.
+						keysEnabled
+						// And the item can be used as a kind of key.
+						&& Property.Possessed(i, "KeySrc")
+						// And is enabled in at least one region.
+						&& Property.Get(i, "KeySrc", "RegionMask") != 0
+					)
+					{
+						Object.AddMetaProperty(i, keyPoiProperty);
+						checkProxy = true;
+					}
+					else if (
+						// The optional readables module is installed.
+						readablesEnabled
+						// And the item has something worth reading.
+						&& Property.Possessed(i, "Book")
+						&& Property.Possessed(i, "BookArt")
+						&& Property.Get(i, "Book") != ""
+						&& Property.Get(i, "BookArt") != ""
+					)
+					{
+						Object.AddMetaProperty(i, readablePoiProperty);
+						checkProxy = true;
+					}
 				}
 				
-				SetupProxyIfNeeded(i);
+				if (checkProxy)
+				{
+					SetupProxyIfNeeded(i);
+				}
 			}
 		}
 		
