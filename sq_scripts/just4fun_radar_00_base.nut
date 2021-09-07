@@ -965,6 +965,22 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			local targetId = poiMetadata.displayId;
 			local displayColor = poiMetadata.displayColor;
 			
+			// If we wanted to keep track of a running total of detected,
+			// interesting loot, this would be a way. However, we should
+			// probably add another property to J4FRadarPointOfInterest
+			// for this kind of stuff, because managerId could be a
+			// proxy marker, and targetId (poiData.displayId) could be
+			// a chest. So neither object ID we have when this comment
+			// was written had guaranteed access to the loot item itself.
+			/*
+			if (Property.Possessed(managerId, "Loot"))
+			{
+				lootTotal += Property.Get(managerId, "Loot", "Gold");
+				lootTotal += Property.Get(managerId, "Loot", "Gems");
+				lootTotal += Property.Get(managerId, "Loot", "Art");
+			}
+			*/
+			
 			// Well, WorldToScreen() looked promising, but it appears to pick a corner
 			// of the object. If we want something more...centered, we'll have to use
 			// GetObjectScreenBounds() instead.
