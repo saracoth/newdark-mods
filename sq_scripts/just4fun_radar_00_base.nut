@@ -2,6 +2,13 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
+// TODO: I'm not sure if MAX_INITIALIZED_PER_LOOP is needed, but what I do see
+// is that when the Soulforge mission crashes on startup, it only happens when
+// I add "J4FRadarEquipPOI" to "Grenadz." I also see doubled messages in the
+// log files when I add J4FDebugMe to Grenadz. And this happens *super* early,
+// to the point we get doubled up OnSim events! So this is happening before
+// our object scanning even fires.
+
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
 // NOTE: This also helps with various limitations. For example, NewDark
