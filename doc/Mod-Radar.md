@@ -27,8 +27,10 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 **Optional readable detection (books, scrolls, etc.)**: Blue indicators. Ignores previously read items.
 * [dbmods\just4fun_radar_10_bookdar.dml](../dbmods/just4fun_radar_10_bookdar.dml?raw=1)
 
-**Optional creature detection (guards, robots, cameras, etc.)**: Red indicators. Ignores dead and knocked-out creatures. Ignores nonhostile creatures (allies, rats, etc.)
+**Optional creature detection (guards, robots, cameras, etc.)**: Red indicators. Ignores dead and knocked-out creatures. Ignores nonhostile creatures (allies, rats, etc.), depending on which files you install.
 * [dbmods\just4fun_radar_10_creaturedar.dml](../dbmods/just4fun_radar_10_creaturedar.dml?raw=1)
+* [dbmods\just4fun_radar_11_creature_neutral.dml](../dbmods/just4fun_radar_11_creature_neutral.dml?raw=1) (Extra optional, to display neutral creatures as well as hostiles.)
+* [dbmods\just4fun_radar_11_creature_good.dml](../dbmods/just4fun_radar_11_creature_good.dml?raw=1) (Extra optional, to display allied creatures as well as hostiles.)
 
 **Optional device detection (switches, pressure plates, etc.)**: Purple indicators.
 * [dbmods\just4fun_radar_10_devicedar.dml](../dbmods/just4fun_radar_10_devicedar.dml?raw=1)

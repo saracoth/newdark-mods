@@ -41,6 +41,8 @@ const FEATURE_DEVICE = "J4FRadarEnableDevice";
 const FEATURE_READABLE = "J4FRadarEnableReadable";
 const FEATURE_CONTAINER = "J4FRadarEnableContainer";
 const FEATURE_CREATURE = "J4FRadarEnableCreature";
+const FEATURE_CREATURE_GOOD = "J4FRadarEnableCreatureG";
+const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_CONTAINER = "J4FRadarContainerPOI";
@@ -452,17 +454,16 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 		if (Property.Get(target, "AI_Mode") == eAIMode.kAIM_Dead)
 			return false;
 		
-		// Ignore nonhostiles. Of course, mission scripts and such can
-		// turn neutrals and allies into enemies, but this should help
-		// avoid drawing our attention to rats and such in Thief 2.
-		// TODO: what if people want to see neutrals? good? both? for the "scorched earth" completionists
-		switch (Property.Get(target, "AI_Team"))
-		{
-			case eAITeam.kAIT_Good:
-				// intentional fall-through
-			case eAITeam.kAIT_Neutral:
-				return false;
-		}
+		// Ignore nonhostiles unless the user has specifically enabled
+		// those features.
+		
+		local team = Property.Get(target, "AI_Team");
+		
+		if (team == eAITeam.kAIT_Neutral && ObjID(FEATURE_CREATURE_NEUTRAL) > -1)
+			return false;
+		
+		if (team == eAITeam.kAIT_Good && ObjID(FEATURE_CREATURE_GOOD) > -1)
+			return false;
 		
 		return true;
 	}

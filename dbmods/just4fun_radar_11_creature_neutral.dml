@@ -1,0 +1,25 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to detect whether the base mod has been applied or not. If it
+// adds a property to a vanilla game object, we can maybe look for that.
+// But we can't check whether the base mod's new CreateArch objects exist or
+// not, since we don't necessarily know what IDs they'll end up with.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+/*
+================================================================================
+== Enable Dynamic Features =====================================================
+================================================================================
+*/
+
+// This is a nonfunctional metaproperty we don't even assign to anything. We
+// instead use its existence to control certain behaviors in the .nut files. In
+// theory we could use custom values in config files and Engine.ConfigGetRaw()
+// as well, but I'm trying to stick with the "just drop the files in place"
+// approach, rather than instructing people to edit config files by hand.
+
+CreateArch "MetaProperty" "J4FRadarEnableCreatureN"
