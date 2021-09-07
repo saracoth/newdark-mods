@@ -2,7 +2,7 @@
 // may be some cases where it's easier to write code here to support them.
 // For example, for the IsLoot handling.
 
-// TODO: why is Thief 2 randomly crashing on starting the first OM? seems to occur with FEATURE_LOOT specificially, as all other DML files are fine.
+// TODO: why is Thief 2 randomly crashing on starting the first OM? seems to occur with FEATURE_LOOT specificially, as all other DML files are fine. commenting out the lootdar receptron has no effect, either
 // TODO: can we track readables? including tracking whether they've already been read in this mission?
 // TODO: how do we setup proxies for things other than stim-pinged loot and contained stuff?
 //	we could add receptrons to more stuff, but now we're getting into potential performance issues by stimming so many things
@@ -553,6 +553,23 @@ class J4FRadarChildDetector extends J4FRadarUtilities
 {
 	function OnBeginScript()
 	{
+		// Stagger these out with timers. If there's a ton of containers
+		// with this script going off at the same time, there's a chance
+		// the game will overstress itself and crash.
+		if (!IsDataSet("J4FRadarContentReviewTimer"))
+		{
+			local beginTimer = SetOneShotTimer("J4FRadarContentReview", ((self % 900) + 100) / 1000.0);
+			SetData("J4FRadarContentReviewTimer", beginTimer);
+		}
+	}
+	
+	function OnTimer()
+	{
+		if (message().name != "J4FRadarContentReview")
+			return;
+		
+		ClearData("J4FRadarContentReviewTimer");
+		
 		// TODO:
 		print(format("Begin child %s %i", Object.GetName(Object.Archetype(self)), self));
 		
