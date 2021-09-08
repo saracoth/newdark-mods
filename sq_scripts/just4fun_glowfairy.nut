@@ -526,6 +526,19 @@ better to let the drop be completely processed before we put it back.
 		switch (timerName)
 		{
 			case "J4FFairyMotion":
+				// If the creature died, douse the fairy. Otherwise, we
+				// can lose our creature-tailing safety net and have the
+				// fairy light up the area. Us, the body, etc.
+				if (followTarget > 0 && Property.Get(followTarget, "AI_Mode") == eAIMode.kAIM_Dead)
+				{
+					DouseFairy();
+					
+					// This plays a specific sound file by name. We could also look into
+					// using the pluck_harp sound schema, which has more control over the
+					// volume level and selects from among three different sounds.
+					Sound.PlayAtObject(fairyId, "harp3", playerId);
+				}
+				
 				// If the fairy is hidden, we don't need to process its motion.
 				if (fairyDoused)
 				{
@@ -665,17 +678,11 @@ better to let the drop be completely processed before we put it back.
 				{
 					// Following a specific ingame creature. We think.
 					
-					// Is the creature still valid?
+					// Has a target creature become invalid in some way?
+					// NOTE: We check for dead creatures above here.
 					if (
 						// Has it stopped existing?
 						!Object.Exists(followTarget)
-						// If it's not the player, is it dead?
-						|| (
-							// Not the player.
-							followTarget != playerId
-							// But it is dead. (Or knocked out, etc.)
-							&& Property.Get(followTarget, "AI_Mode") == eAIMode.kAIM_Dead
-						)
 					)
 					{
 						// Dang. It's gone now. Thankfully the default behavior is to halt.
