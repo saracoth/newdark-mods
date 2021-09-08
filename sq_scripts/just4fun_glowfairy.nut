@@ -27,6 +27,7 @@ class J4FFairyController extends SqRootScript
 	doubleClickTime = 0.5;
 	minRadius = 12.0;
 	minTailRadius = 0.5;
+	tailDouseRadius = 0.75;
 	maxRadius = 100.0;
 	playerTailRadius = 30.0;
 	minSpeed = 5.0;
@@ -138,6 +139,7 @@ class J4FFairyController extends SqRootScript
 		doubleClickTime = userparams().DoubleClickTime;
 		minRadius = userparams().MinRadius;
 		minTailRadius = userparams().MinTailRadius;
+		tailDouseRadius = userparams().TailDouseRadius;
 		maxRadius = userparams().MaxRadius;
 		playerTailRadius = userparams().PlayerTailRadius;
 		minSpeed = userparams().MinSpeed;
@@ -168,8 +170,7 @@ class J4FFairyController extends SqRootScript
 		PGroup.SetActive(fairyLightId, false);
 		PGroup.SetActive(fairyTrailId, false);
 		
-		// Make note of the previous light level, then douse it.
-		SetData("wasLightLevel", Property.Get(fairyLightId, "SelfLit"));
+		// Douse the fairy's light.
 		Property.Remove(fairyLightId, "SelfLit");
 		
 		// Yet another text change to indicate status.
@@ -393,8 +394,8 @@ class J4FFairyController extends SqRootScript
 			PGroup.SetActive(fairyLightId, true);
 			PGroup.SetActive(fairyTrailId, true);
 			
-			// Restore previous light level.
-			Property.SetSimple(fairyLightId, "SelfLit", GetData("wasLightLevel"));
+			// Restore original light level from the archetype.
+			Property.SetSimple(fairyLightId, "SelfLit", Property.Get(ObjID("J4FFairyBody"), "SelfLit"));
 			
 			// Visible re-summoning effect.
 			local igniteId = Object.BeginCreate("MagicMissileHit");
@@ -525,6 +526,15 @@ better to let the drop be completely processed before we put it back.
 		switch (timerName)
 		{
 			case "J4FFairyMotion":
+				// If the fairy is hidden, we don't need to process its motion.
+				if (fairyDoused)
+				{
+					// Just continue repeating the timer until they become active
+					// again.
+					SetOneShotTimer("J4FFairyMotion", updateInterval);
+					return;
+				}
+				
 				// We'll need this later, in a few places.
 				local fairyPos = Object.Position(fairyId);
 				
@@ -822,6 +832,19 @@ better to let the drop be completely processed before we put it back.
 				
 				// Apply new light radius.
 				Property.SetSimple(fairyLightId, "SelfLitRad", newRadius);
+				
+				// If following someone other than our player and they got too close
+				// for comfort, then douse the light entirely.
+				if (followTarget < 1 || followTarget == playerId || playerDistance > tailDouseRadius)
+				{
+					// Restore original light level from the archetype.
+					Property.SetSimple(fairyLightId, "SelfLit", Property.Get(ObjID("J4FFairyBody"), "SelfLit"));
+				}
+				else
+				{
+					// Douse the fairy's light.
+					Property.Remove(fairyLightId, "SelfLit");
+				}
 				
 				// NOTE: Increasing brightness may help slightly at long distances,
 				// but above a certain point it's like staring into the sun, and the
