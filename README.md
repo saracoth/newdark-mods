@@ -18,8 +18,8 @@ For curious modders, I'd rank these mods from least complex to most complex, in 
 1. Keyring
 2. Ghost Mode
 3. Minion Summoner
-4. Radar
-5. Fairy Light
+4. Fairy Light
+5. Radar
 
 ### Fairy Light (Thief 1/Gold/2)
 
