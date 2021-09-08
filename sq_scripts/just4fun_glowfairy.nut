@@ -655,8 +655,18 @@ better to let the drop be completely processed before we put it back.
 				{
 					// Following a specific ingame creature. We think.
 					
-					// Does it still exist?
-					if (!Object.Exists(followTarget))
+					// Is the creature still valid?
+					if (
+						// Has it stopped existing?
+						!Object.Exists(followTarget)
+						// If it's not the player, is it dead?
+						|| (
+							// Not the player.
+							followTarget != playerId
+							// But it is dead. (Or knocked out, etc.)
+							&& Property.Get(followTarget, "AI_Mode") == eAIMode.kAIM_Dead
+						)
+					)
 					{
 						// Dang. It's gone now. Thankfully the default behavior is to halt.
 						
@@ -669,8 +679,12 @@ better to let the drop be completely processed before we put it back.
 						
 						// Relatively light orange, in the default thief particle color palette.
 						Property.Set(fairyLightId, "ParticleGroup", "2nd color", 122);
+						
+						// This plays a specific sound file by name. We could also look into
+						// using the pluck_harp sound schema, which has more control over the
+						// volume level and selects from among three different sounds.
+						Sound.PlayAtObject(fairyId, "harp3", playerId);
 					}
-					// NOTE: If we wanted, we could also check whether they're alive or not.
 					else
 					{
 						// I'm not sure how we can detect the target's dimensions. Without
