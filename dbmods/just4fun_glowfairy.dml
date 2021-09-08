@@ -69,7 +69,7 @@ CreateArch "Tulz" "J4FFairyControlBell"
     {
 		// NOTE: Windows's default double-click interval is 500ms, but we can
 		// tweak our value here as needed.
-        "" UpdateInterval=0.25;DoubleClickTime=0.2;MaxRange=100;MinRadius=12.0;MinTailRadius=0.1;MaxRadius=100.0;PlayerTailRadius=30.0;MinSpeed=5.0;MinPlayerTailSpeed=25.0;TargetJourneyTime=0.75;SafetyUnits=2
+        "" UpdateInterval=0.05;DoubleClickTime=0.2;MaxRange=100;MinRadius=12.0;MinTailRadius=0.1;MaxRadius=100.0;PlayerTailRadius=30.0;MinSpeed=5.0;MinPlayerTailSpeed=25.0;TargetJourneyTime=0.75;SafetyUnits=2
     }
 }
 

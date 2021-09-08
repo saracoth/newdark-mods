@@ -1,4 +1,7 @@
 // =============================================================================
+
+const FEATURE_OLD_CONTROL_SCHEME = "J4FOldFairyControls";
+
 // This script goes on the control inventory item.
 class J4FFairyController extends SqRootScript
 {
@@ -143,6 +146,283 @@ class J4FFairyController extends SqRootScript
 		safetyUnits = userparams().SafetyUnits;
 	}
 	
+	function DouseFairy()
+	{
+		// This logic is for dousing or halting an existing fairy only.
+		if (fairyId == 0 || fairyDoused)
+			return;
+		
+		// Remember that we've disabled stuff, so we know to turn it
+		// on later.
+		fairyDoused = true;
+		SetData("fairyDoused", fairyDoused);
+		
+		// Since re-igniting the fairy places them in front of the player
+		// again, there's no real purpose to gaze or creature following.
+		// Go into halt/waiting mode instead.
+		followTarget = 0;
+		SetData("followTarget", followTarget);
+		
+		// Halt the visible effects. Since the only visible parts of
+		// the fairy are particle effects, we just stop them.
+		PGroup.SetActive(fairyLightId, false);
+		PGroup.SetActive(fairyTrailId, false);
+		
+		// Make note of the previous light level, then douse it.
+		SetData("wasLightLevel", Property.Get(fairyLightId, "SelfLit"));
+		Property.Remove(fairyLightId, "SelfLit");
+		
+		// Yet another text change to indicate status.
+		Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_hiding: \"Tinker's Bell (Hiding)\"");
+		
+		// NOTE: We're skipping any kind of visual de-summoning effect,
+		// since disabling the particle effect as we do still causes
+		// those particles to linger for a few seconds before fading.
+	}
+	
+	function HaltFairy()
+	{
+		// No target means no movement.
+		followTarget = 0;
+		SetData("followTarget", followTarget);
+		
+		// Update the controller item name for extra clarity.
+		Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
+		
+		// Light green, in the default thief particle color palette.
+		Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
+	}
+	
+	function FairyGaze()
+	{
+		// We use negative target values to indicate gaze following.
+		followTarget = -1;
+		SetData("followTarget", followTarget);
+		
+		// Update the controller item name for extra clarity.
+		Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_gaze: \"Tinker's Bell (Gazing)\"");
+		
+		// Fairy default. Light blue, in the default thief particle color palette.
+		Property.Set(fairyLightId, "ParticleGroup", "2nd color", 217);
+	}
+	
+	function BeginFairySearch()
+	{
+		// Finding a target to follow is a multi-step, asynchronous process.
+		// We can't get a list of nearby suitable targets ourselves, and must
+		// instead rely on the Act/React system's radius stimulations to do
+		// it for us. However, we can't trigger a radius stim either. Instead,
+		// the fairy must be constantly bursting its check in a radius. So
+		// we normally "disable" it by setting the fairy's arSrcScale to 0.
+		// That multiplies all incoming and outgoing stims by 0. This doesn't
+		// stop the radius effect, but it means that creatures/etc. will
+		// receive a 0 and should ignore it.
+		
+		// So, step 1 in this follower candidate finding process:
+		// Allow normal fairy stim values.
+		
+		// Now, because this is an asychronous process, that means other stuff
+		// can happen while we're waiting for the final results. That can
+		// include the player double clicking us a second time. So before we
+		// do anything, check whether the fairy is already "on."
+		
+		if (followerSearchTimer != 0)
+		{
+			// Fairy is already sending stimuli to nearby creatures. Just wait.
+			return;
+		}
+		
+		// Otherwise, we need to kick off the process.
+		
+		// Allow normal fairy stim values.
+		Property.SetSimple(fairyId, "arSrcScale", 1.0);
+		
+		// Let the player know what we're doing.
+		Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_search: \"Tinker's Bell (Searching)\"");
+		
+		// Light green, in the default thief particle color palette.
+		Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
+		
+		// Now we wait. But what does waiting mean, exactly? For starters, the
+		// fairy is pulsing its search once per X seconds. So we have to wait at
+		// least that long to be sure no creatures were in the area.
+		followerSearchTimer = SetOneShotTimer("J4FFollowerFinalize", 0.6);
+		SetData("followerSearchTimer", followerSearchTimer);
+		
+		//In practice, we might not have to wait as long, so we could end up
+		// replacing this timer with a (hopefully) shorter one once at least
+		// one candidate responds.
+		fastFollowerTimer = false;
+		SetData("fastFollowerTimer", fastFollowerTimer);
+		
+		// While we wait, maybe we should stop moving around.
+		followTarget = 0;
+		SetData("followTarget", followTarget);
+	}
+	
+	function SummonFairy()
+	{
+		local zeros = vector(0);
+		local justAhead = vector(5, 0, 1);
+		
+		// On first use, initialize the fairy.
+		if (fairyId == 0)
+		{
+			// For all the objects, rather than use Object.Create() directly,
+			// we will use BeginCreate() and EndCreate() to allow us to set up
+			// any necessary properties before the creation process finishes.
+			
+			// Create the home marker.
+			homeId = Object.BeginCreate("TerrPt");
+			Object.Teleport(homeId, justAhead, zeros, playerId);
+			Object.EndCreate(homeId);
+			SetData("homeId", homeId);
+			
+			// And a second marker as well.
+			markerId = Object.BeginCreate("TerrPt");
+			Object.Teleport(markerId, justAhead, zeros, playerId);
+			Object.EndCreate(markerId);
+			SetData("markerId", markerId);
+			
+			// With both markers on the map, we can create a loop between them.
+			local homeToMarker = Link.Create("TPath", homeId, markerId);
+			local markerToHome = Link.Create("TPath", markerId, homeId);
+			// The default data for these kinds of links is 0 speed, no pause,
+			// and allow nice curving paths. We need to change the "Speed"
+			// property from its default value.
+			LinkTools.LinkSetData(homeToMarker, "Speed", minSpeed);
+			LinkTools.LinkSetData(markerToHome, "Speed", minSpeed);
+			
+			SetData("markerToHomeId", markerToHome);
+			markerToHomeId = markerToHome;
+			SetData("homeToMarkerId", homeToMarker);
+			homeToMarkerId = homeToMarker;
+			
+			// Now create the fairy and link it to the home marker.
+			fairyId = Object.BeginCreate("J4FFairy");
+			Object.Teleport(fairyId, justAhead, zeros, playerId);
+			local fairyToHome = Link.Create("TPathInit", fairyId, homeId);
+			Object.EndCreate(fairyId);
+			SetData("fairyId", fairyId);
+			
+			// Toggling this now avoids a jarring teleport to the
+			// markers after we first teleport them. Doing this here
+			// seems to allow the engine to do its one-time snap to
+			// the TPathInit link now, when the fairy and its markers
+			// are all in the same spot.
+			Property.Set(fairyId, "MovingTerrain", "Active", false);
+			Property.Set(fairyId, "MovingTerrain", "Active", true);
+			
+			// The game should have created our particle attachments. We'll
+			// be changing some properties of these attachments, so grab
+			// references to them now to simplify things later.
+			
+			// Passing a 0 for the second parameter seems to indicate we
+			// either don't know or don't care. Either way, it gave us the
+			// link we needed, despite not yet knowing the fairy part ObjIDs.
+			foreach (testLinkId in Link.GetAll("ParticleAttachment", 0, fairyId))
+			{
+				local testLink = sLink(testLinkId);
+				local linkToArchetypeName = Object.GetName(Object.Archetype(testLink.source));
+				
+				// Is this a link to the body?
+				if (linkToArchetypeName == "J4FFairyBody")
+				{
+					// It is. Keep a reference to the body.
+					fairyLightId = testLink.source;
+					SetData("fairyLightId", fairyLightId);
+				}
+				// How about the tail/trail effect?
+				else if (linkToArchetypeName == "J4FFairyTail")
+				{
+					// It is. Keep a reference to the trail.
+					fairyTrailId = testLink.source;
+					SetData("fairyTrailId", fairyTrailId);
+				}
+				
+				// Those should be the only two particle effect links,
+				// so let's keep looping until we've processed both.
+			}
+			
+			// Additional magical puff to imply a summoning effect.
+			local telepoofId = Object.BeginCreate("MagicMissileHit");
+			// This teleport is the ideal in theory, but sometimes the
+			// game hasn't processed the teleportation of the attachment
+			// links. So the fairy core has been positioned, but the
+			// visible fairy pieces are out of place.
+			Object.Teleport(telepoofId, zeros, zeros, fairyLightId);
+			// Unfortunately, while this is more reliable, the effect is
+			// always off center. So it's just reliably wrong.
+			//Object.Teleport(telepoofId, justAhead, zeros, playerId);
+			Object.EndCreate(telepoofId);
+			
+			// Sound effect to go along with the summoning.
+			// This plays a specific sound file by name. We could also look into
+			// using the pluck_harp sound schema, which has more control over the
+			// volume level and selects from among three different sounds.
+			Sound.PlayAtObject(fairyId, "harp1", playerId);
+			
+			// Give the fairy a reference to us.
+			SendMessage(fairyId, "ControllerHello", self);
+			
+			// Default mode.
+			FairyGaze();
+			
+			// Begin controlling fairy motion.
+			SetOneShotTimer("J4FFairyMotion", updateInterval);
+			
+			// Yes, we summoned a fairy.
+			return true;
+		}
+		// If fairy was doused, then re-enable it.
+		else if (fairyDoused)
+		{
+			// Put things in front of the player again.
+			Object.Teleport(markerId, justAhead, zeros, playerId);
+			Object.Teleport(homeId, justAhead, zeros, playerId);
+			Object.Teleport(fairyId, justAhead, zeros, playerId);
+			
+			// Sound effect to go along with the summoning.
+			// This plays a specific sound file by name. We could also look into
+			// using the pluck_harp sound schema, which has more control over the
+			// volume level and selects from among three different sounds.
+			Sound.PlayAtObject(fairyId, "harp1", playerId);
+			
+			// Resume the visible effects. Since the only visible parts of
+			// the fairy are particle effects, we just activate them.
+			PGroup.SetActive(fairyLightId, true);
+			PGroup.SetActive(fairyTrailId, true);
+			
+			// Restore previous light level.
+			Property.SetSimple(fairyLightId, "SelfLit", GetData("wasLightLevel"));
+			
+			// Visible re-summoning effect.
+			local igniteId = Object.BeginCreate("MagicMissileHit");
+			// This teleport is the ideal in theory, but sometimes the
+			// game hasn't processed the teleportation of the attachment
+			// links. So the fairy core has been positioned, but the
+			// visible fairy pieces are out of place.
+			Object.Teleport(igniteId, zeros, zeros, fairyLightId);
+			// Unfortunately, while this is more reliable, the effect is
+			// always off center. So it's just reliably wrong.
+			//Object.Teleport(igniteId, justAhead, zeros, playerId);
+			Object.EndCreate(igniteId);
+			
+			// Remember that it's no longer doused.
+			fairyDoused = false;
+			SetData("fairyDoused", fairyDoused);
+			
+			// Default mode.
+			FairyGaze();
+			
+			// Yes, we summoned a fairy.
+			return true;
+		}
+		
+		// No, didn't need to summon the fairy.
+		return false;
+	}
+	
 	function OnContained()
 	{
 		// Our (current/former/potential) container.
@@ -170,16 +450,38 @@ class J4FFairyController extends SqRootScript
 				if (containerId != playerId)
 					return;
 				
-				// This logic is for dousing and disabling an existing fairy only.
+				// This logic is for dousing or halting an existing fairy only.
 				if (fairyId == 0 || fairyDoused)
 					return;
+				
+				// And this counts as an interaction, so gets a sound effect.
+				Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
+				
+				// Perform the intended action.
+				if (ObjID(FEATURE_OLD_CONTROL_SCHEME) < 0)
+				{
+					DouseFairy();
+				}
+				else
+				{
+					// Halt the fairy if needed.
+					if (followTarget != 0)
+					{
+						HaltFairy();
+					}
+					else
+					{
+						// Otherwise, switch back to default gaze mode.
+						FairyGaze();
+					}
+				}
 				
 				// I tested this out, and it was unable to prevent dropping the item.
 				//BlockMessage();
 				
 				// So we'll have to put it back in short order. Note that doing so
 				// immediately, inside this function, would cause issues noted below.
-				SetOneShotTimer("J4FFairyDouse", 0.001);
+				SetOneShotTimer("J4FFakeDropUndo", 0.001);
 				
 				// Let's prevent it from visibly appearing in the world until then.
 				Property.SetSimple(self, "RenderAlpha", 0.0);
@@ -543,33 +845,29 @@ better to let the drop be completely processed before we put it back.
 				// is quieter than the raw sound, but has exactly one sound file.
 				Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
 				
-				// If we were halted or following the player, follow their gaze instead.
-				if (followTarget == 0 || followTarget == playerId)
+				// Perform the intended action.
+				if (ObjID(FEATURE_OLD_CONTROL_SCHEME) < 0)
 				{
-					followTarget = -1;
-					
-					// Update the controller item name for extra clarity.
-					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_gaze: \"Tinker's Bell (Gazing)\"");
-					
-					// Fairy default. Light blue, in the default thief particle color palette.
-					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 217);
+					// If we were halted or following the player, follow their gaze instead.
+					if (followTarget == 0 || followTarget == playerId)
+					{
+						FairyGaze();
+					}
+					else
+					{
+						// If we were already following their gaze, or following some other
+						// NPC, stop moving.
+						HaltFairy();
+					}
 				}
 				else
 				{
-					// If we were already following their gaze, or following some other
-					// NPC, stop moving.
-					followTarget = 0;
-					
-					// Update the controller item name for extra clarity.
-					Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
-					
-					// Light green, in the default thief particle color palette.
-					Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
+					// Either summon the fairy in its default gaze mode, or douse it.
+					if (!SummonFairy())
+					{
+						DouseFairy();
+					}
 				}
-				
-				// In either case, we want to remember the follow target between
-				// saving/loading, so store it.
-				SetData("followTarget", followTarget);
 				
 				break;
 			case "J4FFollowerFinalize":
@@ -628,7 +926,7 @@ better to let the drop be completely processed before we put it back.
 				}
 				
 				break;
-			case "J4FFairyDouse":
+			case "J4FFakeDropUndo":
 				// Put it back. We're abusing the drop mechanics to add another
 				// interaction with the bell, without truly truly dropping it.
 				Link.Create(LinkTools.LinkKindNamed("Contains"), playerId, self);
@@ -644,193 +942,19 @@ better to let the drop be completely processed before we put it back.
 				// Restore the visibility.
 				Property.SetSimple(self, "RenderAlpha", 1.0);
 				
-				// Remember that we've disabled stuff, so we know to turn it
-				// on later.
-				fairyDoused = true;
-				SetData("fairyDoused", fairyDoused);
-			
-				// Since re-igniting the fairy places them in front of the player
-				// again, there's no real purpose to gaze or creature following.
-				// Go into halt/waiting mode instead.
-				followTarget = 0;
-				SetData("followTarget", followTarget);
-				
-				// Halt the visible effects. Since the only visible parts of
-				// the fairy are particle effects, we just stop them.
-				PGroup.SetActive(fairyLightId, false);
-				PGroup.SetActive(fairyTrailId, false);
-				
-				// Make note of the previous light level, then douse it.
-				SetData("wasLightLevel", Property.Get(fairyLightId, "SelfLit"));
-				Property.Remove(fairyLightId, "SelfLit");
-				
-				// Yet another text change to indicate status.
-				Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_hiding: \"Tinker's Bell (Hiding)\"");
-				
-				// And this counts as an interaction, so gets a sound effect.
-				Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
-				
-				// NOTE: We're skipping any kind of visual de-summoning effect,
-				// since disabling the particle effect as we do still causes
-				// those particles to linger for a few seconds before fading.
-				
 				break;
 		}
 	}
 	
 	function OnFrobInvEnd()
 	{
-		local zeros = vector(0);
-		local justAhead = vector(5, 0, 1);
-		
-		// On first use, initialize the fairy.
-		if (fairyId == 0)
+		// Fairy summoning is it own action, and ignores doubleclick detection.
+		if (SummonFairy())
 		{
-			// For all the objects, rather than use Object.Create() directly,
-			// we will use BeginCreate() and EndCreate() to allow us to set up
-			// any necessary properties before the creation process finishes.
+			// We had an interaction, so play the usual interaction sound.
+			Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
 			
-			// Create the home marker.
-			homeId = Object.BeginCreate("TerrPt");
-			Object.Teleport(homeId, justAhead, zeros, playerId);
-			Object.EndCreate(homeId);
-			SetData("homeId", homeId);
-			
-			// And a second marker as well.
-			markerId = Object.BeginCreate("TerrPt");
-			Object.Teleport(markerId, justAhead, zeros, playerId);
-			Object.EndCreate(markerId);
-			SetData("markerId", markerId);
-			
-			// With both markers on the map, we can create a loop between them.
-			local homeToMarker = Link.Create("TPath", homeId, markerId);
-			local markerToHome = Link.Create("TPath", markerId, homeId);
-			// The default data for these kinds of links is 0 speed, no pause,
-			// and allow nice curving paths. We need to change the "Speed"
-			// property from its default value.
-			LinkTools.LinkSetData(homeToMarker, "Speed", minSpeed);
-			LinkTools.LinkSetData(markerToHome, "Speed", minSpeed);
-			
-			SetData("markerToHomeId", markerToHome);
-			markerToHomeId = markerToHome;
-			SetData("homeToMarkerId", homeToMarker);
-			homeToMarkerId = homeToMarker;
-			
-			// Now create the fairy and link it to the home marker.
-			fairyId = Object.BeginCreate("J4FFairy");
-			Object.Teleport(fairyId, justAhead, zeros, playerId);
-			local fairyToHome = Link.Create("TPathInit", fairyId, homeId);
-			Object.EndCreate(fairyId);
-			SetData("fairyId", fairyId);
-			
-			// Toggling this now avoids a jarring teleport to the
-			// markers after we first teleport them. Doing this here
-			// seems to allow the engine to do its one-time snap to
-			// the TPathInit link now, when the fairy and its markers
-			// are all in the same spot.
-			Property.Set(fairyId, "MovingTerrain", "Active", false);
-			Property.Set(fairyId, "MovingTerrain", "Active", true);
-			
-			// The game should have created our particle attachments. We'll
-			// be changing some properties of these attachments, so grab
-			// references to them now to simplify things later.
-			
-			// Passing a 0 for the second parameter seems to indicate we
-			// either don't know or don't care. Either way, it gave us the
-			// link we needed, despite not yet knowing the fairy part ObjIDs.
-			foreach (testLinkId in Link.GetAll("ParticleAttachment", 0, fairyId))
-			{
-				local testLink = sLink(testLinkId);
-				local linkToArchetypeName = Object.GetName(Object.Archetype(testLink.source));
-				
-				// Is this a link to the body?
-				if (linkToArchetypeName == "J4FFairyBody")
-				{
-					// It is. Keep a reference to the body.
-					fairyLightId = testLink.source;
-					SetData("fairyLightId", fairyLightId);
-				}
-				// How about the tail/trail effect?
-				else if (linkToArchetypeName == "J4FFairyTail")
-				{
-					// It is. Keep a reference to the trail.
-					fairyTrailId = testLink.source;
-					SetData("fairyTrailId", fairyTrailId);
-				}
-				
-				// Those should be the only two particle effect links,
-				// so let's keep looping until we've processed both.
-			}
-			
-			// Additional magical puff to imply a summoning effect.
-			local telepoofId = Object.BeginCreate("MagicMissileHit");
-			// This teleport is the ideal in theory, but sometimes the
-			// game hasn't processed the teleportation of the attachment
-			// links. So the fairy core has been positioned, but the
-			// visible fairy pieces are out of place.
-			Object.Teleport(telepoofId, zeros, zeros, fairyLightId);
-			// Unfortunately, while this is more reliable, the effect is
-			// always off center. So it's just reliably wrong.
-			//Object.Teleport(telepoofId, justAhead, zeros, playerId);
-			Object.EndCreate(telepoofId);
-			
-			// Sound effect to go along with the summoning.
-			// This plays a specific sound file by name. We could also look into
-			// using the pluck_harp sound schema, which has more control over the
-			// volume level and selects from among three different sounds.
-			Sound.PlayAtObject(fairyId, "harp1", playerId);
-			
-			// Give the fairy a reference to us.
-			SendMessage(fairyId, "ControllerHello", self);
-			
-			// Default mode is staying still. The frob will probably change
-			// it to gaze-following in a few moments, unless they're double-
-			// clicking and the fairy searches for a follow target instead.
-			followTarget = 0;
-			SetData("followTarget", followTarget);
-			
-			// Update the controller item name for extra clarity.
-			Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_halt: \"Tinker's Bell (Waiting)\"");
-			
-			// Light green, in the default thief particle color palette.
-			Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
-			
-			// Begin controlling fairy motion.
-			SetOneShotTimer("J4FFairyMotion", updateInterval);
-		}
-		// If fairy was doused, then re-enable it.
-		else if (fairyDoused)
-		{
-			// Put things in front of the player again.
-			Object.Teleport(markerId, justAhead, zeros, playerId);
-			Object.Teleport(homeId, justAhead, zeros, playerId);
-			Object.Teleport(fairyId, justAhead, zeros, playerId);
-			
-			// Resume the visible effects. Since the only visible parts of
-			// the fairy are particle effects, we just activate them.
-			PGroup.SetActive(fairyLightId, true);
-			PGroup.SetActive(fairyTrailId, true);
-			
-			// Restore previous light level.
-			Property.SetSimple(fairyLightId, "SelfLit", GetData("wasLightLevel"));
-			
-			// Visible re-summoning effect.
-			local igniteId = Object.BeginCreate("MagicMissileHit");
-			// This teleport is the ideal in theory, but sometimes the
-			// game hasn't processed the teleportation of the attachment
-			// links. So the fairy core has been positioned, but the
-			// visible fairy pieces are out of place.
-			Object.Teleport(igniteId, zeros, zeros, fairyLightId);
-			// Unfortunately, while this is more reliable, the effect is
-			// always off center. So it's just reliably wrong.
-			//Object.Teleport(igniteId, justAhead, zeros, playerId);
-			Object.EndCreate(igniteId);
-			
-			// Remember that it's no longer doused.
-			fairyDoused = false;
-			SetData("fairyDoused", fairyDoused);
-			
-			// Now let the regular frob scripts take over again.
+			return;
 		}
 		
 		// We can't necessarily take immediate action, because we need to detect
@@ -858,58 +982,9 @@ better to let the drop be completely processed before we put it back.
 		// NOTE: The single-click functionality is in the OnTimer message
 		// instead. Everything below this point is for double-clicking.
 		
-		// Finding a target to follow is a multi-step, asynchronous process.
-		// We can't get a list of nearby suitable targets ourselves, and must
-		// instead rely on the Act/React system's radius stimulations to do
-		// it for us. However, we can't trigger a radius stim either. Instead,
-		// the fairy must be constantly bursting its check in a radius. So
-		// we normally "disable" it by setting the fairy's arSrcScale to 0.
-		// That multiplies all incoming and outgoing stims by 0. This doesn't
-		// stop the radius effect, but it means that creatures/etc. will
-		// receive a 0 and should ignore it.
-		
-		// So, step 1 in this follower candidate finding process:
-		// Allow normal fairy stim values.
-		
-		// Now, because this is an asychronous process, that means other stuff
-		// can happen while we're waiting for the final results. That can
-		// include the player double clicking us a second time. So before we
-		// do anything, check whether the fairy is already "on."
-		
-		if (followerSearchTimer != 0)
-		{
-			// Fairy is already sending stimuli to nearby creatures. Just wait.
-			return;
-		}
-		
-		// Otherwise, we need to kick off the process.
-		
 		Sound.PlaySchemaAtObject(self, "dinner_bell", playerId);
 		
-		// Allow normal fairy stim values.
-		Property.SetSimple(fairyId, "arSrcScale", 1.0);
-		
-		// Let the player know what we're doing.
-		Property.SetSimple(self, "GameName", "name_j4f_fairy_controller_search: \"Tinker's Bell (Searching)\"");
-		
-		// Light green, in the default thief particle color palette.
-		Property.Set(fairyLightId, "ParticleGroup", "2nd color", 246);
-		
-		// Now we wait. But what does waiting mean, exactly? For starters, the
-		// fairy is pulsing its search once per X seconds. So we have to wait at
-		// least that long to be sure no creatures were in the area.
-		followerSearchTimer = SetOneShotTimer("J4FFollowerFinalize", 0.6);
-		SetData("followerSearchTimer", followerSearchTimer);
-		
-		//In practice, we might not have to wait as long, so we could end up
-		// replacing this timer with a (hopefully) shorter one once at least
-		// one candidate responds.
-		fastFollowerTimer = false;
-		SetData("fastFollowerTimer", fastFollowerTimer);
-		
-		// While we wait, maybe we should stop moving around.
-		followTarget = 0;
-		SetData("followTarget", followTarget);
+		BeginFairySearch();
 	}
 	
 	function OnFollowCandidate()
