@@ -1030,6 +1030,13 @@ better to let the drop be completely processed before we put it back.
 			SetData("fastFollowerTimer", fastFollowerTimer);
 		}
 		
+		// Any candidate tells us the stim fired off, but we will
+		// otherwise ignore invalid candidates.
+		
+		// Ignore the dead.
+		if (Property.Get(candidateId, "AI_Mode") == eAIMode.kAIM_Dead)
+			return;
+		
 		// If this is our first candidate, accept them.
 		if (followTarget < 1)
 		{
