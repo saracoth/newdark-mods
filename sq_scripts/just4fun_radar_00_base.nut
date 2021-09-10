@@ -152,40 +152,6 @@ class J4FRadarToggler extends SqRootScript
 	}
 }
 
-class J4FRadarEchoReceiver extends J4FRadarUtilities
-{
-	// Most items of interest don't need this, and will instead directly
-	// register themselves with the radar system. Other items are trickier,
-	// and rely on the radius stim bursts to detect them as we draw near.
-	function OnJ4FRadarStimStimulus()
-	{
-		// message() for a stimulus includes a source and a sensor property.
-		// These are LinkIDs, not ObjIDs. So to get the objects themselves,
-		// we need to turn the numeric link ID into an sLink object. Now
-		// we can access the .source and .dest properties of the link.
-		local newPointOfInterest = sLink(message().source).source;
-		
-		// Rather than keep all the loot-specific logic in its own module,
-		// it's easier to keep it here. The loot module files are still
-		// required to enable these effects, because otherwise the enable
-		// metaproperty won't exist.
-		
-		if (
-			// The optional loot module is installed.
-			ObjID(FEATURE_LOOT) < 0
-			// And it's a loot item.
-			&& Object.InheritsFrom(newPointOfInterest, "IsLoot")
-			// But it does not yet have any POI metaproperty.
-			&& !Object.InheritsFrom(newPointOfInterest, POI_ANY)
-		)
-		{
-			Object.AddMetaProperty(newPointOfInterest, POI_LOOT);
-		}
-		
-		SetupProxyIfNeeded(newPointOfInterest);
-	}
-}
-
 // This a superclass for all items that the radar can display.
 class J4FRadarAbstractTarget extends J4FRadarUtilities
 {

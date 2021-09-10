@@ -16,14 +16,6 @@ FINGERPRINT
 
 /*
 ================================================================================
-== New Stims ===================================================================
-================================================================================
-*/
-
-CreateArch "Stimulus" "J4FRadarStim"
-
-/*
-================================================================================
 == Radar Control Item ==========================================================
 ================================================================================
 */
@@ -73,151 +65,7 @@ CreateArch "MetaProperty" "J4FRadarEnabledPlayer"
 	{
 		// This adds the control item to our inventory on game start.
 		"Script 0" "J4FGiveRadarItem"
-		// This allows us to receive ping responses for our J4FRadarStim
-		"Script 1" "J4FRadarEchoReceiver"
 		"Don't Inherit" FALSE
-	}
-}
-
-// Some items can't be safely scripted, so we'll also periodically ping
-// things near the player. Because they can't be scripted, however, and
-// because we can't use names in Target/Agent data, we instead need those
-// items to "reflect" the stim back at the player. The J4FRadarEchoReceiver
-// script will then processes the pinged items as needed.
-
-++Receptron "J4FRadarEnabledPlayer" "J4FRadarStim"
-{
-	// They'll reflect back negative values, so listen only for those.
-	Min None
-	Max -0.1
-	
-	Target Me
-	Agent Source
-	
-	Effect "stim_script_msg"
-	{
-		"Flags" "[None]"
-	}
-}
-
-// A close distance, the effect will go through walls. Further away, not.
-// NOTE: There's a limit to how many targets the game will process in a
-// single stim, so some smaller radii are used to  help ensure that
-// nearby items are detected. Otherwise, there is no guarantee that near
-// items will be stimulated and distant ones ignored.
-// 
-// We also use faster pulses for close ranges, and slower for long
-// ranges, to hopefully reduce overall CPU burden.
-
-++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
-{
-	Intensity 1.0
-	
-	Propagator "Radius"
-	{
-		Shape
-		{
-			"Radius" 25.0
-			"Flags" "[None]"
-			"Dispersion" None
-		}
-		Life
-		{
-			"Flags" "No Max Firings"
-			"Period" 500
-			"Max Firings" 1
-			"Intensity Slope" 0.0
-		}
-	}
-}
-
-++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
-{
-	Intensity 1.0
-	
-	Propagator "Radius"
-	{
-		Shape
-		{
-			"Radius" 50.0
-			"Flags" "[None]"
-			"Dispersion" None
-		}
-		Life
-		{
-			"Flags" "No Max Firings"
-			"Period" 1000
-			"Max Firings" 1
-			"Intensity Slope" 0.0
-		}
-	}
-}
-
-++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
-{
-	Intensity 1.0
-	
-	Propagator "Radius"
-	{
-		Shape
-		{
-			"Radius" 75.0
-			"Flags" "[None]"
-			"Dispersion" None
-		}
-		Life
-		{
-			"Flags" "No Max Firings"
-			"Period" 2000
-			"Max Firings" 1
-			"Intensity Slope" 0.0
-		}
-	}
-}
-
-// Also hit stuff at a greater distance, but only if we can see it.
-
-++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
-{
-	Intensity 1.0
-	
-	Propagator "Radius"
-	{
-		Shape
-		{
-			"Radius" 100.0
-			"Flags" "Line of Sight (raycast)"
-			"Dispersion" None
-		}
-		Life
-		{
-			"Flags" "No Max Firings"
-			"Period" 3000
-			"Max Firings" 1
-			"Intensity Slope" 0.0
-		}
-	}
-}
-
-++StimSource "J4FRadarEnabledPlayer" "J4FRadarStim"
-{
-	Intensity 1.0
-	
-	Propagator "Radius"
-	{
-		Shape
-		{
-			"Radius" 125.0
-			"Flags" "Line of Sight (raycast)"
-			"Dispersion" None
-		}
-		Life
-		{
-			"Flags" "No Max Firings"
-			"Period" 4000
-			"Max Firings" 1
-			"Intensity Slope" 0.0
-		}
 	}
 }
 
@@ -294,10 +142,6 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarReadablePOI"
 	}
 }
 
-// Once loot has been identified, we'll flag it with this metaproperty. That
-// will attach the desired script to the item and nullify the radar stim from
-// now on.
-
 CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
 {
 	+ObjProp "Scripts"
@@ -305,17 +149,6 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
 		"Script 0" "J4FRadarLootTarget"
 		"Don't Inherit" FALSE
 	}
-}
-
-++Receptron "J4FRadarLootPOI" "J4FRadarStim"
-{
-	Min None
-	Max None
-	
-	Target Me
-	Agent Source
-	
-	Effect "Abort"
 }
 
 /*
@@ -327,9 +160,8 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
 // The IsLoot metaproperty is a tricky thing. We can't attach scripts directly,
 // and Agent/Target limitations prevent us from doing anything too clever with
 // the act/react system. So flagging loot items as interesting involves a mix
-// of techniques, including stimulating items near the player. The metaproperty
-// below can be attached to items linked to loot in various ways, allowing them
-// to flag the loot that way.
+// of techniques. The metaproperty below can be attached to items linked to
+// loot in various ways, allowing them to flag the loot that way.
 
 CreateArch "MetaProperty" "J4FRadarContentLinkChecker"
 {
