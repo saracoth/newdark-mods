@@ -11,7 +11,7 @@ These instructions assume you've already launched the game at least once and set
 5. Change an existing key binding or add a new one. The "inv_select" bindings select or equip an inventory item or weapon.
 6. Save the user.bnd file.
 
-At this point, you may want to save your keybinds again. Perhaps to a different slot and name, rather than overwriting your previously saved bindings.
+At this point, you may want to launch the game save your keybinds again. Perhaps to a different slot and name, rather than overwriting your previously saved bindings.
 
 Here's an example change:
 
