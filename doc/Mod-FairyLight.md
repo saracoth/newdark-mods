@@ -19,4 +19,6 @@ When tailing the player, the fairy will project a larger light radius for your c
 **Optional extras**:
 * [dbmods\just4fun_glowfairy_orig_control.dml](../dbmods/just4fun_glowfairy_orig_control.dml?raw=1) (Original control scheme. Dropping the bell douses the fairy. A single ring switches between waiting and gaze following.)
 
+**Keybind item name** ([What's this?](Keybinds.md)): j4ffairycontrolbell
+
 *Modder's Notes*: Fairy motion is based on elevators and other moving terrain. Some juggling is required to keep the movement butter smooth, but it's more visually appealing than teleporting a light directly. That would require much more frequent updates, which could affect performance. Using an ObjRaycast() instead of PortalRaycast() could eliminate the "flies through doors" effect if one so wanted. As for selecting targets to follow, that uses a combination of the act/react system to find targets within an area, and several layers of scripting to process the results.

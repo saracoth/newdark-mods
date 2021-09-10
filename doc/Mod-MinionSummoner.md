@@ -13,4 +13,6 @@ Minions have a time limit. About five seconds for the default shadow minion, and
 **Optional extras**:
 * [dbmods\just4fun_summoner_modmod.dml](../dbmods/just4fun_summoner_modmod.dml?raw=1) (fire element variant)
 
+**Keybind item name** ([What's this?](Keybinds.md)): j4fsummoningtoken
+
 *Modder's Notes*: This mod demonstrates creating new objects in the game world. It's 100% script-based rather than using the act/react system. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible. As a result, it lacks some features, like the duration limit.

@@ -10,4 +10,6 @@ This is not perfect invisibility, since NPCs can retroactively notice you after 
 * [dbmods\just4fun_ghost_mode.dml](../dbmods/just4fun_ghost_mode.dml?raw=1)
 * [sq_scripts\just4fun_ghost_mode.nut](../sq_scripts/just4fun_ghost_mode.nut?raw=1)
 
+**Keybind item name** ([What's this?](Keybinds.md)): j4fghosttoggler
+
 *Modder's Notes*: This mod demonstrates adding and removing metaproperties, as well as copying specific properties from one object to another. It's 100% script-based rather than using the act/react system. The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible. As a result, it lacks the slowfall effect.

@@ -41,6 +41,8 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 **Optional pickpocketable detection (purses, quivers, etc.)**: White indicators.
 * [dbmods\just4fun_radar_10_pocketdar.dml](../dbmods/just4fun_radar_10_pocketdar.dml?raw=1)
 
+**Keybind item name** ([What's this?](Keybinds.md)): j4fradarcontrolitem
+
 ## Modder's Notes
 
 This mod uses the same scripting features someone would use to create new HUD elements. Instead of positioning them on specific parts of the screen, these overlays are created, destroyed, and repositioned to match the location of objects in the game world.
