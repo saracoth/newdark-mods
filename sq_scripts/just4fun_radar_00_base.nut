@@ -270,10 +270,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// "Contains" can indicate pickpocketable belt items, etc. All
 		// negative enum values are rendered, while 0 and up are hidden
 		// inside the container itself.
-		// TODO: The game does not always update the locations of
-		// linked pickpocketable items, if the creature itself is
-		// not rendered. In some cases, we do still want to use the
-		// container as the display target.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
 		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
 		{
@@ -283,6 +279,25 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		}
 		
 		return target;
+	}
+	
+	// The game does not always update the locations of linked
+	// pickpocketable items, if the creature itself is not rendered.
+	// For corner cases like this, we can fall back to the
+	// creature's location to display the point of interest.
+	function AltDisplayTarget()
+	{
+		local linkToMyContainer = Link.GetOne("Contains", 0, PoiTarget());
+		// Negative link data is used for renderable contents, like
+		// belts and quivers.
+		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") < 0)
+		{
+			// There's a handy LinkDest() function, but to get the source we need
+			// to instantiate the whole link object.
+			return sLink(linkToMyContainer).source;
+		}
+		
+		return "";
 	}
 	
 	// Subclasses can override this to define how items can become temporarily
@@ -448,7 +463,15 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			if (newBlessed)
 			{
-				SendMessage(interfaceId, "J4FRadarDetected", self, DisplayTarget(), GetData("J4FRadarColor") + (GetData("J4FRadarUncapDistance") ? "1" : "0"));
+				SendMessage(interfaceId,
+					"J4FRadarDetected",
+					// data
+					self,
+					// data2
+					DisplayTarget(),
+					// data3
+					GetData("J4FRadarColor") + (GetData("J4FRadarUncapDistance") ? "1" : "0") + AltDisplayTarget()
+					);
 			}
 			else
 			{
@@ -967,8 +990,14 @@ class J4FRadarUi extends J4FRadarUtilities
 			// distance indicator as well. So instead of
 			// "W" for white, it's "W0" for white with capped
 			// distance and "W1" for white with uncapped.
+			// After that, an optional "alternative display
+			// item" feature was added to help with pickpocket
+			// items. So W1789 uses a white indicator, has
+			// no distance cap, and has an alternative display
+			// ID of 789.
 			poiMetadata.displayColor = message().data3.slice(0, 1);
 			poiMetadata.uncappedDistance = message().data3.slice(1, 2) == "1";
+			poiMetadata.altDisplayId = message().data3.len() > 2 ? message().data3.slice(2).tointeger() : 0;
 			
 			j4fRadarOverlayInstance.displayTargets[detectedId] <- poiMetadata;
 		}
@@ -1051,6 +1080,13 @@ class J4FRadarPointOfInterest
 	x = 0;
 	y = 0;
 	displayId = 0;
+	// Object.RenderedThisFrame() cannot be used in all contexts, so the
+	// overlay handler will check this last minute. If the displayId
+	// item is not rendered, we will place the indicator at this object's
+	// location instead. Optional extra for things like pickpocket items,
+	// whose location the game may not update if the creature is out of
+	// sight.
+	altDisplayId = 0;
 	displayColor = COLOR_DEFAULT;
 	uncappedDistance = false;
 	distance = 0;
@@ -1173,7 +1209,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		
 		foreach (managerId, poiMetadata in displayTargets)
 		{
-			local targetId = poiMetadata.displayId;
+			// The target to display. Usually the displayId, but can
+			// be an optional altDisplayId in some cases.
+			local targetId = (poiMetadata.altDisplayId > 0 && !Object.RenderedThisFrame(poiMetadata.displayId)) ? poiMetadata.altDisplayId : poiMetadata.displayId;
 			local displayColor = poiMetadata.displayColor;
 			
 			// If we wanted to keep track of a running total of detected,
