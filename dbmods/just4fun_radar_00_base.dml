@@ -94,8 +94,19 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarContainerPOI"
 CreateArch "J4FRadarPointOfInterest" "J4FRadarDevicePOI"
 CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI"
 CreateArch "J4FRadarPointOfInterest" "J4FRadarCreaturePOI"
-CreateArch "J4FRadarPointOfInterest" "J4FRadarReadablePOI"
 CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
+
+// This one is an oddball, because rather than rely on proxy items, we need
+// to watch the book/scroll/etc. for frob events. We can only do that if we
+// can attach a script to the item itself.
+CreateArch "J4FRadarPointOfInterest" "J4FRadarReadablePOI"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarReadableTarget"
+		"Don't Inherit" FALSE
+	}
+}
 
 /*
 ================================================================================

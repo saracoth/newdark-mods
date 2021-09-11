@@ -121,6 +121,13 @@ class J4FRadarUtilities extends SqRootScript
 			// potions, which do the same in the vanilla game?
 			//&& Property.Possessed(forItem, "Scripts")
 			//&& Property.Get(forItem, "Scripts", "Don't Inherit")
+			//
+			// Then again, there's no way to monitor whether a
+			// specific book/scroll/etc. is being read other than
+			// to listen for its frob messages. We can only do
+			// that by attaching a script to the readable itself.
+			// So don't proxy readables.
+			&& !Object.InheritsFrom(forItem, POI_READABLE)
 		)
 		{
 			// Flag the target item as having been proxied.
@@ -169,6 +176,10 @@ class J4FRadarUtilities extends SqRootScript
 				}
 				else if (Object.InheritsFrom(forItem, POI_READABLE))
 				{
+					// In theory, we should never make it here, sicne we're
+					// avoiding proxying of readables. Including this code
+					// for completeness, and in case we need to work out
+					// a proxy for readables in the future.
 					Object.AddMetaProperty(proxyMarker, POI_READABLE);
 					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarReadableTarget");
 				}
@@ -220,7 +231,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// interest. In older versions of this mod, we would also
 	// script target items directly in some cases, in which case
 	// "self" would be the target.
-	Our point-of-interest metaproperties and their scripts might
+	// Our point-of-interest metaproperties and their scripts might
 	// be attached to a proxy marker object instead. So the item of
 	// interest may be self, or it may be something linked to self.
 	function PoiTarget()
@@ -611,7 +622,6 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 	// Looking for a frob event is the only way we can tell when we've been
 	// read. Even that might have weird corner cases through scripting, but
 	// this should be at least 99% effective.
-	// TODO: using proxies for all items breaks this, since we don't see these events
 	
 	function OnFrobWorldEnd()
 	{
