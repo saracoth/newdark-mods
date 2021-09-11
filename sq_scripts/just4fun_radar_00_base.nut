@@ -515,8 +515,12 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 		local target = PoiTarget();
 		
 		// Other states: Asleep, Efficient, Super Efficient, Normal, and Combat
-		// TODO: corpses added directly to a mission seem to use some other state or status to be dead :/
 		if (Property.Get(target, "AI_Mode") == eAIMode.kAIM_Dead)
+			return false;
+		
+		// Lobotomized AI are commonly used for corpses placed in
+		// the mission editor.
+		if (Property.Get(target, "AI") == "null")
 			return false;
 		
 		// Ignore nonhostiles unless the user has specifically enabled
