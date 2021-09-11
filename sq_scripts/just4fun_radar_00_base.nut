@@ -1,23 +1,35 @@
-// NOTE: this script is mostly isolated from the optional modules, but there
-// may be some cases where it's easier to write code here to support them.
-// For example, for the IsLoot handling.
+// NOTE: To keep installation simpler, all scripting is handled in this file.
+// However, some functionality only kicks in when extra DML files are installed
+// to enable those features.
 
+// The point-of-interest overlays will bounce between these two transparencies.
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
-// NOTE: This also helps with various limitations. For example, NewDark
-// v1.27 only allows 64 simultaneous overlays to exist.
+// NOTE: This can help performance in some cases, but is mostly a user
+// convenience. With the device radar, for example, there's no way to know when
+// a switch or lever has become uninteresting. Rather than bother the player
+// about a switch halfway across the map, we can limit their display to nearby
+// items instead.
 const MAX_DIST = 150;
 // While NewDark v1.27 allows a max of 64, we'll intentionally cap
 // ourselves at a smaller value. After all, we don't want to hog all
 // 64 and not leave any for other, more sanely-written mods!
 const MAX_POI_RENDERED = 32;
+// While I've been able to scan *all* object IDs in a level in a single tick
+// of a script timer without issue, it might be wise to spread that out over
+// time for performance or other reason.
 const MAX_SCANNED_PER_LOOP = 500;
-// Set this to lower than MAX_SCANNED_PER_LOOP to limit dynamic
-// adding of POI scripts or proxy objects in the scanning routine.
+// Set this to lower than MAX_SCANNED_PER_LOOP to limit how many points of
+// interest will be registered in a single pass through the level scanning.
 const MAX_INITIALIZED_PER_LOOP = 500;
+// If our object scanning has this many completely empty loops in a row, we
+// consider the scan complete. There's no way I can see to know how many
+// objects exist in a level, object IDs can have gaps in them, and object IDs
+// can even be reused as objects are destroyed and created. This should be set
+// high enough to be thorough, but not so high as to waste time on empty space.
 const MAX_EMPTY_SCAN_GROUPS = 3;
 
-// 1 (move) + 2 (script) + 128 (default)
+// 1 (move) + 2 (script) + 128 (default) = 131
 const INTERESTING_FROB_FLAGS = 131;
 
 // We just want a character not likely to be used in the text IDs.
@@ -33,7 +45,12 @@ const COLOR_CREATURE = "R";
 const COLOR_READABLE = "B";
 
 // Various class, metaproperty, and object name strings.
+// This one Marker instance is placed in each level. It sets up the UI overlay.
+// It can also be used to track any kind of global state we need to persist
+// between saving and loading.
 const OVERLAY_INTERFACE = "J4FRadarUiInterfacer";
+// If these metaproperties exist, they enable certain optional features. They
+// don't need to be assigned to anything.
 const FEATURE_LOOT = "J4FRadarEnableLoot";
 const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
@@ -43,6 +60,7 @@ const FEATURE_CONTAINER = "J4FRadarEnableContainer";
 const FEATURE_CREATURE = "J4FRadarEnableCreature";
 const FEATURE_CREATURE_GOOD = "J4FRadarEnableCreatureG";
 const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
+// These metaproperties are used to flag items as interesting to the radar.
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_CONTAINER = "J4FRadarContainerPOI";
@@ -53,6 +71,7 @@ const POI_LOOT = "J4FRadarLootPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_PROXY_FLAG = "J4FRadarProxied";
+// Link flavour used to associate a POI proxy marker with its target.
 const PROXY_ATTACH_METHOD = "PhysAttach";
 
 // Between the lack of a true static/utility method class concept
@@ -62,12 +81,28 @@ const PROXY_ATTACH_METHOD = "PhysAttach";
 // these utility methods.
 class J4FRadarUtilities extends SqRootScript
 {
-	// Some items are flagged to not inherit scripts. This applies
-	// to their archetypes, as well as metaproperties assigned
-	// directly to the object itself. In these cases, the meta-
-	// property is useless to us. The item will not alert the
-	// radar system that it exists, and we cannot benefit from any
-	// bless functions on the item.
+	// While we can attach scripts to existing objects, sometimes
+	// that's a challenge. Stuff like IsLoot is a metaproperty, so
+	// we can't just attach a metaproperty to IsLoot. Other
+	// objects are set to not inherit scripts, so even if we did
+	// attach a metaproperty with a new script, it would have no
+	// effect.
+	//
+	// Instead, we create invisible markers and attach scripts to
+	// them. We could leave them completely disconnected from the
+	// target object if we wanted, and tell them what they're
+	// representing by sending script messages after we create it.
+	// However, we use a particular kind of Link, to ensure that
+	// if the target object is destroyed, the game automatically
+	// destroys our marker as well. If we wanted to manage that
+	// manually, we'd have to be mindful of the possibility that
+	// object IDs are reused over time. Every time someone shoots
+	// an arrow, that creates and new object. When that arrow
+	// hits flesh or stone, it gets destroyed. The game does not
+	// continually use higher and higher object IDs, and is
+	// capable of reusing smaller ones that have been freed up.
+	// If we weren't mindful of all that, a POI could suddenly
+	// point to an inappropriate or irrelevant object.
 	function SetupProxyIfNeeded(forItem)
 	{
 		if (
@@ -90,18 +125,21 @@ class J4FRadarUtilities extends SqRootScript
 		{
 			// Flag the target item as having been proxied.
 			Object.AddMetaProperty(forItem, POI_PROXY_FLAG);
-		
+			
 			// Create a new proxy marker on top of the item it is proxying.
+			// The location shouldn't actually matter, but there's no harm
+			// in setting it.
 			local proxyMarker = Object.BeginCreate(POI_PROXY_MARKER);
 			Object.Teleport(proxyMarker, Object.Position(forItem), Object.Facing(forItem));
 			Object.EndCreate(proxyMarker);
-		
+			
 			// Link these items together.
 			local proxyAttach = Link.Create(PROXY_ATTACH_METHOD, proxyMarker, forItem);
-		
-			// Give the proxy marker a POI metaproperty of the
-			// target item. Giving it more than one seems to
-			// cause issues, given the way we implemented things.
+			
+			// Copy the POI metaproperty of the target item, then activate
+			// the appropriate script on the proxy. We could have also
+			// created more metaproperties, some with scripts (for the marker),
+			// and some without scripts (for the interesting objects).
 			if (Object.InheritsFrom(forItem, POI_ANY) && !Object.InheritsFrom(proxyMarker, POI_ANY))
 			{
 				if (Object.InheritsFrom(forItem, POI_LOOT))
@@ -134,7 +172,7 @@ class J4FRadarUtilities extends SqRootScript
 					Object.AddMetaProperty(proxyMarker, POI_READABLE);
 					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarReadableTarget");
 				}
-				// last resort
+				// If no more specific POI type applies, fall back to the generic one.
 				else
 				{
 					Object.AddMetaProperty(proxyMarker, POI_GENERIC);
@@ -154,6 +192,9 @@ class J4FRadarToggler extends SqRootScript
 {
 	function OnFrobInvEnd()
 	{
+		// We'll rely on the central marker to remember our on/off state.
+		// Tell it we're toggling it, and it will tell us what our new
+		// state is.
 		local newState = SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarToggle", self);
 		if (newState)
 		{
@@ -175,7 +216,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		SetData("J4FRadarUncapDistance", uncapDistance);
 	}
 	
-	// Our point-of-interest metaproperties and their scripts might
+	// A proxy marker keeps track of the actual target item of
+	// interest. In older versions of this mod, we would also
+	// script target items directly in some cases, in which case
+	// "self" would be the target.
+	Our point-of-interest metaproperties and their scripts might
 	// be attached to a proxy marker object instead. So the item of
 	// interest may be self, or it may be something linked to self.
 	function PoiTarget()
@@ -195,6 +240,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		}
 		else
 		{
+			
 			whoAmI = self;
 		}
 		
@@ -213,6 +259,10 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// "Contains" can indicate pickpocketable belt items, etc. All
 		// negative enum values are rendered, while 0 and up are hidden
 		// inside the container itself.
+		// TODO: The game does not always update the locations of
+		// linked pickpocketable items, if the creature itself is
+		// not rendered. In some cases, we do still want to use the
+		// container as the display target.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
 		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
 		{
@@ -267,7 +317,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	
 	// This is a common need for many points of interest, and implemented
 	// here so they can add it to their BlessItem() if desired.
-	function IsPickup()
+	function IsWorldFrobbable()
 	{
 		local target = PoiTarget();
 		
@@ -285,7 +335,10 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// can be rendered. Instead, it just checks for certain things that
 	// are known to prevent rendering. There are others, like being
 	// contained inside a different object, not having a model, or
-	// having a model which is effectively empty.
+	// having a model which is effectively empty. Of course, the game
+	// can also skip rendering out-of-sight items, but we're specifically
+	// *not* concerned about that here. We want to know if the item
+	// would probably be rendered if we were staring at its location.
 	function IsRendered()
 	{
 		local target = PoiTarget();
@@ -316,9 +369,9 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		// Some types of containment make us invisible. Note that we
 		// also checked IsInOpenableContainer() above, which means
-		// it's okay if we're in a chest or something. This is to
-		// hide us when we can't be rendered because we're inside
-		// some other container, like a creature.
+		// we don't care about being in a chest or something. The
+		// logic below is for creatures or other "containers" who
+		// may or may not render us.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
 		// Are we contained by something in a way that prevent us from rendering?
 		if (
@@ -337,7 +390,8 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		return true;
 	}
 	
-	// This will fire on mission start and on reloading a save.
+	// This will fire on mission start, on reloading a save, and when
+	// an object with this script is created after the game has started.
 	function OnBeginScript()
 	{
 		// Default to unknown on a reload. Mostly so that we can be
@@ -347,15 +401,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// Depending on which order objects are set up, things like the
 		// overlay marker may not be ready yet. We'll add a slight
 		// startup delay before registering our existence with them.
-		// We also randomize the startup delay, partly to work around
-		// issues like duplicated scripts. For unknown reasons, one
-		// object can end up with multiple copies of our script so
-		// early in the mission setup that it happens before we use
-		// scripts to add metaproperties/scripts to anything. In fact,
-		// with Grenadz objects in "Sabotage at Soulforge", I was
-		// able to see these objects receive duplicate scripts so
-		// early that both scripts were given an OnSim message for
-		// the level start.
 		if (!IsDataSet("J4FRadarTargetReviewTimer"))
 		{
 			local beginTimer = SetOneShotTimer("J4FRadarTargetReview", 0.25);
@@ -379,6 +424,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			return;
 		}
 		
+		// Is it okay to display this item right now? Note that
+		// this doesn't include all checks, like showing only
+		// nearby items or items the camera is facing. This only
+		// determines whether we would want to show the item
+		// if it were right in front of us.
 		local newBlessed = BlessItem();
 		
 		// If our blessing status changes, add or remove us from the list
@@ -431,6 +481,7 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 		local target = PoiTarget();
 		
 		// Other states: Asleep, Efficient, Super Efficient, Normal, and Combat
+		// TODO: corpses added directly to a mission seem to use some other state or status to be dead :/
 		if (Property.Get(target, "AI_Mode") == eAIMode.kAIM_Dead)
 			return false;
 		
@@ -461,7 +512,7 @@ class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
 	// Ignore decorative/etc. things we can't pick up.
 	function BlessItem()
 	{
-		return base.BlessItem() && IsPickup() && IsRendered();
+		return base.BlessItem() && IsWorldFrobbable() && IsRendered();
 	}
 }
 
@@ -476,11 +527,13 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 	// Ignore empty containers and containers with points of interest.
 	// If we contain a POI item, the item should already be displaying
 	// us as its visual indicator, so the container itself doesn't
-	// need one of its own.
+	// need one of its own. (We're presuming that the contained item
+	// will bless itself. That's *not* a guarantee, and we could end
+	// up wrongfully hiding the container in some cases.)
 	function BlessItem()
 	{
-		// Also require IsPickup() to be sure we can try to open it.
-		if (!base.BlessItem() || !IsPickup() || !IsRendered())
+		// Also require IsWorldFrobbable() to be sure we can try to open it.
+		if (!base.BlessItem() || !IsWorldFrobbable() || !IsRendered())
 			return false;
 		
 		local target = PoiTarget();
@@ -517,10 +570,13 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 	
 	// Ignore invisible devices, which are sometimes used by
 	// mission authors to trigger scripted events. Note that
-	// we don't check IsPickup(), because that would prevent
-	// pressure plates from being indicated.
+	// we don't check IsWorldFrobbable(), because that would
+	// prevent pressure plates from being indicated.
 	function BlessItem()
 	{
+		// TODO: also ignore !Physics.ValidPos() devices?
+		// sometimes they're put outside level geometry rather
+		// than marked invisible
 		return base.BlessItem() && IsRendered();
 	}
 }
@@ -555,6 +611,7 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 	// Looking for a frob event is the only way we can tell when we've been
 	// read. Even that might have weird corner cases through scripting, but
 	// this should be at least 99% effective.
+	// TODO: using proxies for all items breaks this, since we don't see these events
 	
 	function OnFrobWorldEnd()
 	{
@@ -652,7 +709,7 @@ class J4FGiveRadarItem extends SqRootScript
     }
 }
 
-// This script goes on the marker we add to every mission. It sets up and
+// This script goes on one marker we add to every mission. It sets up and
 // tears down the overlay handler. We also use it to pass along messages
 // to the overlay handler, including persisted data with SetData()/GetData()
 class J4FRadarUi extends J4FRadarUtilities
@@ -673,7 +730,8 @@ class J4FRadarUi extends J4FRadarUtilities
 		// once either.
 		j4fRadarOverlayInstance.Teardown();
 	}
-
+	
+	// This will fire on start of mission and after reloading saves.
 	function OnBeginScript()
 	{
 		// Call our custom setup method, to do whatever we need to do
@@ -688,7 +746,10 @@ class J4FRadarUi extends J4FRadarUtilities
 		// Remember our enabled state.
 		j4fRadarOverlayInstance.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
 	}
-
+	
+	// Per sample documentation, it's best practice to tear down the
+	// overlay both when this instance is destroyed and when it
+	// receives an EndScript message.
 	function OnEndScript()
 	{
 		// Given that we have multiple things to do when tearing down
@@ -697,14 +758,14 @@ class J4FRadarUi extends J4FRadarUtilities
 		destructor();
 	}
 	
-	// Some items are stubbornly difficult to detect. In addition to
-	// flagging certain things with metaproperties, some require proxy
-	// objects because we still can't safely add scripts to them. And
-	// all sorts of IsLoot items are unsafe to script directly. So to
-	// help detect all items in the level, even at a distance, we'll
-	// loop through every object in the game world. Sort of. For now,
-	// we'll initialize the looping process. We only need this to
-	// happen once, when the mission starts.
+	// Because some items can be difficult to detect directly, through
+	// radius stims (limited range and limited number of recipients
+	// per burst), through metaproperties (can't be added to other
+	// metaproperties, can't attach scripts to Don't-Inherit items),
+	// etc., the most foolproof way of detecting all items of interest
+	// is to scan the entire level.
+	// When the level first starts, we'll queue up a scan of all the
+	// objects. The actual scanning happens in the timer function.
     function OnSim()
 	{
         if (message().starting)
@@ -737,12 +798,18 @@ class J4FRadarUi extends J4FRadarUtilities
 		local scanFromInclusive = GetData("AddToScanId");
 		// We will scan objects up to and excluding this value.
 		local scanCapExclusive = scanFromInclusive + MAX_SCANNED_PER_LOOP;
+		// Unless we bail out early, the next round of scans
+		// will start here.
 		SetData("AddToScanId", scanCapExclusive);
+		
+		// We need these variables to help track our loop ending
+		// logic.
 		local consecutiveEmptyGroups = GetData("ConsecutiveEmptyGroups");
 		local scannedAny = false;
-		// The game really, really struggles (or even crashes) when a
-		// ton of scripts initialize themselves at the same time. So
-		// limit how many scanned items we enable for radar here.
+		
+		// If creating a lot of POI items becomes a performance
+		// or other concern, MAX_INITIALIZED_PER_LOOP can limit
+		// how many of those we spin up on each loop.
 		local initializeCount = 0;
 		
 		// We need these IDs several times throughout the loop, so
@@ -763,7 +830,8 @@ class J4FRadarUi extends J4FRadarUtilities
 		// Loop through all the item IDs we're going to test this time.
 		for (local i = scanFromInclusive - 1; ++i < scanCapExclusive; )
 		{
-			// If we exceeded our limit, save this index for later.
+			// If we exceeded our limit, save this index for the next
+			// loop pass instead.
 			if (initializeCount > MAX_INITIALIZED_PER_LOOP)
 			{
 				SetData("AddToScanId", i);
@@ -806,7 +874,6 @@ class J4FRadarUi extends J4FRadarUtilities
 					{
 						Object.AddMetaProperty(i, lootPoiProperty);
 						checkProxy = true;
-						++initializeCount;
 					}
 					else if (
 						// The optional keys (equipment) module is installed.
@@ -819,7 +886,6 @@ class J4FRadarUi extends J4FRadarUtilities
 					{
 						Object.AddMetaProperty(i, keyPoiProperty);
 						checkProxy = true;
-						++initializeCount;
 					}
 					else if (
 						// The optional readables module is installed.
@@ -833,7 +899,6 @@ class J4FRadarUi extends J4FRadarUtilities
 					{
 						Object.AddMetaProperty(i, readablePoiProperty);
 						checkProxy = true;
-						++initializeCount;
 					}
 				}
 				
@@ -858,11 +923,13 @@ class J4FRadarUi extends J4FRadarUtilities
 				return;
 			}
 			
+			// Remember the incremented value for later.
 			SetData("ConsecutiveEmptyGroups", consecutiveEmptyGroups);
 		}
 		else if (consecutiveEmptyGroups > 0)
 		{
-			// Back to a clean slate.
+			// We had an empty patch, but we found something this
+			// time. Go back to a clean slate.
 			SetData("ConsecutiveEmptyGroups", 0);
 		}
 		
@@ -911,6 +978,8 @@ class J4FRadarUi extends J4FRadarUtilities
 		}
 	}
 	
+	// The radar toggler inventory item sends these messages to us,
+	// so we can track the on/off state here.
 	function OnJ4FRadarToggle()
 	{
 		local newState = !(IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState"));
@@ -919,6 +988,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		Reply(newState);
 	}
 	
+	// Checks whether we've already read a given book/scroll/etc. or not.
 	function OnJ4FRadarReadCheck()
 	{
 		// If we've never read anything, we haven't read you.
@@ -941,6 +1011,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		Reply(readText.find(checkText) != null);
 	}
 	
+	// Records that a book/scroll/etc. has just been read.
 	function OnJ4FRadarReadFlag()
 	{
 		// What we've read so far (if any).
@@ -976,9 +1047,9 @@ class J4FRadarPointOfInterest
 }
 
 // This is the actual overlay handler, following along with both squirrel
-// documentation and things like T2OverlaySample.nut. Rather than a generic
-// list of elements, we use a variable-sized pool of elements we manage on
-// each frame.
+// documentation and things like T2OverlaySample.nut. Rather than a list of
+// specific overlays for each interesting item, we use a variable-sized pool
+// of overlay we manage on each frame.
 //
 // NOTE: Documentation says that only one IDarkOverlayHandler can be defined
 // per OSM. However, I can confirm multiple IDarkOverlayHandler implementations
@@ -1005,11 +1076,14 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// Object ID integer keys (potentially pointing to proxy marker objects)
 	// with J4FRadarPointOfInterest instances for values.
 	displayTargets = {};
-	// This is a table whose keys are strings, indicating the color of the
-	// overlay. For example, "W" for white, "Y" for yellow, etc. The keys are
-	// arrays of overlay handles created with DarkOverlay.CreateTOverlayItem()
+	// This is a table whose keys are strings, indicating the indicator image
+	// they use. For example, RadarW64 for the large, white indicator, etc.
+	// The keys are arrays of overlay handles created with
+	// DarkOverlay.CreateTOverlayItem()
 	// or DarkOverlay.CreateTOverlayItemFromBitmap()
 	overlayPool = {};
+	// This uses the same keys as overlayPool, but the values are integers
+	// counting how many overlays of that type we've used this frame.
 	poolUsedThisFrame = {};
 	// Contains a list of points of interest to render on the current frame.
 	// See comments in DrawHUD() for an explanation of why we need to feed
@@ -1017,11 +1091,12 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	toDrawThisFrame = [];
 	// Used for alpha/opacity/transparency cycling effect.
 	currentWaveStep = 0;
-	// This is persisted elsewhere, on the marker object's script.
+	// Determines whether the display is enabled or not. We can't persist this
+	// through savegames here, so the marker object's script does that for us.
 	enabled = false;
 	
-	// This is used instead of log() functions to check for the power-
-	// of-twoness of a given value. Used in checking bitmap sizes.
+	// This is used instead of log() functions to quickly check for the
+	// power-of-twoness of a given value. Used in checking bitmap sizes.
 	powersOfTwo = {[1]=true,[2]=true,[4]=true,[8]=true,[16]=true,[32]=true,[64]=true};
 	// We may need this "constant" repeatedly, so grab it once.
 	logOfTwo = log(2);
@@ -1178,6 +1253,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// bitmap on those coordinates, instead of the top-left corner.
 		local overlayOffset = (overlaySize / 2);
 		
+		// This is the bitmap we'll display inside the overlay. We also
+		// use it as the key value for overlayPool and related tables.
 		local bitmapName = "Radar" + color + bitmapSize;
 		
 		// We need to find or create an overlay to use for this item.
@@ -1242,9 +1319,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			{
 				newBitmap = DarkOverlay.GetBitmap(bitmapName, "j4fres\\");
 				
-				// Images not installed in the needed location? Fallback. This
-				// bubble image has nothing to do with anything, but it does
-				// exist in both Thief games....
+				// Images not installed in the needed location? Fallback to
+				// this. There's no particular reason to choose this, except
+				// that it happens to exist in both Thief games.
 				if (newBitmap == -1)
 				{
 					newBitmap = DarkOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
@@ -1278,6 +1355,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// We'll need this to center the bitmap inside the new overlay.
 				local upgradedOffset = (overlaySize - bitmapSize) / 2;
 				
+				// This redirects generic functions like DrawBitmap so that
+				// they draw *inside* the overlay we're setting up.
 				if (DarkOverlay.BeginTOverlayUpdate(currentOverlay))
 				{
 					// These x/y coordinates are relative to the overlay itself.
@@ -1298,6 +1377,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// this type and need to make note of that.
 		poolUsedThisFrame[bitmapName] <- usedInPool + 1;
 		
+		// Return the overlay hander to our caller.
 		return currentOverlay;
 	}
 	
@@ -1357,6 +1437,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		return r;
 	}
 	
+	// We can pass this function name into the squirrel's native
+	// array sort() function.
 	function SortTargetByDistance(a, b)
 	{
 		if (a.distance < b.distance) return -1;
@@ -1383,15 +1465,16 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// NOTE: I've observed in Calendra's Legacy mission 2 (Midnight at
 	// Murkbell, a rather large map) that there are no performance issues
 	// on my machine, even if handling all radar-enabled items at all
-	// distances, including non-physical items that would otherwise be
-	// ignored. However, things like NewDark 1.27's limit of 64 overlay
-	// handles probably contributes to keeping that performing well.
+	// distances. Even when I ignore the BlessItem() function to display
+	// as many things as possible, but still invoke it to suffer the
+	// overhead of those bless checks. It could be that NewDark v1.27's
+	// limit of 64 overlay handles contributes to that performance.
 	function DrawTOverlay()
 	{
 		if (!enabled)
 			return;
 		
-		// NOTE: this count may be reduced if we truncate the array.
+		// NOTE: this count may be reduced later, if we truncate the array.
 		local toDrawCount = toDrawThisFrame.len();
 		
 		// Nothing to draw? Then we're done here. At worst, we'll
@@ -1399,7 +1482,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		if (toDrawCount < 1)
 			return;
 		
-		// If we're over our limit, keep the closest values and
+		// If we're over our limit, keep the closest POIs and
 		// discard the farther ones.
 		if (toDrawCount > MAX_POI_RENDERED)
 		{
@@ -1462,8 +1545,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			//	local useBitmapSize = GetTargetBitmapSizeFromScreenPercent(0.5 / drawMetadata.distance);
 			//
 			// The upside is that this is what feels most natural to us, and
-			// has the simplest math. We could possibly do something different
-			// to spread each bitmap size over various ranges. For example, if
+			// has the simplest math. However, to make the overlay a more
+			// useful indicator of distance, we can divide up the available
+			// bitmap sizes evenly across distances. For example, if
 			// our max distance were 128, each bitmap size would correspond to
 			// a range of 16 units. But translated into screen size %, that's
 			// basically saying we want 0-7 to be X, 8-15 to be 0.875X, 16-23
@@ -1472,11 +1556,11 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			local useBitmapSize = GetTargetBitmapSizeFromRangePercent(1 - (drawMetadata.distance / MAX_DIST));
 			
 			// Our method will make sure the X/Y/alpha/etc. is all sorted
-			// out for us.
+			// out for us. We only need to tell DarkOverlay to draw it later.
 			local currentOverlay = CreateOrUpdateOverlay(drawMetadata.displayColor, currentAlpha, useBitmapSize, drawMetadata.x, drawMetadata.y);
 			
-			// I've seen -1 returned when we try to create an overlay after
-			// too many already exist :(
+			// Functions like CreateTOverlayItem() return -1 if too many
+			// overlays exist. Our CreateOrUpdateOverlay() does the same.
 			if (currentOverlay != -1)
 			{
 				// And whether or not we drew the contents of the overlay earlier,
