@@ -23,35 +23,3 @@ FINGERPRINT
 // approach, rather than instructing people to edit config files by hand.
 
 CreateArch "MetaProperty" "J4FRadarEnableLoot"
-
-/*
-================================================================================
-== IsLoot Handling =============================================================
-================================================================================
-*/
-
-// IsLoot is a metaproperty, and actual loot items are scattered all over the
-// object hierarchy. And mission authors can slap IsLoot on any old random
-// thing in the mission if they want. So we want to identity items with this
-// metaproperty as interesting, but for the reasons noted in the base mod, we
-// shouldn't attach scripts to an existing object or metaproperty. We also can't
-// give a metaproperty to a metaproperty. So instead, we're using the ping/echo
-// system. When the player gets near, they will stimulate the loot. The loot
-// will reflect that signal back to the player, who will then flag the loot as
-// an item of interest.
-
-++Receptron "IsLoot" "J4FRadarStim"
-{
-	Min 0.1
-	Max None
-	
-	Target Source
-	Agent Me
-
-	Effect "stimulate"
-	{
-		"Stimulus" "J4FRadarStim"
-		"Multiply By" 0.00
-		"Then Add" -1.00
-	}
-}
