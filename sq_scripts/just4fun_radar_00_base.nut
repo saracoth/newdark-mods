@@ -612,10 +612,14 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 	// prevent pressure plates from being indicated.
 	function BlessItem()
 	{
-		// TODO: also ignore !Physics.ValidPos() devices?
-		// sometimes they're put outside level geometry rather
-		// than marked invisible
-		return base.BlessItem() && IsRendered();
+		if (!base.BlessItem() || !IsRendered())
+			return false;
+		
+		local target = PoiTarget();
+		
+		// Sometimes switches and buttons are placed outside
+		// the level geometry rather than make invisible.
+		return Physics.ValidPos(target);
 	}
 }
 
