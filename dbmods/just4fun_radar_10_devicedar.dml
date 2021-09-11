@@ -30,7 +30,7 @@ CreateArch "MetaProperty" "J4FRadarEnableDevice"
 ================================================================================
 */
 
-// These items will announce themselves to the radar system.
+// These items are flagged as interesting to the radar scanning system.
 
 +MetaProp "Lockboxes" "J4FRadarDevicePOI"
 +MetaProp "Switches" "J4FRadarDevicePOI"

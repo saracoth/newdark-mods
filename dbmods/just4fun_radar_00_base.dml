@@ -39,7 +39,7 @@ CreateArch "Compass2" "J4FRadarControlItem"
 		"Tool Action" "[None]"
 	}
 	
-	// This script will create the pinging "Marco" puff when used.
+	// This script will turn the radar effect on and off when frobbed.
 	+ObjProp "Scripts"
 	{
 		"Script 0" "J4FRadarToggler"
@@ -83,12 +83,13 @@ CreateArch "MetaProperty" "J4FRadarEnabledPlayer"
 
 // This is nonfunctional on its own, but serves as a common parent type for all
 // metaproperties that mark an item as interesting.
-
 CreateArch "MetaProperty" "J4FRadarPointOfInterest"
 
 // This is used when we don't have a more specific POI type to assign, but
 // know we're interested in a thing.
 CreateArch "J4FRadarPointOfInterest" "J4FRadarFallbackPOI"
+
+// The rest are to flag items for specific behaviors.
 CreateArch "J4FRadarPointOfInterest" "J4FRadarContainerPOI"
 CreateArch "J4FRadarPointOfInterest" "J4FRadarDevicePOI"
 CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI"
@@ -98,25 +99,25 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
 
 /*
 ================================================================================
-== Unscriptable Item Workaround ================================================
+== Radar Point-of-interest Proxies =============================================
 ================================================================================
 */
 
-// An item (be it an archetype or, more likely, an individual object in a level)
-// can be set to not inherit scripts. That includes those from metaproperties,
-// whether assigned to an archetype or to that specific object itself. And we
-// can't *safely* attach scripts directly to an object in squirrel. Yes, we can
-// modify the Scripts property. However, even just filling an empty slot with a
-// new script has side effects. The other scripts already on the object fire off
-// new BeginScript events. So either existing instances of scripts undergo weird
-// lifecycle changes, or perhaps additional copies of those scripts are being
-// attached instead. Either way, when something is marked as Don't Inherit, I
-// don't see any safe way to attach scripts to it.
+// There are some cases where scripts cannot be directly attached to an object
+// of interest. For example, anything marked as "don't inherit" scripts. It may
+// be possible to manually set a Script 1, Script 2, or Script 3 property if one
+// is available, but we're trying to avoid that, both in DML and in squirrel.
+// And attaching metaproperties to Don't-Inherit items will fail to attach any
+// scripts from that metaproperty.
 //
-// Enter these invisible markers. These act as stand-ins for unscriptable items,
-// and are attached to those items through links.
+// The least side-effecting method, so far, is to instead create a completely
+// separate object to attach scripts to. It will represent that interesting item
+// to the radar system on its behalf. These proxies could also be attached to
+// the original item with links, which should allow the game to destroy the
+// proxy if the original object gets destroyed. That simplifies POI cleanup.
 
-// This is the proxy object marker itself.
+// This is the proxy object marker itself. We create one of these for every
+// proxied POI item.
 CreateArch "Marker" "J4FRadarProxyPOI"
 
 // This non-functional metaproperty is used to flag whether an item has a proxy.

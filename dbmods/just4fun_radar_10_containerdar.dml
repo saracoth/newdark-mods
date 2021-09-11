@@ -30,7 +30,7 @@ CreateArch "MetaProperty" "J4FRadarEnableContainer"
 ================================================================================
 */
 
-// These items will announce themselves to the radar system.
+// These items are flagged as interesting to the radar scanning system.
 
 // NOTE: In thief 1, the Container archetype also has some purely decorative
 // items, which were moved to other places in Thief 2. To avoid detecting these

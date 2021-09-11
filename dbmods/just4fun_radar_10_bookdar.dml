@@ -30,7 +30,7 @@ CreateArch "MetaProperty" "J4FRadarEnableReadable"
 ================================================================================
 */
 
-// These items will announce themselves to the radar system.
+// These items are flagged as interesting to the radar scanning system.
 
 +MetaProp "Scroll" "J4FRadarReadablePOI"
 +MetaProp "Book" "J4FRadarReadablePOI"

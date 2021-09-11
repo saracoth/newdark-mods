@@ -30,7 +30,7 @@ CreateArch "MetaProperty" "J4FRadarEnableEquip"
 ================================================================================
 */
 
-// These items will announce themselves to the radar system.
+// These items are flagged as interesting to the radar scanning system.
 
 // In addition to some game-specific settings in other files, a few items are
 // common to both thief games.

@@ -30,6 +30,6 @@ CreateArch "MetaProperty" "J4FRadarEnableCreature"
 ================================================================================
 */
 
-// These items will announce themselves to the radar system.
+// These items are flagged as interesting to the radar scanning system.
 
 +MetaProp "Creature" "J4FRadarCreaturePOI"
