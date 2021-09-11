@@ -8,23 +8,23 @@ Currently, all mods are suitable for either Thief game. These mods use features 
 
 Installing and uninstalling mods like this will probably break existing saves. It's recommended to start a new game after installing or removing any of these mods.
 
-## Simple Method (TFix Installations Only)
+## Simple Method (TFix Installations)
 
 In the default TFix setup, the UserMods directory is already included in the list of mod paths.
 
 1. Find your Thief game folder. This could be something like "C:\Games\Thief 2 The Metal Age", or it may be in your "C:\GOG Games" folder somewhere. In any case, you're looking for the folder that has a Thief.exe or a Thief2.exe file.
-2. Inside your thief game folder, add a UserMods folder if one doesn't exist yet.
-3. Inside the UserMods folder, create a dbmods folder if one doesn't exist yet.
-4. Also create a sq_scripts folder.
-5. Some mods also require a j4fRes folder.
+2. Inside your thief game folder, add a UserMods folder if one doesn't exist yet. All CRF files will go here.
+3. Inside the UserMods folder, create a dbmods folder if one doesn't exist yet. All DML files will go here.
+4. Also create a sq_scripts folder. All NUT files will go here.
 
 In total, you should have stuff like this:
 * C:\Games\Thief 2 The Metal Age\UserMods
 * C:\Games\Thief 2 The Metal Age\UserMods\dbmods
 * C:\Games\Thief 2 The Metal Age\UserMods\sq_scripts
-* And maybe also "C:\Games\Thief 2 The Metal Age\UserMods\j4fRes" for some mods
 
 You can now download or copy files from this repository into the appropriate folders. Be sure to grab both the dbmods .dml files and the sq_scripts .nut files for a given mod!
+
+If a mod requires the j4fRes.crf file, that goes directly in the Usermods folder, like "C:\Games\Thief 2 The Metal Age\UserMods\j4fRes.crf"
 
 ## Alternative Method
 
@@ -42,7 +42,6 @@ Installation now proceeds as with the simple method, but with something like "C:
 * "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun"
 * "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun\dbmods"
 * "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun\sq_scripts"
-* "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun\j4fRes" (for mods that require a j4fRes folder)
 
 # Uninstalling
 
