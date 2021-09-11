@@ -11,10 +11,10 @@ const MAX_DIST = 150;
 // ourselves at a smaller value. After all, we don't want to hog all
 // 64 and not leave any for other, more sanely-written mods!
 const MAX_POI_RENDERED = 32;
-const MAX_SCANNED_PER_LOOP = 100;
+const MAX_SCANNED_PER_LOOP = 500;
 // Set this to lower than MAX_SCANNED_PER_LOOP to limit dynamic
 // adding of POI scripts or proxy objects in the scanning routine.
-const MAX_INITIALIZED_PER_LOOP = 100;
+const MAX_INITIALIZED_PER_LOOP = 500;
 const MAX_EMPTY_SCAN_GROUPS = 3;
 
 // 1 (move) + 2 (script) + 128 (default)
@@ -77,10 +77,15 @@ class J4FRadarUtilities extends SqRootScript
 			&& !Object.HasMetaProperty(forItem, POI_PROXY_FLAG)
 			// And it isn't a proxy itself.
 			&& !Object.InheritsFrom(forItem, POI_PROXY_MARKER)
-			// But it has its very own scripts.
-			&& Property.Possessed(forItem, "Scripts")
-			// And it's ignoring our metaproperty-based scripts.
-			&& Property.Get(forItem, "Scripts", "Don't Inherit")
+			// At one point, we only used proxy markers for
+			// don't-inherit scripted items. However, using a
+			// proxy for *all* detected items seems to improve
+			// stability. Attaching scripts via metaproperties
+			// seems to have odd effects in rare cases. I wonder
+			// what the implications are for things like speed
+			// potions, which do the same in the vanilla game?
+			//&& Property.Possessed(forItem, "Scripts")
+			//&& Property.Get(forItem, "Scripts", "Don't Inherit")
 		)
 		{
 			// Flag the target item as having been proxied.
@@ -102,31 +107,38 @@ class J4FRadarUtilities extends SqRootScript
 				if (Object.InheritsFrom(forItem, POI_LOOT))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_LOOT);
+					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarLootTarget");
 				}
 				else if (Object.InheritsFrom(forItem, POI_EQUIP))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_EQUIP);
+					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarEquipTarget");
 				}
 				else if (Object.InheritsFrom(forItem, POI_DEVICE))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_DEVICE);
+					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarDeviceTarget");
 				}
 				else if (Object.InheritsFrom(forItem, POI_CONTAINER))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
+					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarContainerTarget");
 				}
 				else if (Object.InheritsFrom(forItem, POI_CREATURE))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_CREATURE);
+					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarCreatureTarget");
 				}
 				else if (Object.InheritsFrom(forItem, POI_READABLE))
 				{
 					Object.AddMetaProperty(proxyMarker, POI_READABLE);
+					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarReadableTarget");
 				}
 				// last resort
 				else
 				{
 					Object.AddMetaProperty(proxyMarker, POI_GENERIC);
+					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarGrabbableTarget");
 				}
 			}
 			return true;
@@ -346,7 +358,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// the level start.
 		if (!IsDataSet("J4FRadarTargetReviewTimer"))
 		{
-			local beginTimer = SetOneShotTimer("J4FRadarTargetReview", (Data.RandFlt0to1() * 1.9) + 0.1);
+			local beginTimer = SetOneShotTimer("J4FRadarTargetReview", 0.25);
 			SetData("J4FRadarTargetReviewTimer", beginTimer);
 		}
 	}
@@ -773,13 +785,18 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
         if (message().starting)
 		{
-			// Start with objects 1 through whatever.
-			SetData("AddToScanId", 1);
-			SetData("ConsecutiveEmptyGroups", 0);
-			
-			SetOneShotTimer("J4FRadarMissionScan", 0.01);
+			QueueNewScan(0.01);
         }
     }
+	
+	function QueueNewScan(afterDelay)
+	{
+		// Start with objects 1 through whatever.
+		SetData("AddToScanId", 1);
+		SetData("ConsecutiveEmptyGroups", 0);
+		
+		SetOneShotTimer("J4FRadarMissionScan", afterDelay);
+	}
 	
 	// So the thing is, we don't know how many objects are in the
 	// mission. We know they have numeric IDs, generally starting
@@ -910,7 +927,10 @@ class J4FRadarUi extends J4FRadarUtilities
 			// Increment and test consecutiveEmptyGroups.
 			if (++consecutiveEmptyGroups > MAX_EMPTY_SCAN_GROUPS)
 			{
-				// We're done! Break the loop.
+				// We're done! Break the loop. We'll re-scan all
+				// the objects again periodically, to cover any
+				// new-to-the-mission items.
+				QueueNewScan(5.00);
 				return;
 			}
 			
@@ -923,7 +943,8 @@ class J4FRadarUi extends J4FRadarUtilities
 		}
 		
 		// Repeat! We're staggering the scans over time to avoid a
-		// huge lag spike at the beginning of large levels.
+		// potential start-of-level lag spike, but in practice that
+		// doesn't seem to be an issue. Still, better safe than sorry.
 		SetOneShotTimer("J4FRadarMissionScan", 0.1);
 	}
 	
