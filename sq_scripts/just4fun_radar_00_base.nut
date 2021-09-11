@@ -75,6 +75,8 @@ class J4FRadarUtilities extends SqRootScript
 			Object.InheritsFrom(forItem, POI_ANY)
 			// And it's not proxied yet.
 			&& !Object.HasMetaProperty(forItem, POI_PROXY_FLAG)
+			// And it isn't a proxy itself.
+			&& !Object.InheritsFrom(forItem, POI_PROXY_MARKER)
 			// But it has its very own scripts.
 			&& Property.Possessed(forItem, "Scripts")
 			// And it's ignoring our metaproperty-based scripts.
