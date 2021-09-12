@@ -1533,10 +1533,35 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// NOTE: this count may be reduced later, if we truncate the array.
 		local toDrawCount = toDrawThisFrame.len();
 		
-		// Nothing to draw? Then we're done here. At worst, we'll
-		// skip destroying all those overlays we didn't use.
-		if (toDrawCount < 1)
-			return;
+		// At one time, we checked whether toDrawCount < 1 and
+		// did an early return. However, there are instability
+		// issues that can occur if an overlay handle exists and
+		// is not used. This was not a reliably reproducible
+		// issue in the original code, but was easily doable
+		// when commenting out the DarkOverlay.DrawTOverlayItem()
+		// line. Plenty of overlays would exist and be set up
+		// and not a one of them would be drawn, and the crash
+		// would happen regularly. In the original code, I
+		// could *semi* reliably cause a crash in the following
+		// circumstances:
+		// 1) *Re*load a savegame. Not a requirement, but it
+		// seemed more likely to occur on the second or
+		// subsequent game load.
+		// 2) Get a radar indicator to appear on the screen.
+		// 3) Look in a direction with no indicators.
+		// 4) Open the menu.
+		// 5) Return to the game.
+		// 6) Very quickly look in the direction of a radar
+		// POI indicator again. The game will freeze on the frame
+		// before the indicator would be in view, then crash.
+		//
+		// With the early return removed, we now 100% guarantee
+		// that every overlay is either drawn or destroyed. I'd
+		// highly recommend that any overlay-related code in any
+		// mod do the same, to avoid potential instabilities.
+		// Issues may not occur 100% of the time, but it seems
+		// they can occur to unlucky players, so best to play it
+		// safe.
 		
 		// If we're over our limit, keep the closest POIs and
 		// discard the farther ones.
