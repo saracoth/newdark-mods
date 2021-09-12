@@ -427,10 +427,10 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// Depending on which order objects are set up, things like the
 		// overlay marker may not be ready yet. We'll add a slight
 		// startup delay before registering our existence with them.
-		if (!IsDataSet("J4FRadarTargetReviewTimer"))
+		if (!IsDataSet("J4FRadarReviewStarted"))
 		{
-			local beginTimer = SetOneShotTimer("J4FRadarTargetReview", 0.25);
-			SetData("J4FRadarTargetReviewTimer", beginTimer);
+			SetOneShotTimer("J4FRadarTargetReview", 0.25);
+			SetData("J4FRadarReviewStarted", true);
 		}
 	}
 	
@@ -438,8 +438,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	{
 		if (message().name != "J4FRadarTargetReview")
 			return;
-		
-		ClearData("J4FRadarTargetReviewTimer");
 		
 		// Does our interface exist yet?
 		local interfaceId = ObjID(OVERLAY_INTERFACE);
