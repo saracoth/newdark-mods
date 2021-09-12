@@ -4,7 +4,7 @@ class J4FDebugger extends SqRootScript
 	{
 		local currentMessage = message();
 		
-		print(format("Debug %s %i: %s %s %i -> %s %i [%i]", Object.GetName(Object.Archetype(self)), self, currentMessage.message, Object.GetName(Object.Archetype(currentMessage.from)), currentMessage.from, Object.GetName(Object.Archetype(currentMessage.to)), currentMessage.to, currentMessage.flags));
+		print(format("Debug %s (%s) %i: %s %s %i -> %s %i [%i]", Object.GetName(Object.Archetype(self)), Object.GetName(self), self, currentMessage.message, Object.GetName(Object.Archetype(currentMessage.from)), currentMessage.from, Object.GetName(Object.Archetype(currentMessage.to)), currentMessage.to, currentMessage.flags));
 		
 		if (currentMessage.data != null)
 		{
