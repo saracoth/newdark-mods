@@ -1194,9 +1194,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// data for DrawTOverlay later on.
 	function DrawHUD()
 	{
-		if (!enabled)
-			return;
-		
 		// Well, this is really, really awkward. Turns out that WorldToScreen()
 		// and GetObjectScreenBounds() only work in DrawHUD, not in DrawTOverlay.
 		// But if we want things like alpha/opacity, we have to rely on overlays.
@@ -1205,12 +1202,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// visible overlays.
 		toDrawThisFrame = [];
 		
-		// I'm unclear how squirrel handles modifying an object while
-		// enumerating through it. Given that some programming languages
-		// consider this a problem and either error out or behave
-		// unpredictably, we'll keep track of removed items here and
-		// then do the actual removing later.
-		local removeIds = [];
+		// Only try to populate the array if turned on.
+		if (!enabled)
+			return;
 		
 		// We'll use this for distance checking.
 		local cameraPos = Camera.GetPosition();
@@ -1271,16 +1265,6 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			poiMetadata.displayColor = displayColor;
 			poiMetadata.distance = targetDistance;
 			toDrawThisFrame.append(poiMetadata);
-		}
-		
-		// If we've slated any items for removal, process that list.
-		// Since the order doesn't matter, may as well loop through
-		// backwards. This is marginally more efficient, since we only
-		// have to grab the array length once, and we reference fewer
-		// variable values and more constant/literal values.
-		for (local i = removeIds.len(); --i > -1; )
-		{
-			delete displayTargets[removeIds[i]];
 		}
     }
 	
@@ -1527,8 +1511,11 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// limit of 64 overlay handles contributes to that performance.
 	function DrawTOverlay()
 	{
-		if (!enabled)
-			return;
+		// For the same reason as the removed toDrawCount < 1 mentioned
+		// below it's safest to avoid this. We should ensure every
+		// overlay in our pool is either drawn or destroyed.
+		//if (!enabled)
+		//	return;
 		
 		// NOTE: this count may be reduced later, if we truncate the array.
 		local toDrawCount = toDrawThisFrame.len();
