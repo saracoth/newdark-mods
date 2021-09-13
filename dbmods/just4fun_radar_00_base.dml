@@ -85,21 +85,86 @@ CreateArch "MetaProperty" "J4FRadarEnabledPlayer"
 // metaproperties that mark an item as interesting.
 CreateArch "MetaProperty" "J4FRadarPointOfInterest"
 
+// All archetypes from here on out are in pairs. The parent has no properties
+// and serves as a flag to identify what kind of POI something is. The child
+// has a script, and can be used for any needed processing.
+
 // This is used when we don't have a more specific POI type to assign, but
 // know we're interested in a thing.
 CreateArch "J4FRadarPointOfInterest" "J4FRadarFallbackPOI"
 
-// The rest are to flag items for specific behaviors.
+CreateArch "J4FRadarFallbackPOI" "J4FRadarFallbackPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarGrabbableTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+// The rest are for more specific behaviors.
+
 CreateArch "J4FRadarPointOfInterest" "J4FRadarContainerPOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarContainerPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarContainerTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 CreateArch "J4FRadarPointOfInterest" "J4FRadarDevicePOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarDevicePOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarDeviceTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarEquipTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 CreateArch "J4FRadarPointOfInterest" "J4FRadarCreaturePOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarCreaturePOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarCreatureTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarLootTarget"
+		"Don't Inherit" FALSE
+	}
+}
 
 // This one is an oddball, because rather than rely on proxy items, we need
 // to watch the book/scroll/etc. for frob events. We can only do that if we
 // can attach a script to the item itself.
 CreateArch "J4FRadarPointOfInterest" "J4FRadarReadablePOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarReadablePOI_S"
 {
 	+ObjProp "Scripts"
 	{
@@ -131,8 +196,15 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarReadablePOI"
 // proxied POI item.
 CreateArch "Marker" "J4FRadarProxyPOI"
 
-// This non-functional metaproperty is used to flag whether an item has a proxy.
-// It's quicker than searching through all its links to see if any of the linked
-// items happens to be a proxy, and speeds up simple "do I have a proxy yet?"
-// checks.
-CreateArch "MetaProperty" "J4FRadarProxied"
+/*
+================================================================================
+== Radar Point-of-interest Flags ===============================================
+================================================================================
+*/
+
+// This non-functional metaproperty is used to flag whether an item has been
+// initialized, whether by proxy or by attaching a script metaproperty directly.
+// In the case of proxies, it's quicker than searching through all its links to
+// see if any of the linked items happens to be a proxy, and speeds up simple
+// "do I have a proxy yet?" checks.
+CreateArch "MetaProperty" "J4FRadarPoiInitted"

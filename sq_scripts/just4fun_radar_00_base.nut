@@ -70,7 +70,7 @@ const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_LOOT = "J4FRadarLootPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
-const POI_PROXY_FLAG = "J4FRadarProxied";
+const POI_INIT_FLAG = "J4FRadarPoiInitted";
 // Link flavour used to associate a POI proxy marker with its target.
 const PROXY_ATTACH_METHOD = "PhysAttach";
 
@@ -88,7 +88,7 @@ class J4FRadarUtilities extends SqRootScript
 	// attach a metaproperty with a new script, it would have no
 	// effect.
 	//
-	// Instead, we create invisible markers and attach scripts to
+	// Sometimes, we create invisible markers and attach scripts to
 	// them. We could leave them completely disconnected from the
 	// target object if we wanted, and tell them what they're
 	// representing by sending script messages after we create it.
@@ -103,36 +103,36 @@ class J4FRadarUtilities extends SqRootScript
 	// capable of reusing smaller ones that have been freed up.
 	// If we weren't mindful of all that, a POI could suddenly
 	// point to an inappropriate or irrelevant object.
-	function SetupProxyIfNeeded(forItem)
+	function InitPointOfInterestIfNeeded(forItem)
 	{
+		// Do some quick checks up front.
 		if (
-			// It is a point of interest.
-			Object.InheritsFrom(forItem, POI_ANY)
-			// And it's not proxied yet.
-			&& !Object.HasMetaProperty(forItem, POI_PROXY_FLAG)
-			// And it isn't a proxy itself.
-			&& !Object.InheritsFrom(forItem, POI_PROXY_MARKER)
-			// At one point, we only used proxy markers for
-			// don't-inherit scripted items. However, using a
-			// proxy for *all* detected items seems to improve
-			// stability. Attaching scripts via metaproperties
-			// seems to have odd effects in rare cases. I wonder
-			// what the implications are for things like speed
-			// potions, which do the same in the vanilla game?
-			//&& Property.Possessed(forItem, "Scripts")
-			//&& Property.Get(forItem, "Scripts", "Don't Inherit")
-			//
-			// Then again, there's no way to monitor whether a
-			// specific book/scroll/etc. is being read other than
-			// to listen for its frob messages. We can only do
-			// that by attaching a script to the readable itself.
-			// So don't proxy readables.
+			// It's not a point of interest.
+			!Object.InheritsFrom(forItem, POI_ANY)
+			// Or it's already been processed.
+			|| Object.HasMetaProperty(forItem, POI_INIT_FLAG)
+			// Or it's a proxy to some other item.
+			|| Object.InheritsFrom(forItem, POI_PROXY_MARKER)
+		)
+		{
+			return false;
+		}
+		
+		// By default, assume we're going to attach scripts to the
+		// item itself.
+		local scriptWhat = forItem;
+		
+		// Do we need a proxy marker instead?
+		if (
+			// If the item is not allowed to inherit scripts, we
+			// should proxy it.
+			Property.Possessed(forItem, "Scripts")
+			&& Property.Get(forItem, "Scripts", "Don't Inherit")
+			// Unless it's a readable item, for which the read/unread
+			// tracking isn't fully functional from proxies.
 			&& !Object.InheritsFrom(forItem, POI_READABLE)
 		)
 		{
-			// Flag the target item as having been proxied.
-			Object.AddMetaProperty(forItem, POI_PROXY_FLAG);
-			
 			// Create a new proxy marker on top of the item it is proxying.
 			// The location shouldn't actually matter, but there's no harm
 			// in setting it.
@@ -143,57 +143,48 @@ class J4FRadarUtilities extends SqRootScript
 			// Link these items together.
 			local proxyAttach = Link.Create(PROXY_ATTACH_METHOD, proxyMarker, forItem);
 			
-			// Copy the POI metaproperty of the target item, then activate
-			// the appropriate script on the proxy. We could have also
-			// created more metaproperties, some with scripts (for the marker),
-			// and some without scripts (for the interesting objects).
-			if (Object.InheritsFrom(forItem, POI_ANY) && !Object.InheritsFrom(proxyMarker, POI_ANY))
-			{
-				if (Object.InheritsFrom(forItem, POI_LOOT))
-				{
-					Object.AddMetaProperty(proxyMarker, POI_LOOT);
-					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarLootTarget");
-				}
-				else if (Object.InheritsFrom(forItem, POI_EQUIP))
-				{
-					Object.AddMetaProperty(proxyMarker, POI_EQUIP);
-					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarEquipTarget");
-				}
-				else if (Object.InheritsFrom(forItem, POI_DEVICE))
-				{
-					Object.AddMetaProperty(proxyMarker, POI_DEVICE);
-					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarDeviceTarget");
-				}
-				else if (Object.InheritsFrom(forItem, POI_CONTAINER))
-				{
-					Object.AddMetaProperty(proxyMarker, POI_CONTAINER);
-					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarContainerTarget");
-				}
-				else if (Object.InheritsFrom(forItem, POI_CREATURE))
-				{
-					Object.AddMetaProperty(proxyMarker, POI_CREATURE);
-					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarCreatureTarget");
-				}
-				else if (Object.InheritsFrom(forItem, POI_READABLE))
-				{
-					// In theory, we should never make it here, sicne we're
-					// avoiding proxying of readables. Including this code
-					// for completeness, and in case we need to work out
-					// a proxy for readables in the future.
-					Object.AddMetaProperty(proxyMarker, POI_READABLE);
-					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarReadableTarget");
-				}
-				// If no more specific POI type applies, fall back to the generic one.
-				else
-				{
-					Object.AddMetaProperty(proxyMarker, POI_GENERIC);
-					Property.Set(proxyMarker, "Scripts", "Script 0", "J4FRadarGrabbableTarget");
-				}
-			}
-			return true;
+			// We'll attach the scripts to the proxy instead of the target.
+			scriptWhat = proxyMarker;
 		}
 		
-		return false;
+		// Flag the item as having been set up.
+		Object.AddMetaProperty(forItem, POI_INIT_FLAG);
+		
+		// Copy the POI metaproperty of the target item, then activate
+		// the appropriate script on the proxy. We could have also
+		// created more metaproperties, some with scripts (for the marker),
+		// and some without scripts (for the interesting objects).
+		if (Object.InheritsFrom(forItem, POI_LOOT))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_LOOT + "_S");
+		}
+		else if (Object.InheritsFrom(forItem, POI_EQUIP))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_EQUIP + "_S");
+		}
+		else if (Object.InheritsFrom(forItem, POI_DEVICE))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_DEVICE + "_S");
+		}
+		else if (Object.InheritsFrom(forItem, POI_CONTAINER))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_CONTAINER + "_S");
+		}
+		else if (Object.InheritsFrom(forItem, POI_CREATURE))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_CREATURE + "_S");
+		}
+		else if (Object.InheritsFrom(forItem, POI_READABLE))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
+		}
+		// If no more specific POI type applies, fall back to the generic one.
+		else
+		{
+			Object.AddMetaProperty(scriptWhat, POI_GENERIC + "_S");
+		}
+		
+		return true;
 	}
 }
 
@@ -881,15 +872,17 @@ class J4FRadarUi extends J4FRadarUtilities
 			{
 				scannedAny = true;
 				
-				local checkProxy = false;
+				local checkPoiInit = false;
 				
+				// Many items can be marked as interesting directly
+				// via metaproperties assigned to their archetypes.
+				if (Object.InheritsFrom(i, anyKindOfPoi))
+				{
+					checkPoiInit = true;
+				}
 				// Do we need to manually add a POI metaproperty to the
 				// scanned item? Useful for weird kinds of loot, keys,
 				// and readables.
-				if (Object.InheritsFrom(i, anyKindOfPoi))
-				{
-					checkProxy = true;
-				}
 				else
 				{
 					// IsLoot items are hard to target directly, because
@@ -912,7 +905,7 @@ class J4FRadarUi extends J4FRadarUtilities
 					)
 					{
 						Object.AddMetaProperty(i, lootPoiProperty);
-						checkProxy = true;
+						checkPoiInit = true;
 					}
 					else if (
 						// The optional keys (equipment) module is installed.
@@ -924,7 +917,7 @@ class J4FRadarUi extends J4FRadarUtilities
 					)
 					{
 						Object.AddMetaProperty(i, keyPoiProperty);
-						checkProxy = true;
+						checkPoiInit = true;
 					}
 					else if (
 						// The optional readables module is installed.
@@ -937,11 +930,11 @@ class J4FRadarUi extends J4FRadarUtilities
 					)
 					{
 						Object.AddMetaProperty(i, readablePoiProperty);
-						checkProxy = true;
+						checkPoiInit = true;
 					}
 				}
 				
-				if (checkProxy && SetupProxyIfNeeded(i))
+				if (checkPoiInit && InitPointOfInterestIfNeeded(i))
 				{
 					++initializeCount;
 				}
@@ -950,6 +943,10 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		// Track how many consecutive scan groups came up empty and,
 		// if needed, halt scanning.
+		// TODO: Can we safely read values like "obj_max" or "max_refs"
+		//	with Engine.ConfigGetInt() and such? That might be useful
+		//	in combination with max empty range scanning, to allow for
+		//	even earlier loop termination in some cases.
 		if (!scannedAny)
 		{
 			// Increment and test consecutiveEmptyGroups.
