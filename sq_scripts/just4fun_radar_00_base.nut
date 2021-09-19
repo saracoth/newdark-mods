@@ -71,6 +71,7 @@ const POI_READABLE = "J4FRadarReadablePOI";
 const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_LOOT = "J4FRadarLootPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
+const POI_QUEST = "J4FRadarQuestPOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
 // Link flavour used to associate a POI proxy marker with its target.
@@ -195,6 +196,10 @@ class J4FRadarUtilities extends SqRootScript
 		if (overridePoiType != null)
 		{
 			Object.AddMetaProperty(scriptWhat, overridePoiType + "_S");
+		}
+		else if (Object.InheritsFrom(forItem, POI_QUEST))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_QUEST + "_S");
 		}
 		else if (Object.InheritsFrom(forItem, POI_LOOT))
 		{
@@ -527,6 +532,20 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			return;
 		
 		SendMessage(interfaceId, "J4FRadarDestroyed", self);
+	}
+}
+
+class J4FRadarQuestTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_QUEST, true);
+	}
+	
+	function BlessItem()
+	{
+		// TODO: any behaviors for our PoiTarget() here?
+		return base.BlessItem();
 	}
 }
 
