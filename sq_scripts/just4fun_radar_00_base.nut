@@ -43,7 +43,7 @@ const COLOR_DEVICE = "P";
 const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
 const COLOR_READABLE = "B";
-const COLOR_QUEST = "P";
+const COLOR_QUEST = "K";
 
 // Various class, metaproperty, and object name strings.
 // This one Marker instance is placed in each level. It sets up the UI overlay.
