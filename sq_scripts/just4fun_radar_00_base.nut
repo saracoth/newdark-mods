@@ -607,7 +607,7 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 		local target = PoiTarget();
 		
 		// Sometimes switches and buttons are placed outside
-		// the level geometry rather than make invisible.
+		// the level geometry rather than made invisible.
 		return Physics.ValidPos(target);
 	}
 }
