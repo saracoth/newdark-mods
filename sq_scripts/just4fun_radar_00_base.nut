@@ -76,6 +76,24 @@ const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
 // Link flavour used to associate a POI proxy marker with its target.
 const PROXY_ATTACH_METHOD = "PhysAttach";
+const DIFFICULTY_0 = "M-GarrettDiffNormal";
+const DIFFICULTY_1 = "M-GarrettDiffHard";
+const DIFFICULTY_2 = "M-GarrettDiffExpert";
+const OBJECTIVE_ANY = "goal_";
+const OBJECTIVE_TYPE = "goal_type_";
+const OBJECTIVE_STATE = "goal_state_";
+const OBJECTIVE_TARGET = "goal_target_";
+const OBJECTIVE_MIN_DIFFICULTY = "goal_min_diff_";
+const OBJECTIVE_MAX_DIFFICULTY = "goal_max_diff_";
+const OBJECTIVE_REVERSED = "goal_reverse_";
+const OBJECTIVE_IRREVERSIBLE = "goal_irreversible_";
+const OBJECTIVE_SPECIAL_BITS = "goal_special_";
+const OBJECTIVE_OPTIONAL = "goal_optional_";
+const OBJECTIVE_BONUS = "goal_bonus_";
+const OBJECTIVE_TYPE_CONTAIN = 1;
+const OBJECTIVE_TYPE_SLAY = 2;
+const OBJECTIVE_TYPE_LOOT = 3;
+const OBJECTIVE_TYPE_ROOM = 4;
 
 // Between the lack of a true static/utility method class concept
 // in squirrel and to avoid questions about when we do or don't
@@ -924,46 +942,217 @@ class J4FRadarUi extends J4FRadarUtilities
 		local lootPoiProperty = ObjID(POI_LOOT);
 		
 		local questEnabled = ObjID(FEATURE_QUEST) < 0;
-		local lootPoiProperty = ObjID(POI_QUEST);
+		local questPoiProperty = ObjID(POI_QUEST);
 		
 		local anyKindOfPoi = ObjID(POI_ANY);
 		
-		local questData;
+		// Table of integer keys set to true.
+		// Positive integers are concrete objects.
+		// Negative integers are archetypes.
+		local questTargets = {};
+		// Array of archetypes to enumerate through.
+		// These negative values should appear in
+		// questTargets as well.
+		local questArchetypes = [];
+		// This is the bitwise OR of all specials found in goals.
+		// Loot with these flags set is a quest item.
+		local questSpecials = 0;
+		
 		if (questEnabled)
 		{
-			questData = Quest.GetAllVars(eQuestDataType.kQuestDataMission);
-			
-			print("Dumping mission quest variables:");
-			foreach (qKey,qVal in questData)
+			// TODO: is there a better way to get difficulty levels?
+			local difficultyObjectId = ObjID("Player");
+			local difficultyLevel = 2;
+			if (Object.InheritsFrom(difficultyObjectId, DIFFICULTY_0))
 			{
-				print(format("Q: %s is %s: %s", qKey.tostring(), typeof qVal, qVal.tostring()));
+				difficultyLevel = 0;
 			}
+			else if (Object.InheritsFrom(difficultyObjectId, DIFFICULTY_1))
+			{
+				difficultyLevel = 1;
+			}
+			else if (Object.InheritsFrom(difficultyObjectId, DIFFICULTY_2))
+			{
+				difficultyLevel = 2;
+			}
+			
+			// Because we have to grab variables one-by-one, we'll need
+			// to slowly build up objective data as we go. This table
+			// will hold the in-progress J4FRadarQuestDetails objects.
+			// The keys will be objective number integers.
+			local questData = {};
+			
+			foreach (qKey,qVal in Quest.GetAllVars(eQuestDataType.kQuestDataMission))
+			{
+				// All the variables we can do anything with should be integers.
+				// TODO: verify whether "string" might sneak in here?
+				if (typeof qVal != "integer")
+					continue;
+				
+				qKey = qKey.tolower();
+				
+				// We only care about goal_XXXXX variables.
+				if (qKey.find(OBJECTIVE_ANY) != 0)
+					continue;
+				
+				// Which property of the class will we set?
+				local questProperty = null;
+				local questId = -1;
+				
+				if (qKey.find(OBJECTIVE_TYPE) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_TYPE.len()).tointeger();
+					questProperty = "type";
+				}
+				else if (qKey.find(OBJECTIVE_STATE) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_STATE.len()).tointeger();
+					questProperty = "state";
+				}
+				else if (qKey.find(OBJECTIVE_TARGET) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_TARGET.len()).tointeger();
+					questProperty = "target";
+				}
+				else if (qKey.find(OBJECTIVE_MIN_DIFFICULTY) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_MIN_DIFFICULTY.len()).tointeger();
+					questProperty = "minDiff";
+				}
+				else if (qKey.find(OBJECTIVE_MAX_DIFFICULTY) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_MAX_DIFFICULTY.len()).tointeger();
+					questProperty = "maxDiff";
+				}
+				else if (qKey.find(OBJECTIVE_SPECIAL_BITS) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_SPECIAL_BITS.len()).tointeger();
+					questProperty = "specials";
+				}
+				else if (qKey.find(OBJECTIVE_IRREVERSIBLE) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_IRREVERSIBLE.len()).tointeger();
+					questProperty = "irreversible";
+				}
+				else if (qKey.find(OBJECTIVE_REVERSED) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_REVERSED.len()).tointeger();
+					questProperty = "reversed";
+				}
+				else if (qKey.find(OBJECTIVE_OPTIONAL) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_OPTIONAL.len()).tointeger();
+					questProperty = "optional";
+				}
+				else if (qKey.find(OBJECTIVE_BONUS) == 0)
+				{
+					questId = qKey.slice(OBJECTIVE_BONUS.len()).tointeger();
+					questProperty = "bonus";
+				}
+				
+				// If we know what to do with this qvar, then do so.
+				if (questProperty != null)
+				{
+					// Get or create a quest data object to modify.
+					local currentQuest;
+					if (questId in questData)
+					{
+						currentQuest = questData[questId];
+					}
+					else
+					{
+						currentQuest = J4FRadarQuestDetails();
+						questData[questId] <- currentQuest;
+					}
+				
+					// Change the property this QVar represents for that quest.
+					currentQuest[questProperty] = qVal;
+				}
+			}
+			
+			// Now questData is fully populated, and we can analyze it.
+			foreach (checkQuestId,checkQuestData in questData)
+			{
+				// Ignore completed, soft-failed ("inactive"), and hard-failed ("failed") objectives.
+				// That just leaves 0 / incomplete.
+				if (checkQuestData.state != 0)
+					continue;
+				
+				// Ignore objectives outside our difficulty level.
+				if (difficultyLevel < checkQuestData.minDiff || difficultyLevel > checkQuestData.maxDiff)
+					continue;
+				
+				local wantTarget = false;
+				
+				// Goal-type-specific logic:
+				switch (checkQuestData.type)
+				{
+					case OBJECTIVE_TYPE_CONTAIN:
+						// We care only about "pick this up" objectives, not
+						// "don't pick this up" objectives.
+						if (checkQuestData.reversed == 0)
+						{
+							wantTarget = true;
+						}
+						break;
+					case OBJECTIVE_TYPE_SLAY:
+						// We care about both slay and don't-slay objectives.
+						// However, we probably only care about specific concrete
+						// objects. Yes, it's possible to have an objective to
+						// slay or not slay a Human, and there's only one Human
+						// creature in the level, but we'll ignore that possibility
+						// for now.
+						if (checkQuestData.target > 0)
+						{
+							wantTarget = true;
+						}
+						break;
+					case OBJECTIVE_TYPE_LOOT:
+						if (
+							// Don't care about "avoid this loot" objectives.
+							checkQuestData.reversed == 0
+							// In fact, we only care about special bit flags.
+							// For loot in general, there's always lootdar.
+							&& checkQuestData.specials != 0
+						)
+						{
+							// Include those bits as interesting.
+							questSpecials = questSpecials | checkQuestData.specials;
+						}
+						break;
+					case OBJECTIVE_TYPE_ROOM:
+						if (
+							// Don't care about "stay out of my shed" objectives.
+							checkQuestData.reversed == 0
+							// Only care about "enter-once" objectives.
+							&& checkQuestData.irreversible != 0
+							// And even then, only optional and bonus objectives.
+							&& (
+								checkQuestData.optional != 0
+								|| checkQuestData.bonus != 0
+							)
+						)
+						{
+							wantTarget = true;
+						}
+						break;
+				}
+				
+				// If the above logic decided we care about the
+				// target object or archetype, add it to the list.
+				if (wantTarget && checkQuestData.target != 0)
+				{
+					questTargets[checkQuestData.target] <- true;
+					
+					if (checkQuestData.target < 0)
+					{
+						questArchetypes.push(checkQuestData.target);
+					}
+				}
+			}
+			
 			/*
-			TODO: things to consider
-: OSM: SQUIRREL> Q: goal_min_diff_3 is integer: 1
-: OSM: SQUIRREL> Q: goal_max_diff_3 is integer: 1
-: OSM: SQUIRREL> Q: goal_no_breach_6 is integer: 0
-: OSM: SQUIRREL> Q: goal_no_breach_3 is integer: 1
-: OSM: SQUIRREL> Q: goal_visible_3 is integer: 0
-: OSM: SQUIRREL> Q: goal_state_6 is integer: 2
-: OSM: SQUIRREL> Q: goal_bonus_2 is integer: 1
-: OSM: SQUIRREL> Q: goal_special_2 is integer: 1
-: OSM: SQUIRREL> Q: goal_specials_2 is integer: 1
-: OSM: SQUIRREL> Q: goal_type_4 is integer: 3
-// kill no humans
-: OSM: SQUIRREL> Q: goal_reverse_5 is integer: 1
-: OSM: SQUIRREL> Q: goal_target_5 is integer: -14
-: OSM: SQUIRREL> Q: goal_type_5 is integer: 2
-
-// miss2: VictoryLoot 74
-// miss6: Evidence
-
-NOTE: T1/TG OMs use plain scripts because they can. Only some FMs will use the generic ConVict script.
-Even some FMs may use custom scripting, or else manually twiddle the QVars themselves.
-
-Regarding secret objectives, sometimes it's as simple as a special loot flag, in which case we've
-been showing those with the lootdar. In the above example logs, special(s)_2 are the rings in miss1.
-
+TODO: 
 Regarding secret locations, those can be trap-based or scripted directly. When using standard
 traps, the TrapFindSecret script, usually on a FindSecretTrap, may have a ~ControlDevice that
 triggers it. The FindSecretTrap likely has a Dark GameSys: Stats: Hidden variable set to true.
@@ -972,6 +1161,9 @@ A room object with a TrigRoomPlayer script might have a ControlDevice link to a 
 or similar as well.
 			*/
 		}
+		
+		// Grabbing this once as a trivial efficiency boost.
+		local checkQuestArchetypes = questArchetypes.len() > 0;
 		
 		// Loop through all the item IDs we're going to test this time.
 		for (local i = scanFromInclusive - 1; ++i < scanCapExclusive; )
@@ -1005,7 +1197,7 @@ or similar as well.
 					// we can never safely script them nor add a metaproperty,
 					// because IsLoot *is* a metaproperty.
 					if (
-						// The optional loot module is installed.
+						// The optional loot or quest module is installed.
 						lootEnabled
 						// And it's a loot item.
 						&& (
@@ -1054,11 +1246,73 @@ or similar as well.
 				// layers of logic to get just right.
 				// TODO: we're deliberately adding on the quest POI metaproperty
 				// on top of whatever baseline metaproperty the object might have.
-				if (questEnabled)
+				if (
+					questEnabled
+					// We might have flagged this some other way, like
+					// by DML or in the loot checks.
+					&& !Object.InheritsFrom(i, questPoiProperty)
+				)
 				{
-					// TODO: implement
-					//Object.AddMetaProperty(i, lootPoiProperty);
-					//checkPoiInit = true;
+					// Start with the quickest check: is this specific object
+					// in the list of quest items?
+					local isQuest = i in questTargets;
+					
+					// If needed, try checking special loot bits instead.
+					if (
+						!isQuest
+						// Are we looking for special bits?
+						&& questSpecials != 0
+						// Can this object even have any?
+						&& Property.Possessed(i, "Loot")
+						// Does it have any of the right ones?
+						&& (Property.Get(i, "Loot", "Special") & questSpecials) != 0
+					)
+					{
+						isQuest = true;
+					}
+					
+					// If needed, try checking matching archetypes.
+					// Hopefully this isn't enabled, because it kinda
+					// sucks. We have to either advance up through the
+					// object's parent hierarchy checking everything
+					// against questTargets keys, or we enumerate
+					// through the questArchetypes array to see if it
+					// inherits from any of those.
+					// Multiply that work across every single object
+					// we scan, and that's a lot of wasted work :(
+					if (
+						!isQuest
+						// Do we even want this logic?
+						&& checkQuestArchetypes
+					)
+					{
+						// What's quicker, do you think? If we're
+						// dealing with an Object, that's pretty
+						// damned quick. No parent archetypes.
+						// Marker -> fnord -> Object has just three.
+						// But how about MaleNoble2 -> MaleNoble ->
+						// aristo -> bystander -> Human -> Animal ->
+						// Creature -> physical -> Object? That's
+						// nine. It's almost certainly better to
+						// enumerate through the questArchetypes
+						// array and check InheritsFrom, unless
+						// a mission has a truly absurd number of
+						// archetype-based objective targets.
+						for (local qt = questArchetypes.len(); --qt > -1; )
+						{
+							if (Object.InheritsFrom(i, questArchetypes[qt]))
+							{
+								isQuest = true;
+								break;
+							}
+						}
+					}
+					
+					if (isQuest)
+					{
+						Object.AddMetaProperty(i, questPoiProperty);
+						checkPoiInit = true;
+					}
 				}
 				
 				if (checkPoiInit && InitPointOfInterestIfNeeded(i))
@@ -1220,6 +1474,20 @@ class J4FRadarPointOfInterest
 	displayColor = COLOR_DEFAULT;
 	uncappedDistance = false;
 	distance = 0;
+}
+
+class J4FRadarQuestDetails
+{
+	state = -1;
+	type = -1;
+	target = 0;
+	irreversible = 0;
+	reversed = 0;
+	specials = 0;
+	minDiff = 0;
+	maxDiff = 2;
+	optional = 0;
+	bonus = 0;
 }
 
 // This is the actual overlay handler, following along with both squirrel
