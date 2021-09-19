@@ -43,6 +43,7 @@ const COLOR_DEVICE = "P";
 const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
 const COLOR_READABLE = "B";
+const COLOR_QUEST = "P";
 
 // Various class, metaproperty, and object name strings.
 // This one Marker instance is placed in each level. It sets up the UI overlay.
@@ -60,6 +61,7 @@ const FEATURE_CONTAINER = "J4FRadarEnableContainer";
 const FEATURE_CREATURE = "J4FRadarEnableCreature";
 const FEATURE_CREATURE_GOOD = "J4FRadarEnableCreatureG";
 const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
+const FEATURE_QUEST = "J4FRadarEnableQuest";
 // These metaproperties are used to flag items as interesting to the radar.
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_GENERIC = "J4FRadarFallbackPOI";
