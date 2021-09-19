@@ -36,6 +36,11 @@ CreateArch "MetaProperty" "J4FRadarEnableEquip"
 // common to both thief games.
 
 +MetaProp "Broadhead" "J4FRadarEquipPOI"
++MetaProp "noise" "J4FRadarEquipPOI"
++MetaProp "water" "J4FRadarEquipPOI"
++MetaProp "firearr" "J4FRadarEquipPOI"
++MetaProp "EarthArrow" "J4FRadarEquipPOI"
++MetaProp "GasArrow" "J4FRadarEquipPOI"
 +MetaProp "Grenadz" "J4FRadarEquipPOI"
 +MetaProp "Potions" "J4FRadarEquipPOI"
 +MetaProp "Crystal" "J4FRadarEquipPOI"
