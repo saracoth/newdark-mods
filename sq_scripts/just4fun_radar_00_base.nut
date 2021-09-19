@@ -94,6 +94,7 @@ const OBJECTIVE_TYPE_CONTAIN = 1;
 const OBJECTIVE_TYPE_SLAY = 2;
 const OBJECTIVE_TYPE_LOOT = 3;
 const OBJECTIVE_TYPE_ROOM = 4;
+const STATBIT_HIDDEN = 4;
 
 // Between the lack of a true static/utility method class concept
 // in squirrel and to avoid questions about when we do or don't
@@ -558,12 +559,6 @@ class J4FRadarQuestTarget extends J4FRadarAbstractTarget
 	constructor()
 	{
 		base.constructor(COLOR_QUEST, true);
-	}
-	
-	function BlessItem()
-	{
-		// TODO: any behaviors for our PoiTarget() here?
-		return base.BlessItem();
 	}
 }
 
@@ -1150,16 +1145,6 @@ class J4FRadarUi extends J4FRadarUtilities
 					}
 				}
 			}
-			
-			/*
-TODO: 
-Regarding secret locations, those can be trap-based or scripted directly. When using standard
-traps, the TrapFindSecret script, usually on a FindSecretTrap, may have a ~ControlDevice that
-triggers it. The FindSecretTrap likely has a Dark GameSys: Stats: Hidden variable set to true.
-
-A room object with a TrigRoomPlayer script might have a ControlDevice link to a FindSecretTrap
-or similar as well.
-			*/
 		}
 		
 		// Grabbing this once as a trivial efficiency boost.
@@ -1193,10 +1178,37 @@ or similar as well.
 				// and readables.
 				else
 				{
+			
+			/*
+TODO: 
+
+questEnabled
+
+Regarding secret locations, those can be trap-based or scripted directly. When using standard
+traps, the TrapFindSecret script, usually on a FindSecretTrap, may have a ~ControlDevice that
+triggers it. The FindSecretTrap likely has a Dark GameSys: Stats: Hidden variable set to true.
+
+A room object with a TrigRoomPlayer script might have a ControlDevice link to a FindSecretTrap
+or similar as well.
+			*/
+					if (
+						// Let's also detect secrets when this is enabled.
+						questEnabled
+						// The ultimate object of interest will have the
+						// hidden bit set. That comes from "DarkStat" property,
+						// but we need bitwise logic to check for the hidden
+						// flag specifically.
+						&& Property.Possessed(i, "DarkStat")
+						&& (Property.Get(i, "DarkStat") & STATBIT_HIDDEN) == STATBIT_HIDDEN
+					)
+					{
+						Object.AddMetaProperty(i, questPoiProperty);
+						checkPoiInit = true;
+					}
 					// IsLoot items are hard to target directly, because
 					// we can never safely script them nor add a metaproperty,
 					// because IsLoot *is* a metaproperty.
-					if (
+					else if (
 						// The optional loot or quest module is installed.
 						lootEnabled
 						// And it's a loot item.
@@ -1244,7 +1256,7 @@ or similar as well.
 				
 				// Quest objects are extra tricky, and require several
 				// layers of logic to get just right.
-				// TODO: we're deliberately adding on the quest POI metaproperty
+				// NOTE: We're deliberately adding on the quest POI metaproperty
 				// on top of whatever baseline metaproperty the object might have.
 				if (
 					questEnabled
