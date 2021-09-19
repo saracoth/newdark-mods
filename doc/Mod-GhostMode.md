@@ -2,6 +2,8 @@
 
 When this mod is installed, a silent gong will be put in your inventory during every mission. Using this item from your inventory will toggle ghost mode on and off. When in ghost mode, everything should ignore you, the same as they ignore rats and other neutral NPCs. Your footsteps will be muffled and your light gem will darken. You won't be able to fly or walk through walls, but you can walk through NPCs, doors, and most objects.
 
+:warning: Being a super-simple demonstration mod, this is not as well tested as other mods in this repository. While no particular issues are expected, use at your own risk.
+
 You also lose the ability to climb ropes and ladders, and can fall through elevator platforms to your death. Have fun with that. Ghost mode includes a low-gravity effect that might help a bit. It works much like slow-fall potions.
 
 This is not perfect invisibility, since NPCs can retroactively notice you after you leave ghost mode. In reality, they always noticed you, but didn't care until you returned to normal mode. Either way, you can't pick the pockets of NPCs that are aware of you, whether hostile or ignoring you.

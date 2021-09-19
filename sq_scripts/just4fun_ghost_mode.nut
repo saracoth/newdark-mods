@@ -18,7 +18,7 @@ class J4FGhostModeToggle extends SqRootScript
 		if (Object.HasMetaProperty(frobber, ghostMetaproperty))
 		{
 			// Change the toggle item name so it's clearer what will happen when we use it next.
-			Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_on: \"Ghost On\"");
+			Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_on: \"Ghost Mode (Inactive)\"");
 			
 			// Back to normal, by means of removing the metaproperty.
 			// If we somehow ended up with multiple copies, remove them all.
@@ -42,11 +42,14 @@ class J4FGhostModeToggle extends SqRootScript
 			Property.CopyFrom(frobber, "CollisionType", "Garrett");
 			// Same for the Fungus property.
 			Property.SetSimple(frobber, "Fungus", false);
+			
+			// Back to normal speed.
+			DrkInv.RemoveSpeedControl("J4FGhost");
 		}
 		else
 		{
 			// Change the toggle item name so it's clearer what will happen when we use it next.
-			Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_off: \"Ghost Off\"");
+			Property.SetSimple(self, "GameName", "name_j4f_ghost_toggle_off: \"Ghost Mode (Active)\"");
 			
 			// Add the ghost mode metaproperty.
 			Object.AddMetaProperty(frobber, ghostMetaproperty);
@@ -71,6 +74,9 @@ class J4FGhostModeToggle extends SqRootScript
 			Property.CopyFrom(frobber, "CollisionType", ghostMetaproperty);
 			// Same for the Fungus property.
 			Property.SetSimple(frobber, "Fungus", true);
+			
+			// Run like the wind! Not quite as fast as a speed potion, but stacks with them.
+			DrkInv.AddSpeedControl("J4FGhost", 1.5, 1.25);
 		}
 	}
 }

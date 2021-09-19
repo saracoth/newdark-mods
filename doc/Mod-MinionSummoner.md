@@ -2,6 +2,8 @@
 
 When this mod is installed, a golden skull will be put in your inventory during every mission. Use this inventory item to spawn a minion. By default, a tiny shadow minion that will fight for you. They should be able to blow apart zombies and smash most robots to bits.
 
+:warning: Being a super-simple demonstration mod, this is not as well tested as other mods in this repository. While no particular issues are expected, use at your own risk.
+
 If you install the just4fun_summoner_modmod.dml in addition to the other files, your minion will be an ordinary fire elemental instead. This file exists mostly for demonstration purposes, to show how a different mod could tweak the creature summoned.
 
 Minions have a time limit. About five seconds for the default shadow minion, and about thirty for the slower fire elemental version. Since minions don't follow the player and can clutter up the level, the limited duration helps keep them from getting in your way or distracting you.

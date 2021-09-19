@@ -24,7 +24,7 @@ FINGERPRINT
 
 CreateArch "Tulz" "J4FGhostToggler"
 {
-	+ObjProp "GameName" = name_j4f_ghost_toggle_on: "Ghost On"
+	+ObjProp "GameName" = name_j4f_ghost_toggle_on: "Ghost Mode (Inactive)"
 	
 	// Picking a weird model, because why not? Have a gong.
 	+ObjProp "ModelName" = gong
