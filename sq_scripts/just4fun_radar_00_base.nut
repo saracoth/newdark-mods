@@ -1198,8 +1198,6 @@ class J4FRadarUi extends J4FRadarUtilities
 					
 					if (checkQuestData.target < 0)
 					{
-						// TODO:
-						print(format("Questing for %i %s: %s", checkQuestData.target, Object.GetName(checkQuestData.target), checkQuestData.tostring()));
 						questArchetypes.push(checkQuestData.target);
 					}
 				}
