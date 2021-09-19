@@ -184,6 +184,17 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarQuestPOI_S"
 	}
 }
 
+CreateArch "J4FRadarPointOfInterest" "J4FRadarSecretPOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarSecretPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarSecretTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 /*
 ================================================================================
 == Radar Point-of-interest Proxies =============================================

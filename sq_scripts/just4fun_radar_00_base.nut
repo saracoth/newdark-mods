@@ -72,6 +72,7 @@ const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_LOOT = "J4FRadarLootPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
 const POI_QUEST = "J4FRadarQuestPOI";
+const POI_SECRET = "J4FRadarSecretPOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
 // Link flavour used to associate a POI proxy marker with its target.
@@ -216,6 +217,14 @@ class J4FRadarUtilities extends SqRootScript
 		{
 			Object.AddMetaProperty(scriptWhat, overridePoiType + "_S");
 		}
+		// Secrets are preferred over quests, because there's a clear way
+		// to turn them off when they're discovered.
+		else if (Object.InheritsFrom(forItem, POI_SECRET))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_SECRET + "_S");
+		}
+		// Quests are preferred over most logic, because we're much more
+		// relaxed in our blessing logic.
 		else if (Object.InheritsFrom(forItem, POI_QUEST))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_QUEST + "_S");
@@ -559,6 +568,53 @@ class J4FRadarQuestTarget extends J4FRadarAbstractTarget
 	constructor()
 	{
 		base.constructor(COLOR_QUEST, true);
+	}
+}
+
+class J4FRadarSecretTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_QUEST, true);
+	}
+	
+	function DisplayTarget()
+	{
+		local target = PoiTarget();
+		
+		// If we have a ~ControlDevice to us, the destination of that
+		// reverse link is the thing which will trigger us. Usually
+		// seen with FindSecretTrap traps and the TrapFindSecret script.
+		// NOTE: This could even be a room with a script to trigger
+		// when the player enters it!
+		local linkToMyController = Link.GetOne("~ControlDevice", target);
+		if (linkToMyController != 0)
+		{
+			return LinkDest(linkToMyController);
+		}
+		
+		// In other cases, picking up the item works (FrobFind script,
+		// etc.).
+		return base.DisplayTarget();
+	}
+	
+	function BlessItem()
+	{
+		if (!base.BlessItem())
+			return false;
+		
+		local target = PoiTarget();
+		
+		// My hidden bit needs to still be on.
+		if (
+			Property.Possessed(target, "DarkStat")
+			&& (Property.Get(target, "DarkStat") & STATBIT_HIDDEN) != STATBIT_HIDDEN
+		)
+		{
+			return false;
+		}
+		
+		return true;
 	}
 }
 
@@ -938,6 +994,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		local questEnabled = ObjID(FEATURE_QUEST) < 0;
 		local questPoiProperty = ObjID(POI_QUEST);
+		local secretPoiProperty = ObjID(POI_SECRET);
 		
 		local anyKindOfPoi = ObjID(POI_ANY);
 		
@@ -1141,6 +1198,8 @@ class J4FRadarUi extends J4FRadarUtilities
 					
 					if (checkQuestData.target < 0)
 					{
+						// TODO:
+						print(format("Questing for %i %s: %s", checkQuestData.target, Object.GetName(checkQuestData.target), checkQuestData.tostring()));
 						questArchetypes.push(checkQuestData.target);
 					}
 				}
@@ -1178,19 +1237,6 @@ class J4FRadarUi extends J4FRadarUtilities
 				// and readables.
 				else
 				{
-			
-			/*
-TODO: 
-
-questEnabled
-
-Regarding secret locations, those can be trap-based or scripted directly. When using standard
-traps, the TrapFindSecret script, usually on a FindSecretTrap, may have a ~ControlDevice that
-triggers it. The FindSecretTrap likely has a Dark GameSys: Stats: Hidden variable set to true.
-
-A room object with a TrigRoomPlayer script might have a ControlDevice link to a FindSecretTrap
-or similar as well.
-			*/
 					if (
 						// Let's also detect secrets when this is enabled.
 						questEnabled
@@ -1202,7 +1248,7 @@ or similar as well.
 						&& (Property.Get(i, "DarkStat") & STATBIT_HIDDEN) == STATBIT_HIDDEN
 					)
 					{
-						Object.AddMetaProperty(i, questPoiProperty);
+						Object.AddMetaProperty(i, secretPoiProperty);
 						checkPoiInit = true;
 					}
 					// IsLoot items are hard to target directly, because
@@ -1500,6 +1546,11 @@ class J4FRadarQuestDetails
 	maxDiff = 2;
 	optional = 0;
 	bonus = 0;
+	
+	function _tostring()
+	{
+		return format("type %s (%s) for %s, %i to %i, currently %s", type.tostring(), reversed.tostring(), target.tostring(), minDiff, maxDiff, state.tostring());
+	}
 }
 
 // This is the actual overlay handler, following along with both squirrel
