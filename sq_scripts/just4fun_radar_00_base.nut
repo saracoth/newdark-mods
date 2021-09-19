@@ -923,7 +923,55 @@ class J4FRadarUi extends J4FRadarUtilities
 		local lootMetaProperty = ObjID("IsLoot");
 		local lootPoiProperty = ObjID(POI_LOOT);
 		
+		local questEnabled = ObjID(FEATURE_QUEST) < 0;
+		local lootPoiProperty = ObjID(POI_QUEST);
+		
 		local anyKindOfPoi = ObjID(POI_ANY);
+		
+		local questData;
+		if (questEnabled)
+		{
+			questData = Quest.GetAllVars(eQuestDataType.kQuestDataMission);
+			
+			print("Dumping mission quest variables:");
+			foreach (qKey,qVal in questData)
+			{
+				print(format("Q: %s is %s: %s", qKey.tostring(), typeof qVal, qVal.tostring()));
+			}
+			/*
+			TODO: things to consider
+: OSM: SQUIRREL> Q: goal_min_diff_3 is integer: 1
+: OSM: SQUIRREL> Q: goal_max_diff_3 is integer: 1
+: OSM: SQUIRREL> Q: goal_no_breach_6 is integer: 0
+: OSM: SQUIRREL> Q: goal_no_breach_3 is integer: 1
+: OSM: SQUIRREL> Q: goal_visible_3 is integer: 0
+: OSM: SQUIRREL> Q: goal_state_6 is integer: 2
+: OSM: SQUIRREL> Q: goal_bonus_2 is integer: 1
+: OSM: SQUIRREL> Q: goal_special_2 is integer: 1
+: OSM: SQUIRREL> Q: goal_specials_2 is integer: 1
+: OSM: SQUIRREL> Q: goal_type_4 is integer: 3
+// kill no humans
+: OSM: SQUIRREL> Q: goal_reverse_5 is integer: 1
+: OSM: SQUIRREL> Q: goal_target_5 is integer: -14
+: OSM: SQUIRREL> Q: goal_type_5 is integer: 2
+
+// miss2: VictoryLoot 74
+// miss6: Evidence
+
+NOTE: T1/TG OMs use plain scripts because they can. Only some FMs will use the generic ConVict script.
+Even some FMs may use custom scripting, or else manually twiddle the QVars themselves.
+
+Regarding secret objectives, sometimes it's as simple as a special loot flag, in which case we've
+been showing those with the lootdar. In the above example logs, special(s)_2 are the rings in miss1.
+
+Regarding secret locations, those can be trap-based or scripted directly. When using standard
+traps, the TrapFindSecret script, usually on a FindSecretTrap, may have a ~ControlDevice that
+triggers it. The FindSecretTrap likely has a Dark GameSys: Stats: Hidden variable set to true.
+
+A room object with a TrigRoomPlayer script might have a ControlDevice link to a FindSecretTrap
+or similar as well.
+			*/
+		}
 		
 		// Loop through all the item IDs we're going to test this time.
 		for (local i = scanFromInclusive - 1; ++i < scanCapExclusive; )
@@ -1000,6 +1048,17 @@ class J4FRadarUi extends J4FRadarUtilities
 						Object.AddMetaProperty(i, readablePoiProperty);
 						checkPoiInit = true;
 					}
+				}
+				
+				// Quest objects are extra tricky, and require several
+				// layers of logic to get just right.
+				// TODO: we're deliberately adding on the quest POI metaproperty
+				// on top of whatever baseline metaproperty the object might have.
+				if (questEnabled)
+				{
+					// TODO: implement
+					//Object.AddMetaProperty(i, lootPoiProperty);
+					//checkPoiInit = true;
 				}
 				
 				if (checkPoiInit && InitPointOfInterestIfNeeded(i))
