@@ -121,13 +121,30 @@ class J4FRadarUtilities extends SqRootScript
 		// By default, assume we're going to attach scripts to the
 		// item itself.
 		local scriptWhat = forItem;
+		local proxyNeeded = false;
+		// Some objects merit special handling. Alternatively,
+		// we could (in some cases) fiddle with the DML targets.
+		// But, for example, the LC_Lever is a key-or-part type
+		// object that can get buried under the Switches
+		// hierarchy, and treated as a device. The DML could
+		// end up real messy, and some FM-specific archetypes
+		// could get overlooked. So instead, we'll correct
+		// some specific cases with proxy objects.
+		local overridePoiType;
 		
-		// Do we need a proxy marker instead?
 		if (
 			// If the item is not allowed to inherit scripts, we
 			// should proxy it.
 			Property.Possessed(forItem, "Scripts")
 			&& Property.Get(forItem, "Scripts", "Don't Inherit")
+		)
+		{
+			proxyNeeded = true;
+		}
+		
+		// Do we need a proxy marker instead?
+		if (
+			proxyNeeded
 			// Unless it's a readable item, for which the read/unread
 			// tracking isn't fully functional from proxies.
 			&& !Object.InheritsFrom(forItem, POI_READABLE)
@@ -147,6 +164,25 @@ class J4FRadarUtilities extends SqRootScript
 			scriptWhat = proxyMarker;
 		}
 		
+		// Special case: If a device has a KeySrc property and its
+		// frob-in-world is Move (meaning we can pick it up), treat
+		// as a key, not a device.
+		if (
+			// Keys (equipment) must be enabled.
+			ObjID(FEATURE_EQUIP) != 0
+			// And we think it's a device. For example, a LC_Lever
+			&& Object.InheritsFrom(forItem, POI_DEVICE)
+			// But it has a KeySrc property
+			&& Property.Possessed(forItem, "keySrc")
+			// And it can be picked up from the world.
+			&& Property.Possessed(forItem, "FrobInfo")
+			// 0x01 is the flag for Move, as in pick up.
+			&& (Property.Get(forItem, "FrobInfo", "World Action") & 1) != 0
+		)
+		{
+			overridePoiType = POI_EQUIP;
+		}
+		
 		// Flag the item as having been set up.
 		Object.AddMetaProperty(forItem, POI_INIT_FLAG);
 		
@@ -154,7 +190,11 @@ class J4FRadarUtilities extends SqRootScript
 		// the appropriate script on the proxy. We could have also
 		// created more metaproperties, some with scripts (for the marker),
 		// and some without scripts (for the interesting objects).
-		if (Object.InheritsFrom(forItem, POI_LOOT))
+		if (overridePoiType != null)
+		{
+			Object.AddMetaProperty(scriptWhat, overridePoiType + "_S");
+		}
+		else if (Object.InheritsFrom(forItem, POI_LOOT))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_LOOT + "_S");
 		}
@@ -608,6 +648,13 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 		
 		// Sometimes switches and buttons are placed outside
 		// the level geometry rather than made invisible.
+		// However, sometimes objects are perfectly usable
+		// despite being partially outside the boundaries.
+		// For example, the LC_Lever (object 452) in Thief
+		// Gold miss9.mis can still be seen and picked up.
+		// Plus, it's not really a lever so much as a key-
+		// or-part object. In any case, this physics check
+		// is a good thing, more often than not.
 		return Physics.ValidPos(target);
 	}
 }
