@@ -482,6 +482,54 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		return true;
 	}
 	
+	// Rooms don't work with our indicator display logic. To handle
+	// these, we'll need a kind of proxy. Instead of proxying the
+	// target item to bless it, we need to proxy the display item
+	// to render its indicator!
+	// TODO: this is probably unused because it does nothing useful
+	function ProxyDisplayIfNeeded(originalTarget)
+	{
+		if (!originalTarget || originalTarget == 0)
+			return originalTarget;
+		
+		local cacheKey = "J4FRadarDisplayProxy" + originalTarget;
+		
+		// If we already created a proxy, just reuse it.
+		// NOTE: Because we're only doing this for rooms, which
+		// don't (AFAIK) ever move, we don't need to teleport
+		// the proxy to the object's current location, attach it
+		// via links, etc.
+		if (IsDataSet(cacheKey))
+			return GetData(cacheKey);
+		
+		local proxyNeeded = false;
+		
+		if (Object.InheritsFrom(originalTarget, "Base Room"))
+		{
+			proxyNeeded = true;
+		}
+		
+		if (!proxyNeeded)
+			return originalTarget;
+		
+		// Create a proxy for display purposes.
+		local newProxy = Object.Create("Marker");
+		local zeros = vector(0);
+		// Nope. The rooms all have 0/0/0 positions, in properties for
+		// Edit mode in dromed, in Object.Position() in scripts, and
+		// Object.Teleport() via scripts. Rooms clearly have some kind
+		// of X/Y/Z coordinates, but I don't see how to access them :(
+		Object.Teleport(newProxy, zeros, zeros, originalTarget);
+		
+		// Remember it for future reference.
+		SetData(cacheKey, newProxy);
+		
+		//print(format("Room Stuff: %i %s %s", originalTarget, Object.GetName(originalTarget), Object.GetName(Object.Archetype(originalTarget))));
+		//print(format("%g / %g / %g", Object.Position(originalTarget).x, Object.Position(originalTarget).y, Object.Position(originalTarget).z ));
+		
+		return newProxy;
+	}
+	
 	// This will fire on mission start, on reloading a save, and when
 	// an object with this script is created after the game has started.
 	function OnBeginScript()
@@ -569,6 +617,16 @@ class J4FRadarQuestTarget extends J4FRadarAbstractTarget
 	{
 		base.constructor(COLOR_QUEST, true);
 	}
+	
+	// TODO: Remove blessing for achieved quest stuff?
+	// eg, stop indicating slain targets, stop indicating
+	// camera grenades when you've picked one up in miss2,
+	// etc. If we do, we probably need to allow multi-POI
+	// stuff. Allow both quest and equip, etc. Maybe worth
+	// reworking some stuff in general to support that.
+	// Like, it'd be nice if a container can check whether
+	// any of its contents are blessed, rather than assuming
+	// all POI contents will be blessed, etc.
 }
 
 class J4FRadarSecretTarget extends J4FRadarAbstractTarget
@@ -590,7 +648,16 @@ class J4FRadarSecretTarget extends J4FRadarAbstractTarget
 		local linkToMyController = Link.GetOne("~ControlDevice", target);
 		if (linkToMyController != 0)
 		{
-			return LinkDest(linkToMyController);
+			local myController = LinkDest(linkToMyController);
+			
+			// We can't display the position of rooms properly. Their
+			// positions are stored through some alternative means.
+			// At that point, we may as well show the original target
+			// instead.
+			
+			// If it's not a room, it's okay to display.
+			if (!Object.InheritsFrom(myController, "Base Room"))
+				return myController;
 		}
 		
 		// In other cases, picking up the item works (FrobFind script,
@@ -1692,6 +1759,10 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			
 			// This sets the x/y pairs to the left, top, right, and bottom edges of the
 			// object. Or it returns false if the object is completely offscreen.
+			// NOTE: GetObjectScreenBounds doesn't work for rooms, or at least doesn't
+			// work correctly. Then again, their Object.Position is 0,0,0 and their
+			// position properties in DromEd are also 0,0,0. The room's X/Y/Z is
+			// stored somewhere other than ordinary object properties.
 			if (!DarkOverlay.GetObjectScreenBounds(targetId, x1_ref, y1_ref, x2_ref, y2_ref))
 				continue;
 			
