@@ -83,6 +83,7 @@ const DIFFICULTY_2 = "M-GarrettDiffExpert";
 const OBJECTIVE_ANY = "goal_";
 const OBJECTIVE_TYPE = "goal_type_";
 const OBJECTIVE_STATE = "goal_state_";
+const OBJECTIVE_VISIBLE = "goal_visible_";
 const OBJECTIVE_TARGET = "goal_target_";
 const OBJECTIVE_MIN_DIFFICULTY = "goal_min_diff_";
 const OBJECTIVE_MAX_DIFFICULTY = "goal_max_diff_";
@@ -96,6 +97,13 @@ const OBJECTIVE_TYPE_SLAY = 2;
 const OBJECTIVE_TYPE_LOOT = 3;
 const OBJECTIVE_TYPE_ROOM = 4;
 const STATBIT_HIDDEN = 4;
+
+// TODO: We probably need to allow multi-POI stuff.
+// Allow both quest and equip, etc. Maybe worth
+// reworking some stuff in general to support that.
+// Like, it'd be nice if a container can check whether
+// any of its contents are blessed, rather than assuming
+// all POI contents will be blessed, etc.
 
 // Between the lack of a true static/utility method class concept
 // in squirrel and to avoid questions about when we do or don't
@@ -126,7 +134,7 @@ class J4FRadarUtilities extends SqRootScript
 	// capable of reusing smaller ones that have been freed up.
 	// If we weren't mindful of all that, a POI could suddenly
 	// point to an inappropriate or irrelevant object.
-	function InitPointOfInterestIfNeeded(forItem)
+	function InitPointOfInterestIfNeeded(forItem, objectiveNumber = -1)
 	{
 		// Do some quick checks up front.
 		if (
@@ -257,6 +265,12 @@ class J4FRadarUtilities extends SqRootScript
 		else
 		{
 			Object.AddMetaProperty(scriptWhat, POI_GENERIC + "_S");
+		}
+		
+		// If the item is associated with an objective, let it know which one.
+		if (objectiveNumber > -1)
+		{
+			PostMessage(scriptWhat, "J4FSetObjective", objectiveNumber);
 		}
 		
 		return true;
@@ -618,15 +632,40 @@ class J4FRadarQuestTarget extends J4FRadarAbstractTarget
 		base.constructor(COLOR_QUEST, true);
 	}
 	
-	// TODO: Remove blessing for achieved quest stuff?
-	// eg, stop indicating slain targets, stop indicating
-	// camera grenades when you've picked one up in miss2,
-	// etc. If we do, we probably need to allow multi-POI
-	// stuff. Allow both quest and equip, etc. Maybe worth
-	// reworking some stuff in general to support that.
-	// Like, it'd be nice if a container can check whether
-	// any of its contents are blessed, rather than assuming
-	// all POI contents will be blessed, etc.
+	function OnJ4FSetObjective()
+	{
+		SetData("J4FRadarObjective", message().data);
+	}
+	
+	function BlessItem()
+	{
+		if (!base.BlessItem())
+			return false;
+		
+		// Do we have quest variables we can refer to?
+		if (!IsDataSet("J4FRadarObjective"))
+			return true;
+		
+		local objectiveNumber = GetData("J4FRadarObjective");
+		
+		// Only ongoing quests matter. Completed do not.
+		if (Quest.Exists(OBJECTIVE_STATE + objectiveNumber) && Quest.Get(OBJECTIVE_STATE + objectiveNumber) != 0)
+			return false;
+		
+		// If the quest isn't visible, should we even care? Safest
+		// bet is no, because that can be used for "optional"
+		// objectives. For example, buying a tip or sidequest from
+		// the store screen. The objective may well *never*
+		// become visible, and the quest target might be in an
+		// inaccessible spot unless the objective is triggered.
+		// NOTE: There are also cases where an objective is
+		// leftover/cut data from a mission and will never be
+		// relevant in any circumstance ever.
+		if (Quest.Exists(OBJECTIVE_VISIBLE + objectiveNumber) && Quest.Get(OBJECTIVE_VISIBLE + objectiveNumber) == 0)
+			return false;
+		
+		return true;
+	}
 }
 
 class J4FRadarSecretTarget extends J4FRadarAbstractTarget
@@ -1002,6 +1041,8 @@ class J4FRadarUi extends J4FRadarUtilities
 	// objects. The actual scanning happens in the timer function.
     function OnSim()
 	{
+		// TODO: testing
+		Quest.Set(OBJECTIVE_VISIBLE + 1, 1);
         if (message().starting)
 		{
 			QueueNewScan(0.01);
@@ -1065,9 +1106,14 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		local anyKindOfPoi = ObjID(POI_ANY);
 		
-		// Table of integer keys set to true.
+		// Table of integer keys.
 		// Positive integers are concrete objects.
 		// Negative integers are archetypes.
+		// In either case, the value is another integer,
+		// referring to the 0-based objective number it
+		// relates to. (If multiple objectives target
+		// the same things, it's undefined which one will
+		// win.)
 		local questTargets = {};
 		// Array of archetypes to enumerate through.
 		// These negative values should appear in
@@ -1261,7 +1307,7 @@ class J4FRadarUi extends J4FRadarUtilities
 				// target object or archetype, add it to the list.
 				if (wantTarget && checkQuestData.target != 0)
 				{
-					questTargets[checkQuestData.target] <- true;
+					questTargets[checkQuestData.target] <- checkQuestId;
 					
 					if (checkQuestData.target < 0)
 					{
@@ -1290,6 +1336,9 @@ class J4FRadarUi extends J4FRadarUtilities
 				scannedAny = true;
 				
 				local checkPoiInit = false;
+				
+				// If the item seems related to an objective, let's see which one.
+				local relatedObjective = -1;
 				
 				// Many items can be marked as interesting directly
 				// via metaproperties assigned to their archetypes.
@@ -1376,9 +1425,15 @@ class J4FRadarUi extends J4FRadarUtilities
 					&& !Object.InheritsFrom(i, questPoiProperty)
 				)
 				{
+					local isQuest = false;
+					
 					// Start with the quickest check: is this specific object
 					// in the list of quest items?
-					local isQuest = i in questTargets;
+					if (i in questTargets)
+					{
+						isQuest = true;
+						relatedObjective = questTargets[i];
+					}
 					
 					// If needed, try checking special loot bits instead.
 					if (
@@ -1426,6 +1481,7 @@ class J4FRadarUi extends J4FRadarUtilities
 							if (Object.InheritsFrom(i, questArchetypes[qt]))
 							{
 								isQuest = true;
+								relatedObjective = questTargets[questArchetypes[qt]];
 								break;
 							}
 						}
@@ -1438,7 +1494,7 @@ class J4FRadarUi extends J4FRadarUtilities
 					}
 				}
 				
-				if (checkPoiInit && InitPointOfInterestIfNeeded(i))
+				if (checkPoiInit && InitPointOfInterestIfNeeded(i, relatedObjective))
 				{
 					++initializeCount;
 				}
