@@ -19,6 +19,9 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 **Optional loot detection**: Yellow indicators.
 * [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_lootdar.dml?raw=1)
 
+**Optional quest/secret detection**: Pink indicators. This isn't as thorough as other indicators, and only handles objectives to pick up, destroy, or protect a thing. Missions may track objectives through special scripts instead, and this includes the Thief 1 original missions. Thief 2 missions and FMs are more likely to use detectable quest objectives.
+* [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_questdar.dml?raw=1)
+
 **Optional equipment detection (keys, arrows, potions, etc.)**: Green indicators.
 * [dbmods\just4fun_radar_10_equipdar.dml](../dbmods/just4fun_radar_10_equipdar.dml?raw=1)
 * [dbmods\just4fun_radar_11_T1_equip.dml](../dbmods/just4fun_radar_11_T1_equip.dml?raw=1)

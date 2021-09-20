@@ -661,6 +661,9 @@ class J4FRadarQuestTarget extends J4FRadarAbstractTarget
 		// NOTE: There are also cases where an objective is
 		// leftover/cut data from a mission and will never be
 		// relevant in any circumstance ever.
+		// NOTE: A OBJECTIVE_BONUS type objective won't be
+		// visible to the user, but it's still marked as
+		// visible to make it active.
 		if (Quest.Exists(OBJECTIVE_VISIBLE + objectiveNumber) && Quest.Get(OBJECTIVE_VISIBLE + objectiveNumber) == 0)
 			return false;
 		
@@ -1041,8 +1044,6 @@ class J4FRadarUi extends J4FRadarUtilities
 	// objects. The actual scanning happens in the timer function.
     function OnSim()
 	{
-		// TODO: testing
-		Quest.Set(OBJECTIVE_VISIBLE + 1, 1);
         if (message().starting)
 		{
 			QueueNewScan(0.01);
