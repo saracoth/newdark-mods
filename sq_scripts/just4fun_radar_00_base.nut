@@ -1661,7 +1661,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		else
 		{
 			myIndicators = [];
-			j4fRadarOverlayInstance.displayTargets[detectedId] = myIndicators;
+			j4fRadarOverlayInstance.displayTargets[detectedId] <- myIndicators;
 		}
 		
 		// No choice but to scan to array to find ourselves.
