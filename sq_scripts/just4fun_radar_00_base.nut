@@ -605,22 +605,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// sure to add or remove us from the overlay.
 		ClearDataSub("J4FRadarLastBless");
 		
-		// How can we tell how many of our POI target scripts are on
-		// this object? We'll use a counter, which each will increment
-		// exactly once and never again.
-		if (!IsDataSetSub("J4FRadarTargetCounted"))
-		{
-			if (!IsDataSet("J4FRadarTargetCounter"))
-			{
-				SetData("J4FRadarTargetCounter", 1);
-			}
-			else
-			{
-				SetData("J4FRadarTargetCounter", GetData("J4FRadarTargetCounter") + 1);
-			}
-			SetDataSub("J4FRadarTargetCounted");
-		}
-		
 		// Depending on which order objects are set up, things like the
 		// overlay marker may not be ready yet. We'll add a slight
 		// startup delay before registering our existence with them.
@@ -672,32 +656,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			}
 			else
 			{
-				if (SendMessage(interfaceId, "J4FRadarDestroyed", self, GetDataSub("J4FRadarRank")))
-				{
-					// If we destroyed the POI indicator, maybe that means
-					// some other POI target script can take over now?
-					if (GetData("J4FRadarTargetCounter") > 1)
-					{
-						// Clear everyone's last blessing status out, so
-						// that on the next timer tick, they'll all try
-						// to bless themselves again and maybe someone
-						// can add themselves to the list.
-						SetData("J4FRadarForgetBlessingCounter", GetData("J4FRadarTargetCounter"));
-						// TODO: won't this result in an infinitely increasing counter
-						//	if one of our targets isn't blessed? Hmm... :/
-						// TODO: Actually, there's even sneakier stuff, isn't there?
-						//	If timer ticks aren't deterministic, that means we'd have
-						//	to double the initial J4FRadarForgetBlessingCounter value
-						//	to guarantee everyone gets hit at least once. After all,
-						//	we could set J4FRadarForgetBlessingCounter partway through
-						//	the current tick, and the next tick could process our
-						//	target script in a different order.
-						//	So if we're doing A,B,C this tick, and start this process
-						//	during B's tick, and next time we do B,C,A, then the A
-						//	target script will never even see the counter. C, B, and
-						//	C again will decrement it from 3 down to 0 :/
-					}
-				}
+				SendMessage(interfaceId, "J4FRadarDestroyed", self, GetDataSub("J4FRadarRank"));
 			}
 			
 			SetDataSub("J4FRadarLastBless", newBlessed);
@@ -1744,11 +1703,6 @@ class J4FRadarUi extends J4FRadarUtilities
 		{
 			// ...then remove it.
 			delete j4fRadarOverlayInstance.displayTargets[destroyedId];
-			Reply(true);
-		}
-		else
-		{
-			Reply(false);
 		}
 	}
 	
