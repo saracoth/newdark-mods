@@ -1438,83 +1438,83 @@ class J4FRadarUi extends J4FRadarUtilities
 			{
 				scannedAny = true;
 				
-				local checkPoiInit = false;
-				
 				// If the item seems related to an objective, let's see which one.
 				local relatedObjective = -1;
 				
-				// Many items can be marked as interesting directly
-				// via metaproperties assigned to their archetypes.
-				if (Object.InheritsFrom(i, anyKindOfPoi))
-				{
-					checkPoiInit = true;
-				}
 				// Do we need to manually add a POI metaproperty to the
 				// scanned item? Useful for weird kinds of loot, keys,
 				// and readables.
-				else
+				
+				// Secrets can be anything at all, really.
+				if (
+					// Let's also detect secrets when quests are enabled.
+					questEnabled
+					// This isn't isn't flagged yet.
+					&& !Object.InheritsFrom(i, secretPoiProperty)
+					// The ultimate object of interest will have the
+					// hidden bit set. That comes from "DarkStat" property,
+					// but we need bitwise logic to check for the hidden
+					// flag specifically.
+					&& Property.Possessed(i, "DarkStat")
+					&& (Property.Get(i, "DarkStat") & STATBIT_HIDDEN) == STATBIT_HIDDEN
+				)
 				{
-					if (
-						// Let's also detect secrets when this is enabled.
-						questEnabled
-						// The ultimate object of interest will have the
-						// hidden bit set. That comes from "DarkStat" property,
-						// but we need bitwise logic to check for the hidden
-						// flag specifically.
-						&& Property.Possessed(i, "DarkStat")
-						&& (Property.Get(i, "DarkStat") & STATBIT_HIDDEN) == STATBIT_HIDDEN
+					Object.AddMetaProperty(i, secretPoiProperty);
+				}
+				
+				// IsLoot items are hard to target directly, because
+				// we can never safely script them nor add a metaproperty,
+				// because IsLoot *is* a metaproperty.
+				if (
+					// The optional loot or quest module is installed.
+					lootEnabled
+					// This isn't isn't flagged yet.
+					&& !Object.InheritsFrom(i, lootPoiProperty)
+					// And it's a loot item.
+					&& (
+						// "IsLoot" items might be repurposed as valueless
+						// decorations, but we can worry about that in the
+						// bless functions.
+						Object.InheritsFrom(i, lootMetaProperty)
+						// It's possible that the loot will have no value
+						// and no special flags, but we can worry about
+						// that in the bless functions.
+						|| Property.Possessed(i, "Loot")
 					)
-					{
-						Object.AddMetaProperty(i, secretPoiProperty);
-						checkPoiInit = true;
-					}
-					// IsLoot items are hard to target directly, because
-					// we can never safely script them nor add a metaproperty,
-					// because IsLoot *is* a metaproperty.
-					else if (
-						// The optional loot or quest module is installed.
-						lootEnabled
-						// And it's a loot item.
-						&& (
-							// "IsLoot" items might be repurposed as valueless
-							// decorations, but we can worry about that in the
-							// bless functions.
-							Object.InheritsFrom(i, lootMetaProperty)
-							// It's possible that the loot will have no value
-							// and no special flags, but we can worry about
-							// that in the bless functions.
-							|| Property.Possessed(i, "Loot")
-						)
-					)
-					{
-						Object.AddMetaProperty(i, lootPoiProperty);
-						checkPoiInit = true;
-					}
-					else if (
-						// The optional keys (equipment) module is installed.
-						keysEnabled
-						// And the item can be used as a kind of key.
-						&& Property.Possessed(i, "KeySrc")
-						// And is enabled in at least one region.
-						&& Property.Get(i, "KeySrc", "RegionMask") != 0
-					)
-					{
-						Object.AddMetaProperty(i, keyPoiProperty);
-						checkPoiInit = true;
-					}
-					else if (
-						// The optional readables module is installed.
-						readablesEnabled
-						// And the item has something worth reading.
-						&& Property.Possessed(i, "Book")
-						&& Property.Possessed(i, "BookArt")
-						&& Property.Get(i, "Book") != ""
-						&& Property.Get(i, "BookArt") != ""
-					)
-					{
-						Object.AddMetaProperty(i, readablePoiProperty);
-						checkPoiInit = true;
-					}
+				)
+				{
+					Object.AddMetaProperty(i, lootPoiProperty);
+				}
+				
+				// Sometimes weird items are used as "keys" or parts.
+				if (
+					// The optional keys (equipment) module is installed.
+					keysEnabled
+					// This isn't isn't flagged yet.
+					&& !Object.InheritsFrom(i, keyPoiProperty)
+					// And the item can be used as a kind of key.
+					&& Property.Possessed(i, "KeySrc")
+					// And is enabled in at least one region.
+					&& Property.Get(i, "KeySrc", "RegionMask") != 0
+				)
+				{
+					Object.AddMetaProperty(i, keyPoiProperty);
+				}
+				
+				// Sometimes weird items can be made readable.
+				if (
+					// The optional readables module is installed.
+					readablesEnabled
+					// This isn't isn't flagged yet.
+					&& !Object.InheritsFrom(i, readablePoiProperty)
+					// And the item has something worth reading.
+					&& Property.Possessed(i, "Book")
+					&& Property.Possessed(i, "BookArt")
+					&& Property.Get(i, "Book") != ""
+					&& Property.Get(i, "BookArt") != ""
+				)
+				{
+					Object.AddMetaProperty(i, readablePoiProperty);
 				}
 				
 				// Quest objects are extra tricky, and require several
@@ -1524,7 +1524,7 @@ class J4FRadarUi extends J4FRadarUtilities
 				if (
 					questEnabled
 					// We might have flagged this some other way, like
-					// by DML or in the loot checks.
+					// by DML or in the loot checks, or previous scans.
 					&& !Object.InheritsFrom(i, questPoiProperty)
 				)
 				{
@@ -1549,6 +1549,8 @@ class J4FRadarUi extends J4FRadarUtilities
 						&& (Property.Get(i, "Loot", "Special") & questSpecials) != 0
 					)
 					{
+						// TODO: technically this should also have the related
+						// objective, so we can honor quest blessing behaviors :/
 						isQuest = true;
 					}
 					
@@ -1593,12 +1595,17 @@ class J4FRadarUi extends J4FRadarUtilities
 					if (isQuest)
 					{
 						Object.AddMetaProperty(i, questPoiProperty);
-						checkPoiInit = true;
 					}
 				}
 				
-				if (checkPoiInit && InitPointOfInterestIfNeeded(i, relatedObjective))
+				if (
+					// If the object is a POI of one or more types
+					Object.InheritsFrom(i, anyKindOfPoi)
+					// Attempt to initialize it.
+					&& InitPointOfInterestIfNeeded(i, relatedObjective)
+				)
 				{
+					// And increment the counter if we did initialize it.
 					++initializeCount;
 				}
 			}
