@@ -1217,6 +1217,8 @@ class J4FRadarUi extends J4FRadarUtilities
 	
 	function QueueNewScan(afterDelay)
 	{
+		//DarkUI.TextMessage("Scanning area...", 0, 1000);
+		
 		// Start with objects 1 through whatever.
 		SetData("AddToScanId", 1);
 		SetData("ConsecutiveEmptyGroups", 0);
@@ -1271,6 +1273,21 @@ class J4FRadarUi extends J4FRadarUtilities
 		local secretPoiProperty = ObjID(POI_SECRET);
 		
 		local anyKindOfPoi = ObjID(POI_ANY);
+		
+		// It can be a pain to examine properties of objects
+		// every time we scan the level. In most all cases,
+		// it should be thorough enough to do so once. It is
+		// possible interesting objects will be created mid-
+		// mission without POI metaproperties added through
+		// DML, but it's less likely. The alternative is to
+		// track which objects have been scanned already, but
+		// since object IDs are reused when destroying and
+		// creating stuff mid-mission, the only way to really
+		// do that is by adding a flag metaproperty to every
+		// object in the whole mission. That feels like
+		// overkill.
+		// TODO: periodically do deep scans, or try out the flagging approach?
+		local shouldExamineProperties = !IsDataSet("J4FHasDeepScanned");
 		
 		// Table of integer keys.
 		// Positive integers are concrete objects.
@@ -1507,157 +1524,159 @@ class J4FRadarUi extends J4FRadarUtilities
 				// Do we need to manually add a POI metaproperty to the
 				// scanned item? Useful for weird kinds of loot, keys,
 				// and readables.
-				
-				// Secrets can be anything at all, really.
-				if (
-					// Let's also detect secrets when quests are enabled.
-					questEnabled
-					// This isn't isn't flagged yet.
-					&& !Object.InheritsFrom(i, secretPoiProperty)
-					// The ultimate object of interest will have the
-					// hidden bit set. That comes from "DarkStat" property,
-					// but we need bitwise logic to check for the hidden
-					// flag specifically.
-					&& Property.Possessed(i, "DarkStat")
-					&& (Property.Get(i, "DarkStat") & STATBIT_HIDDEN) == STATBIT_HIDDEN
-				)
+				if (shouldExamineProperties)
 				{
-					Object.AddMetaProperty(i, secretPoiProperty);
-				}
-				
-				// IsLoot items are hard to target directly, because
-				// we can never safely script them nor add a metaproperty,
-				// because IsLoot *is* a metaproperty.
-				if (
-					// The optional loot or quest module is installed.
-					lootEnabled
-					// This isn't isn't flagged yet.
-					&& !Object.InheritsFrom(i, lootPoiProperty)
-					// And it's a loot item.
-					&& (
-						// "IsLoot" items might be repurposed as valueless
-						// decorations, but we can worry about that in the
-						// bless functions.
-						Object.InheritsFrom(i, lootMetaProperty)
-						// It's possible that the loot will have no value
-						// and no special flags, but we can worry about
-						// that in the bless functions.
-						|| Property.Possessed(i, "Loot")
+					// Secrets can be anything at all, really.
+					if (
+						// Let's also detect secrets when quests are enabled.
+						questEnabled
+						// This isn't isn't flagged yet.
+						&& !Object.InheritsFrom(i, secretPoiProperty)
+						// The ultimate object of interest will have the
+						// hidden bit set. That comes from "DarkStat" property,
+						// but we need bitwise logic to check for the hidden
+						// flag specifically.
+						&& Property.Possessed(i, "DarkStat")
+						&& (Property.Get(i, "DarkStat") & STATBIT_HIDDEN) == STATBIT_HIDDEN
 					)
-				)
-				{
-					Object.AddMetaProperty(i, lootPoiProperty);
-				}
-				
-				// Sometimes weird items are used as "keys" or parts.
-				if (
-					// The optional keys (equipment) module is installed.
-					keysEnabled
-					// This isn't isn't flagged yet.
-					&& !Object.InheritsFrom(i, keyPoiProperty)
-					// And the item can be used as a kind of key.
-					&& Property.Possessed(i, "KeySrc")
-					// And is enabled in at least one region.
-					&& Property.Get(i, "KeySrc", "RegionMask") != 0
-				)
-				{
-					Object.AddMetaProperty(i, keyPoiProperty);
-				}
-				
-				// Sometimes weird items can be made readable.
-				if (
-					// The optional readables module is installed.
-					readablesEnabled
-					// This isn't isn't flagged yet.
-					&& !Object.InheritsFrom(i, readablePoiProperty)
-					// And the item has something worth reading.
-					&& Property.Possessed(i, "Book")
-					&& Property.Possessed(i, "BookArt")
-					&& Property.Get(i, "Book") != ""
-					&& Property.Get(i, "BookArt") != ""
-				)
-				{
-					Object.AddMetaProperty(i, readablePoiProperty);
-				}
-				
-				// Quest objects are extra tricky, and require several
-				// layers of logic to get just right.
-				// NOTE: We're deliberately adding on the quest POI metaproperty
-				// on top of whatever baseline metaproperty the object might have.
-				if (
-					questEnabled
-					// We might have flagged this some other way, like
-					// by DML or in the loot checks, or previous scans.
-					&& !Object.InheritsFrom(i, questPoiProperty)
-				)
-				{
-					local isQuest = false;
-					
-					// Start with the quickest check: is this specific object
-					// in the list of quest items?
-					if (i in questTargets)
 					{
-						isQuest = true;
-						relatedObjective = questTargets[i];
+						Object.AddMetaProperty(i, secretPoiProperty);
 					}
 					
-					// If needed, try checking special loot bits instead.
+					// IsLoot items are hard to target directly, because
+					// we can never safely script them nor add a metaproperty,
+					// because IsLoot *is* a metaproperty.
 					if (
-						!isQuest
-						// Are we looking for special bits?
-						&& questSpecials != 0
-						// Can this object even have any?
-						&& Property.Possessed(i, "Loot")
-						// Does it have any of the right ones?
-						&& (Property.Get(i, "Loot", "Special") & questSpecials) != 0
+						// The optional loot or quest module is installed.
+						lootEnabled
+						// This isn't isn't flagged yet.
+						&& !Object.InheritsFrom(i, lootPoiProperty)
+						// And it's a loot item.
+						&& (
+							// "IsLoot" items might be repurposed as valueless
+							// decorations, but we can worry about that in the
+							// bless functions.
+							Object.InheritsFrom(i, lootMetaProperty)
+							// It's possible that the loot will have no value
+							// and no special flags, but we can worry about
+							// that in the bless functions.
+							|| Property.Possessed(i, "Loot")
+						)
 					)
 					{
-						// TODO: technically this should also have the related
-						// objective, so we can honor quest blessing behaviors :/
-						isQuest = true;
+						Object.AddMetaProperty(i, lootPoiProperty);
 					}
 					
-					// If needed, try checking matching archetypes.
-					// Hopefully this isn't enabled, because it kinda
-					// sucks. We have to either advance up through the
-					// object's parent hierarchy checking everything
-					// against questTargets keys, or we enumerate
-					// through the questArchetypes array to see if it
-					// inherits from any of those.
-					// Multiply that work across every single object
-					// we scan, and that's a lot of wasted work :(
+					// Sometimes weird items are used as "keys" or parts.
 					if (
-						!isQuest
-						// Do we even want this logic?
-						&& checkQuestArchetypes
+						// The optional keys (equipment) module is installed.
+						keysEnabled
+						// This isn't isn't flagged yet.
+						&& !Object.InheritsFrom(i, keyPoiProperty)
+						// And the item can be used as a kind of key.
+						&& Property.Possessed(i, "KeySrc")
+						// And is enabled in at least one region.
+						&& Property.Get(i, "KeySrc", "RegionMask") != 0
 					)
 					{
-						// What's quicker, do you think? If we're
-						// dealing with an Object, that's pretty
-						// damned quick. No parent archetypes.
-						// Marker -> fnord -> Object has just three.
-						// But how about MaleNoble2 -> MaleNoble ->
-						// aristo -> bystander -> Human -> Animal ->
-						// Creature -> physical -> Object? That's
-						// nine. It's almost certainly better to
-						// enumerate through the questArchetypes
-						// array and check InheritsFrom, unless
-						// a mission has a truly absurd number of
-						// archetype-based objective targets.
-						for (local qt = questArchetypes.len(); --qt > -1; )
+						Object.AddMetaProperty(i, keyPoiProperty);
+					}
+					
+					// Sometimes weird items can be made readable.
+					if (
+						// The optional readables module is installed.
+						readablesEnabled
+						// This isn't isn't flagged yet.
+						&& !Object.InheritsFrom(i, readablePoiProperty)
+						// And the item has something worth reading.
+						&& Property.Possessed(i, "Book")
+						&& Property.Possessed(i, "BookArt")
+						&& Property.Get(i, "Book") != ""
+						&& Property.Get(i, "BookArt") != ""
+					)
+					{
+						Object.AddMetaProperty(i, readablePoiProperty);
+					}
+					
+					// Quest objects are extra tricky, and require several
+					// layers of logic to get just right.
+					// NOTE: We're deliberately adding on the quest POI metaproperty
+					// on top of whatever baseline metaproperty the object might have.
+					if (
+						questEnabled
+						// We might have flagged this some other way, like
+						// by DML or in the loot checks, or previous scans.
+						&& !Object.InheritsFrom(i, questPoiProperty)
+					)
+					{
+						local isQuest = false;
+						
+						// Start with the quickest check: is this specific object
+						// in the list of quest items?
+						if (i in questTargets)
 						{
-							if (Object.InheritsFrom(i, questArchetypes[qt]))
+							isQuest = true;
+							relatedObjective = questTargets[i];
+						}
+						
+						// If needed, try checking special loot bits instead.
+						if (
+							!isQuest
+							// Are we looking for special bits?
+							&& questSpecials != 0
+							// Can this object even have any?
+							&& Property.Possessed(i, "Loot")
+							// Does it have any of the right ones?
+							&& (Property.Get(i, "Loot", "Special") & questSpecials) != 0
+						)
+						{
+							// TODO: technically this should also have the related
+							// objective, so we can honor quest blessing behaviors :/
+							isQuest = true;
+						}
+						
+						// If needed, try checking matching archetypes.
+						// Hopefully this isn't enabled, because it kinda
+						// sucks. We have to either advance up through the
+						// object's parent hierarchy checking everything
+						// against questTargets keys, or we enumerate
+						// through the questArchetypes array to see if it
+						// inherits from any of those.
+						// Multiply that work across every single object
+						// we scan, and that's a lot of wasted work :(
+						if (
+							!isQuest
+							// Do we even want this logic?
+							&& checkQuestArchetypes
+						)
+						{
+							// What's quicker, do you think? If we're
+							// dealing with an Object, that's pretty
+							// damned quick. No parent archetypes.
+							// Marker -> fnord -> Object has just three.
+							// But how about MaleNoble2 -> MaleNoble ->
+							// aristo -> bystander -> Human -> Animal ->
+							// Creature -> physical -> Object? That's
+							// nine. It's almost certainly better to
+							// enumerate through the questArchetypes
+							// array and check InheritsFrom, unless
+							// a mission has a truly absurd number of
+							// archetype-based objective targets.
+							for (local qt = questArchetypes.len(); --qt > -1; )
 							{
-								isQuest = true;
-								relatedObjective = questTargets[questArchetypes[qt]];
-								break;
+								if (Object.InheritsFrom(i, questArchetypes[qt]))
+								{
+									isQuest = true;
+									relatedObjective = questTargets[questArchetypes[qt]];
+									break;
+								}
 							}
 						}
-					}
-					
-					if (isQuest)
-					{
-						Object.AddMetaProperty(i, questPoiProperty);
+						
+						if (isQuest)
+						{
+							Object.AddMetaProperty(i, questPoiProperty);
+						}
 					}
 				}
 				
@@ -1685,6 +1704,10 @@ class J4FRadarUi extends J4FRadarUtilities
 			// Increment and test consecutiveEmptyGroups.
 			if (++consecutiveEmptyGroups > MAX_EMPTY_SCAN_GROUPS)
 			{
+				// Now that we're done with the first loop, we've
+				// also done any deep scannig needing in that loop.
+				SetData("J4FHasDeepScanned", true);
+				
 				// We're done! Break the loop. We'll re-scan all
 				// the objects again periodically, to cover any
 				// new-to-the-mission items.
