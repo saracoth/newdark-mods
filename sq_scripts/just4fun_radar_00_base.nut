@@ -37,31 +37,57 @@ const READ_LIST_SEPARATOR = ";";
 
 // These correspond to the various RadarX64.png filenames.
 const COLOR_DEFAULT = "W";
-const COLOR_LOOT = "Y";
-const COLOR_EQUIP = "G";
-const COLOR_DEVICE = "P";
 const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
-const COLOR_READABLE = "B";
+const COLOR_DEVICE = "P";
+const COLOR_EQUIP = "G";
+const COLOR_LOOT = "Y";
 const COLOR_QUEST = "K";
+const COLOR_READABLE = "B";
+
+// These are used to allow subclasses to keep their data separate when applied
+// to the same object.
+const DATA_SUFFIX_CONTAINER = "_B";
+const DATA_SUFFIX_CREATURE = "_C";
+const DATA_SUFFIX_DEVICE = "_D";
+const DATA_SUFFIX_EQUIP = "_E";
+const DATA_SUFFIX_GRAB = "_G";
+const DATA_SUFFIX_LOOT = "_L";
+const DATA_SUFFIX_QUEST = "_Q";
+const DATA_SUFFIX_READABLE = "_R";
+const DATA_SUFFIX_SECRET = "_S";
+
+// An item can match multiple criteria, and this determines how to display it.
+// Lower numbers are preferred. Duplicates may cause weirdness. Gaps permitted.
+const POI_RANK_QUEST = 1;
+const POI_RANK_SECRET = 2;
+const POI_RANK_LOOT = 3;
+const POI_RANK_EQUIP = 4;
+const POI_RANK_READABLE = 5;
+const POI_RANK_CONTAINER = 6;
+const POI_RANK_CREATURE = 7;
+const POI_RANK_DEVICE = 8;
+const POI_RANK_GRAB = 99;
 
 // Various class, metaproperty, and object name strings.
 // This one Marker instance is placed in each level. It sets up the UI overlay.
 // It can also be used to track any kind of global state we need to persist
 // between saving and loading.
 const OVERLAY_INTERFACE = "J4FRadarUiInterfacer";
+
 // If these metaproperties exist, they enable certain optional features. They
 // don't need to be assigned to anything.
-const FEATURE_LOOT = "J4FRadarEnableLoot";
-const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
-const FEATURE_EQUIP = "J4FRadarEnableEquip";
-const FEATURE_DEVICE = "J4FRadarEnableDevice";
-const FEATURE_READABLE = "J4FRadarEnableReadable";
 const FEATURE_CONTAINER = "J4FRadarEnableContainer";
 const FEATURE_CREATURE = "J4FRadarEnableCreature";
 const FEATURE_CREATURE_GOOD = "J4FRadarEnableCreatureG";
 const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
+const FEATURE_DEVICE = "J4FRadarEnableDevice";
+const FEATURE_EQUIP = "J4FRadarEnableEquip";
+const FEATURE_LOOT = "J4FRadarEnableLoot";
+const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
 const FEATURE_QUEST = "J4FRadarEnableQuest";
+const FEATURE_READABLE = "J4FRadarEnableReadable";
+
 // These metaproperties are used to flag items as interesting to the radar.
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_GENERIC = "J4FRadarFallbackPOI";
@@ -74,28 +100,41 @@ const POI_CREATURE = "J4FRadarCreaturePOI";
 const POI_QUEST = "J4FRadarQuestPOI";
 const POI_SECRET = "J4FRadarSecretPOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
+
+// This indicates an item has been processed as a point of interest and can be
+// ignored from now on.
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
+
 // Link flavour used to associate a POI proxy marker with its target.
 const PROXY_ATTACH_METHOD = "PhysAttach";
+
+// Used to figure out difficulty level, for want of a clear function to do so.
 const DIFFICULTY_0 = "M-GarrettDiffNormal";
 const DIFFICULTY_1 = "M-GarrettDiffHard";
 const DIFFICULTY_2 = "M-GarrettDiffExpert";
+
+// See convict.osm documentation for details.
 const OBJECTIVE_ANY = "goal_";
-const OBJECTIVE_TYPE = "goal_type_";
-const OBJECTIVE_STATE = "goal_state_";
-const OBJECTIVE_VISIBLE = "goal_visible_";
-const OBJECTIVE_TARGET = "goal_target_";
-const OBJECTIVE_MIN_DIFFICULTY = "goal_min_diff_";
-const OBJECTIVE_MAX_DIFFICULTY = "goal_max_diff_";
-const OBJECTIVE_REVERSED = "goal_reverse_";
-const OBJECTIVE_IRREVERSIBLE = "goal_irreversible_";
-const OBJECTIVE_SPECIAL_BITS = "goal_special_";
-const OBJECTIVE_OPTIONAL = "goal_optional_";
 const OBJECTIVE_BONUS = "goal_bonus_";
+const OBJECTIVE_IRREVERSIBLE = "goal_irreversible_";
+const OBJECTIVE_MAX_DIFFICULTY = "goal_max_diff_";
+const OBJECTIVE_MIN_DIFFICULTY = "goal_min_diff_";
+const OBJECTIVE_OPTIONAL = "goal_optional_";
+const OBJECTIVE_REVERSED = "goal_reverse_";
+const OBJECTIVE_SPECIAL_BITS = "goal_special_";
+const OBJECTIVE_STATE = "goal_state_";
+const OBJECTIVE_TARGET = "goal_target_";
+const OBJECTIVE_TYPE = "goal_type_";
+const OBJECTIVE_VISIBLE = "goal_visible_";
+
+// See convict.osm documentation for details.
 const OBJECTIVE_TYPE_CONTAIN = 1;
 const OBJECTIVE_TYPE_SLAY = 2;
 const OBJECTIVE_TYPE_LOOT = 3;
 const OBJECTIVE_TYPE_ROOM = 4;
+
+// There's a bitwise field on items, and this bit indicates it's a secret that
+// can be found.
 const STATBIT_HIDDEN = 4;
 
 // TODO: We probably need to allow multi-POI stuff.
@@ -301,11 +340,25 @@ class J4FRadarToggler extends SqRootScript
 // This a superclass for all items that the radar can display.
 class J4FRadarAbstractTarget extends J4FRadarUtilities
 {
-	constructor(color = COLOR_DEFAULT, uncapDistance = false)
+	constructor(color = COLOR_DEFAULT, uncapDistance = false, rank = -1)
 	{
-		SetData("J4FRadarColor", color);
-		SetData("J4FRadarUncapDistance", uncapDistance);
+		SetDataSub("J4FRadarColor", color);
+		SetDataSub("J4FRadarUncapDistance", uncapDistance);
+		SetDataSub("J4FRadarRank", rank);
 	}
+	
+	// Once we started putting multiple target classes on the same
+	// item, it became necessary to separate some of their data
+	// from each other.
+	// NOTE: Having seen some strangeness with local variables
+	// seemingly shared between multiple instances of a class,
+	// I'm avoiding use of local variables to modify these
+	// functions. Subclasses will have to hardcode variations
+	// instead :(
+	function GetDataSub(key) {return GetData(key);}
+	function SetDataSub(key, value) {SetData(key, value);}
+	function ClearDataSub(key) {ClearData(key);}
+	function IsDataSetSub(key) {return IsDataSetSub(key);}
 	
 	// A proxy marker keeps track of the actual target item of
 	// interest. In older versions of this mod, we would also
@@ -550,11 +603,29 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	{
 		// Default to unknown on a reload. Mostly so that we can be
 		// sure to add or remove us from the overlay.
-		ClearData("J4FRadarLastBless");
+		ClearDataSub("J4FRadarLastBless");
+		
+		// How can we tell how many of our POI target scripts are on
+		// this object? We'll use a counter, which each will increment
+		// exactly once and never again.
+		if (!IsDataSetSub("J4FRadarTargetCounted"))
+		{
+			if (!IsDataSet("J4FRadarTargetCounter"))
+			{
+				SetData("J4FRadarTargetCounter", 1);
+			}
+			else
+			{
+				SetData("J4FRadarTargetCounter", GetData("J4FRadarTargetCounter") + 1);
+			}
+			SetDataSub("J4FRadarTargetCounted");
+		}
 		
 		// Depending on which order objects are set up, things like the
 		// overlay marker may not be ready yet. We'll add a slight
 		// startup delay before registering our existence with them.
+		// NOTE: Multiple POI target scripts on the same object will
+		// share the same timer.
 		if (!IsDataSet("J4FRadarReviewStarted"))
 		{
 			SetOneShotTimer("J4FRadarTargetReview", 0.25);
@@ -585,7 +656,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		// If our blessing status changes, add or remove us from the list
 		// of targets to review and display.
-		if (!IsDataSet("J4FRadarLastBless") || (GetData("J4FRadarLastBless") != newBlessed))
+		if (!IsDataSetSub("J4FRadarLastBless") || (GetDataSub("J4FRadarLastBless") != newBlessed))
 		{
 			if (newBlessed)
 			{
@@ -594,17 +665,42 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 					// data
 					self,
 					// data2
-					DisplayTarget(),
+					"" + DisplayTarget() + "," + GetDataSub("J4FRadarRank"),
 					// data3
-					GetData("J4FRadarColor") + (GetData("J4FRadarUncapDistance") ? "1" : "0") + AltDisplayTarget()
+					GetDataSub("J4FRadarColor") + (GetDataSub("J4FRadarUncapDistance") ? "1" : "0") + AltDisplayTarget()
 					);
 			}
 			else
 			{
-				SendMessage(interfaceId, "J4FRadarDestroyed", self);
+				if (SendMessage(interfaceId, "J4FRadarDestroyed", self, GetDataSub("J4FRadarRank")))
+				{
+					// If we destroyed the POI indicator, maybe that means
+					// some other POI target script can take over now?
+					if (GetData("J4FRadarTargetCounter") > 1)
+					{
+						// Clear everyone's last blessing status out, so
+						// that on the next timer tick, they'll all try
+						// to bless themselves again and maybe someone
+						// can add themselves to the list.
+						SetData("J4FRadarForgetBlessingCounter", GetData("J4FRadarTargetCounter"));
+						// TODO: won't this result in an infinitely increasing counter
+						//	if one of our targets isn't blessed? Hmm... :/
+						// TODO: Actually, there's even sneakier stuff, isn't there?
+						//	If timer ticks aren't deterministic, that means we'd have
+						//	to double the initial J4FRadarForgetBlessingCounter value
+						//	to guarantee everyone gets hit at least once. After all,
+						//	we could set J4FRadarForgetBlessingCounter partway through
+						//	the current tick, and the next tick could process our
+						//	target script in a different order.
+						//	So if we're doing A,B,C this tick, and start this process
+						//	during B's tick, and next time we do B,C,A, then the A
+						//	target script will never even see the counter. C, B, and
+						//	C again will decrement it from 3 down to 0 :/
+					}
+				}
 			}
 			
-			SetData("J4FRadarLastBless", newBlessed);
+			SetDataSub("J4FRadarLastBless", newBlessed);
 		}
 		
 		// Periodically review our blessing status.
@@ -621,7 +717,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		if (interfaceId < 1)
 			return;
 		
-		SendMessage(interfaceId, "J4FRadarDestroyed", self);
+		SendMessage(interfaceId, "J4FRadarDestroyed", self, -1);
 	}
 }
 
@@ -629,8 +725,14 @@ class J4FRadarQuestTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_QUEST, true);
+		base.constructor(COLOR_QUEST, true, POI_RANK_QUEST);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_QUEST);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_QUEST, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_QUEST);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_QUEST);}
 	
 	function OnJ4FSetObjective()
 	{
@@ -675,8 +777,14 @@ class J4FRadarSecretTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_QUEST, true);
+		base.constructor(COLOR_QUEST, true, POI_RANK_SECRET);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_SECRET);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_SECRET, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_SECRET);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_SECRET);}
 	
 	function DisplayTarget()
 	{
@@ -731,8 +839,14 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_CREATURE, true);
+		base.constructor(COLOR_CREATURE, true, POI_RANK_CREATURE);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CREATURE);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CREATURE, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CREATURE);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_CREATURE);}
 	
 	// Ignore frozen, dead, and nonhostile creatures.
 	function BlessItem()
@@ -770,10 +884,16 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 // a container and we can grab them from there, etc.)
 class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
 {
-	constructor(color = COLOR_DEFAULT, uncapDistance = false)
+	constructor(color = COLOR_DEFAULT, uncapDistance = false, rank = POI_RANK_GRAB)
 	{
-		base.constructor(color, uncapDistance);
+		base.constructor(color, uncapDistance, rank);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_GRAB);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_GRAB, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_GRAB);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_GRAB);}
 	
 	// Ignore decorative/etc. things we can't pick up.
 	function BlessItem()
@@ -787,8 +907,14 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_CONTAINER, true);
+		base.constructor(COLOR_CONTAINER, true, POI_RANK_CONTAINER);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CONTAINER);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CONTAINER, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CONTAINER);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_CONTAINER);}
 	
 	// Ignore empty containers and containers with points of interest.
 	// If we contain a POI item, the item should already be displaying
@@ -831,8 +957,14 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_DEVICE);
+		base.constructor(COLOR_DEVICE, false, POI_RANK_DEVICE);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_DEVICE);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_DEVICE, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_DEVICE);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_DEVICE);}
 	
 	// Ignore invisible devices, which are sometimes used by
 	// mission authors to trigger scripted events. Note that
@@ -863,8 +995,14 @@ class J4FRadarEquipTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_EQUIP, true);
+		base.constructor(COLOR_EQUIP, true, POI_RANK_EQUIP);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_EQUIP);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_EQUIP, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_EQUIP);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_EQUIP);}
 }
 
 // This script goes on the loot of interest.
@@ -872,8 +1010,14 @@ class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_LOOT, true);
+		base.constructor(COLOR_LOOT, true, POI_RANK_LOOT);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_LOOT);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_LOOT, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_LOOT);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_LOOT);}
 }
 
 // This script goes on the readable of interest. We're applying this only to
@@ -882,8 +1026,14 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_READABLE, true);
+		base.constructor(COLOR_READABLE, true, POI_RANK_READABLE);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_READABLE);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_READABLE, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_READABLE);}
+	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_READABLE);}
 	
 	// Looking for a frob event is the only way we can tell when we've been
 	// read. Even that might have weird corner cases through scripting, but
@@ -1542,13 +1692,22 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
 		// We sent the point-of-interest item object ID in "data"
 		local detectedId = message().data;
+		// We sent the display item ID and ranl in "data2",
+		// as a comma-delimited list.
+		local displayAndRank = split(message().data2, ",");
+		local newRank = displayAndRank[1].tointeger();
 		
-		// If the POI item is not already in the list, put it there.
-		if (!(detectedId in j4fRadarOverlayInstance.displayTargets))
+		if (
+			// If the POI item is not already in the list, put it there.
+			!(detectedId in j4fRadarOverlayInstance.displayTargets)
+			// Or if the existing one is a worse rank, replace it.
+			|| j4fRadarOverlayInstance.displayTargets[detectedId].rank > newRank
+		)
 		{
 			local poiMetadata = J4FRadarPointOfInterest();
-			// We sent the display item ID in "data2"
-			poiMetadata.displayId = message().data2;
+			
+			poiMetadata.displayId = displayAndRank[0].tointeger();
+			
 			// We sent the radar color indicator in "data3".
 			// Later we abused this to include the uncapped
 			// distance indicator as well. So instead of
@@ -1573,11 +1732,23 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
 		// We sent the point-of-interest item object ID in "data"
 		local destroyedId = message().data;
+		// And we sent its rank in data2
+		local destroyedRank = message().data2;
 		
-		// If the POI item is in the list, remove it.
-		if (destroyedId in j4fRadarOverlayInstance.displayTargets)
+		if (
+			// If the POI item is in the list...
+			destroyedId in j4fRadarOverlayInstance.displayTargets
+			// ...and its not from a worse-ranked thing...
+			&& j4fRadarOverlayInstance.displayTargets[destroyedId].rank >= destroyedRank
+		)
 		{
+			// ...then remove it.
 			delete j4fRadarOverlayInstance.displayTargets[destroyedId];
+			Reply(true);
+		}
+		else
+		{
+			Reply(false);
 		}
 	}
 	
@@ -1654,6 +1825,9 @@ class J4FRadarPointOfInterest
 	displayColor = COLOR_DEFAULT;
 	uncappedDistance = false;
 	distance = 0;
+	// If a single item meets multiple criteria, all of them will ask to
+	// be displayed. The rank determines which one wins.
+	rank = 0;
 }
 
 class J4FRadarQuestDetails
