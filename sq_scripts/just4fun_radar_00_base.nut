@@ -457,6 +457,19 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		if (linkToMyContainer != 0 && Object.InheritsFrom(sLink(linkToMyContainer).source, "Avatar"))
 			return false;
 		
+		// Ignore things involved in certain other kinds of relationship,
+		// with anyone.
+		if (
+			Link.GetOne("~AIProjectile", target) != 0
+			|| Link.GetOne("~AIRangedWeapon", target) != 0
+			|| Link.GetOne("~Projectile", target) != 0
+			|| Link.GetOne("~Weapon", target) != 0
+			|| Link.GetOne("~CurWeapon", target) != 0
+		)
+		{
+			return false;
+		}
+		
 		return true;
 	}
 	
