@@ -185,15 +185,6 @@ class J4FRadarUtilities extends SqRootScript
 		// item itself.
 		local scriptWhat = forItem;
 		local proxyNeeded = false;
-		// Some objects merit special handling. Alternatively,
-		// we could (in some cases) fiddle with the DML targets.
-		// But, for example, the LC_Lever is a key-or-part type
-		// object that can get buried under the Switches
-		// hierarchy, and treated as a device. The DML could
-		// end up real messy, and some FM-specific archetypes
-		// could get overlooked. So instead, we'll correct
-		// some specific cases with proxy objects.
-		local overridePoiType;
 		
 		if (
 			// If the item is not allowed to inherit scripts, we
@@ -206,12 +197,7 @@ class J4FRadarUtilities extends SqRootScript
 		}
 		
 		// Do we need a proxy marker instead?
-		if (
-			proxyNeeded
-			// Unless it's a readable item, for which the read/unread
-			// tracking isn't fully functional from proxies.
-			&& !Object.InheritsFrom(forItem, POI_READABLE)
-		)
+		if (proxyNeeded)
 		{
 			// Create a new proxy marker on top of the item it is proxying.
 			// The location shouldn't actually matter, but there's no harm
@@ -227,25 +213,6 @@ class J4FRadarUtilities extends SqRootScript
 			scriptWhat = proxyMarker;
 		}
 		
-		// Special case: If a device has a KeySrc property and its
-		// frob-in-world is Move (meaning we can pick it up), treat
-		// as a key, not a device.
-		if (
-			// Keys (equipment) must be enabled.
-			ObjID(FEATURE_EQUIP) != 0
-			// And we think it's a device. For example, a LC_Lever
-			&& Object.InheritsFrom(forItem, POI_DEVICE)
-			// But it has a KeySrc property
-			&& Property.Possessed(forItem, "keySrc")
-			// And it can be picked up from the world.
-			&& Property.Possessed(forItem, "FrobInfo")
-			// 0x01 is the flag for Move, as in pick up.
-			&& (Property.Get(forItem, "FrobInfo", "World Action") & 1) != 0
-		)
-		{
-			overridePoiType = POI_EQUIP;
-		}
-		
 		// Flag the item as having been set up.
 		Object.AddMetaProperty(forItem, POI_INIT_FLAG);
 		
@@ -253,48 +220,63 @@ class J4FRadarUtilities extends SqRootScript
 		// the appropriate script on the proxy. We could have also
 		// created more metaproperties, some with scripts (for the marker),
 		// and some without scripts (for the interesting objects).
-		if (overridePoiType != null)
-		{
-			Object.AddMetaProperty(scriptWhat, overridePoiType + "_S");
-		}
-		// Secrets are preferred over quests, because there's a clear way
-		// to turn them off when they're discovered.
-		else if (Object.InheritsFrom(forItem, POI_SECRET))
+		local handledAny = false;
+
+		if (Object.InheritsFrom(forItem, POI_SECRET))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_SECRET + "_S");
+			handledAny = true;
 		}
-		// Quests are preferred over most logic, because we're much more
-		// relaxed in our blessing logic.
-		else if (Object.InheritsFrom(forItem, POI_QUEST))
+		
+		if (Object.InheritsFrom(forItem, POI_QUEST))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_QUEST + "_S");
+			handledAny = true;
 		}
-		else if (Object.InheritsFrom(forItem, POI_LOOT))
+		
+		if (Object.InheritsFrom(forItem, POI_LOOT))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_LOOT + "_S");
+			handledAny = true;
 		}
-		else if (Object.InheritsFrom(forItem, POI_EQUIP))
+		
+		if (Object.InheritsFrom(forItem, POI_EQUIP))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_EQUIP + "_S");
+			handledAny = true;
 		}
-		else if (Object.InheritsFrom(forItem, POI_DEVICE))
+		
+		if (Object.InheritsFrom(forItem, POI_DEVICE))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_DEVICE + "_S");
+			handledAny = true;
 		}
-		else if (Object.InheritsFrom(forItem, POI_CONTAINER))
+		
+		if (Object.InheritsFrom(forItem, POI_CONTAINER))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_CONTAINER + "_S");
+			handledAny = true;
 		}
-		else if (Object.InheritsFrom(forItem, POI_CREATURE))
+		
+		if (Object.InheritsFrom(forItem, POI_CREATURE))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_CREATURE + "_S");
+			handledAny = true;
 		}
-		else if (Object.InheritsFrom(forItem, POI_READABLE))
+		
+		if (Object.InheritsFrom(forItem, POI_READABLE))
 		{
-			Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
+			// The read/unread tracking won't work for proxies :(
+			if (scriptWhat == forItem)
+			{
+				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
+			}
+			
+			handledAny = true;
 		}
+		
 		// If no more specific POI type applies, fall back to the generic one.
-		else
+		if (!handledAny)
 		{
 			Object.AddMetaProperty(scriptWhat, POI_GENERIC + "_S");
 		}
@@ -377,7 +359,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		}
 		else
 		{
-			
 			whoAmI = self;
 		}
 		
