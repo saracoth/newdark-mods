@@ -1651,17 +1651,45 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
 		// We sent the point-of-interest item object ID in "data"
 		local detectedId = message().data;
-		// We sent the display item ID and ranl in "data2",
+		// We sent the display item ID and rank in "data2",
 		// as a comma-delimited list.
 		local displayAndRank = split(message().data2, ",");
 		local newRank = displayAndRank[1].tointeger();
 		
-		if (
-			// If the POI item is not already in the list, put it there.
-			!(detectedId in j4fRadarOverlayInstance.displayTargets)
-			// Or if the existing one is a worse rank, replace it.
-			|| j4fRadarOverlayInstance.displayTargets[detectedId].rank > newRank
-		)
+		// To handle multi-category POI targets, displayTargets
+		// contains arrays of J4FRadarPointOfInterest values.
+		local myIndicators;
+		
+		// Fetch or create an array to store our data.
+		if (detectedId in j4fRadarOverlayInstance.displayTargets)
+		{
+			myIndicators = j4fRadarOverlayInstance.displayTargets[detectedId];
+		}
+		else
+		{
+			myIndicators = [];
+			j4fRadarOverlayInstance.displayTargets[detectedId] = myIndicators;
+		}
+		
+		// No choice but to scan to array to find ourselves.
+		// Since the array is sorted, I guess we could
+		// binary search it, but that's overkill for our
+		// needs.
+		local foundMe = false;
+		if (myIndicators.len() > 0)
+		{
+			for (local i = myIndicators.len(); --i > -1; )
+			{
+				if (myIndicators[i].rank == newRank)
+				{
+					foundMe = true;
+					break;
+				}
+			}
+		}
+		
+		// If we're not in the array yet, we need to be.
+		if (!foundMe)
 		{
 			local poiMetadata = J4FRadarPointOfInterest();
 			
@@ -1677,12 +1705,28 @@ class J4FRadarUi extends J4FRadarUtilities
 			// items. So W1789 uses a white indicator, has
 			// no distance cap, and has an alternative display
 			// ID of 789.
-			poiMetadata.displayColor = message().data3.slice(0, 1);
-			poiMetadata.uncappedDistance = message().data3.slice(1, 2) == "1";
-			poiMetadata.altDisplayId = message().data3.len() > 2 ? message().data3.slice(2).tointeger() : 0;
+			local extraData = message().data3;
+			poiMetadata.displayColor = extraData.slice(0, 1);
+			poiMetadata.uncappedDistance = extraData.slice(1, 2) == "1";
+			poiMetadata.altDisplayId = extraData.len() > 2 ? extraData.slice(2).tointeger() : 0;
 			
-			j4fRadarOverlayInstance.displayTargets[detectedId] <- poiMetadata;
+			myIndicators.push(poiMetadata);
+			
+			// If there's more than one, sort it.
+			if (myIndicators.len() > 1)
+			{
+				myIndicators.sort(SortTargetByRank);
+			}
 		}
+	}
+	
+	// We can pass this function name into the squirrel's native
+	// array sort() function.
+	function SortTargetByRank(a, b)
+	{
+		if (a.rank < b.rank) return -1;
+		if (a.rank > b.rank) return 1;
+		return 0;
 	}
 	
 	// Rather than have radar points of interest communicate directly
@@ -1691,18 +1735,50 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
 		// We sent the point-of-interest item object ID in "data"
 		local destroyedId = message().data;
-		// And we sent its rank in data2
+		
+		// Not in the list? Great!
+		if (!(destroyedId in j4fRadarOverlayInstance.displayTargets))
+		{
+			return;
+		}
+		
+		// We sent the rank in data2, or passed a negative when the
+		// whole target is destroyed and we're scorching the earth.
 		local destroyedRank = message().data2;
 		
-		if (
-			// If the POI item is in the list...
-			destroyedId in j4fRadarOverlayInstance.displayTargets
-			// ...and its not from a worse-ranked thing...
-			&& j4fRadarOverlayInstance.displayTargets[destroyedId].rank >= destroyedRank
-		)
+		if (destroyedRank < 0)
 		{
-			// ...then remove it.
+			// Destroy everything.
 			delete j4fRadarOverlayInstance.displayTargets[destroyedId];
+		}
+		else
+		{
+			// Remove a single thing from the array. If the result would
+			// be an empty array, then remove the whole thing.
+			local checkArray = j4fRadarOverlayInstance.displayTargets[destroyedId];
+			local checkLen = checkArray.len();
+			
+			// Quick check: single-element array.
+			if (checkLen == 1)
+			{
+				if (checkArray[0].rank == destroyedRank)
+				{
+					delete j4fRadarOverlayInstance.displayTargets[destroyedId];
+				}
+			}
+			else
+			{
+				// Gotta loop through to see if we're in here, and even if we
+				// are, the array itself will remain intact. Just smaller.
+				for (local i = checkLen; --i > -1; )
+				{
+					if (checkArray[i].rank == destroyedRank)
+					{
+						checkArray.remove(i);
+						break;
+					}
+				}
+			}
 		}
 	}
 	
@@ -1831,7 +1907,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// Filename keys, bitmap handle values.
 	bitmaps = {};
 	// Object ID integer keys (potentially pointing to proxy marker objects)
-	// with J4FRadarPointOfInterest instances for values.
+	// with arrays of one or more J4FRadarPointOfInterest instances for values.
 	displayTargets = {};
 	// This is a table whose keys are strings, indicating the indicator image
 	// they use. For example, RadarW64 for the large, white indicator, etc.
@@ -1912,8 +1988,13 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// We'll use this for distance checking.
 		local cameraPos = Camera.GetPosition();
 		
-		foreach (managerId, poiMetadata in displayTargets)
+		foreach (managerId, poiMetadataArray in displayTargets)
 		{
+			// This array is sorted by rank as we modify it, so we can
+			// always refer to the first element to get the top-
+			// priority indicator type.
+			local poiMetadata = poiMetadataArray[0];
+			
 			// The target to display. Usually the displayId, but can
 			// be an optional altDisplayId in some cases.
 			local targetId = (poiMetadata.altDisplayId > 0 && !Object.RenderedThisFrame(poiMetadata.displayId)) ? poiMetadata.altDisplayId : poiMetadata.displayId;
