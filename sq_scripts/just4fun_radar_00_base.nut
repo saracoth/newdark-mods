@@ -90,16 +90,16 @@ const FEATURE_READABLE = "J4FRadarEnableReadable";
 
 // These metaproperties are used to flag items as interesting to the radar.
 const POI_ANY = "J4FRadarPointOfInterest";
-const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_CONTAINER = "J4FRadarContainerPOI";
-const POI_DEVICE = "J4FRadarDevicePOI";
-const POI_READABLE = "J4FRadarReadablePOI";
-const POI_EQUIP = "J4FRadarEquipPOI";
-const POI_LOOT = "J4FRadarLootPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
-const POI_QUEST = "J4FRadarQuestPOI";
-const POI_SECRET = "J4FRadarSecretPOI";
+const POI_DEVICE = "J4FRadarDevicePOI";
+const POI_EQUIP = "J4FRadarEquipPOI";
+const POI_GENERIC = "J4FRadarFallbackPOI";
+const POI_LOOT = "J4FRadarLootPOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
+const POI_QUEST = "J4FRadarQuestPOI";
+const POI_READABLE = "J4FRadarReadablePOI";
+const POI_SECRET = "J4FRadarSecretPOI";
 
 // This indicates an item has been processed as a point of interest and can be
 // ignored from now on.
@@ -136,13 +136,6 @@ const OBJECTIVE_TYPE_ROOM = 4;
 // There's a bitwise field on items, and this bit indicates it's a secret that
 // can be found.
 const STATBIT_HIDDEN = 4;
-
-// TODO: We probably need to allow multi-POI stuff.
-// Allow both quest and equip, etc. Maybe worth
-// reworking some stuff in general to support that.
-// Like, it'd be nice if a container can check whether
-// any of its contents are blessed, rather than assuming
-// all POI contents will be blessed, etc.
 
 // Between the lack of a true static/utility method class concept
 // in squirrel and to avoid questions about when we do or don't
@@ -358,7 +351,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	function GetDataSub(key) {return GetData(key);}
 	function SetDataSub(key, value) {SetData(key, value);}
 	function ClearDataSub(key) {ClearData(key);}
-	function IsDataSetSub(key) {return IsDataSetSub(key);}
+	function IsDataSetSub(key) {return IsDataSet(key);}
 	
 	// A proxy marker keeps track of the actual target item of
 	// interest. In older versions of this mod, we would also
