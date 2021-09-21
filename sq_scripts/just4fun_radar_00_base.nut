@@ -954,6 +954,18 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_DEVICE);}
 	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_DEVICE);}
 	
+	function OnBeginScript()
+	{
+		base.OnBeginScript();
+		
+		local target = PoiTarget();
+		
+		if (!IsDataSet("J4FRadarInitialLocked") && Property.Possessed(target, "Locked"))
+		{
+			SetData("J4FRadarInitialLocked", Property.Get(target, "Locked"));
+		}
+	}
+	
 	// Ignore invisible devices, which are sometimes used by
 	// mission authors to trigger scripted events. Note that
 	// we don't check IsWorldFrobbable(), because that would
@@ -964,6 +976,21 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 			return false;
 		
 		local target = PoiTarget();
+		
+		// If the lock status has changed since mission start,
+		// hide it. This may be undesirable in some rare cases,
+		// like when an AI unlocks something to walk through it,
+		// etc. Should be preferable most of the time, though.
+		if (
+			IsDataSet("J4FRadarInitialLocked")
+			// Using !! to coerce these both to booleans, if
+			// they aren't already. SetData() turns booleans
+			// into ints, because boolean is unsupported.
+			&& (!!Property.Get(target, "Locked")) != (!!GetData("J4FRadarInitialLocked"))
+		)
+		{
+			return false;
+		}
 		
 		// Sometimes switches and buttons are placed outside
 		// the level geometry rather than made invisible.
