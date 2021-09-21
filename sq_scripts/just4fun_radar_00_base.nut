@@ -1732,6 +1732,7 @@ class J4FRadarUi extends J4FRadarUtilities
 			poiMetadata.displayColor = extraData.slice(0, 1);
 			poiMetadata.uncappedDistance = extraData.slice(1, 2) == "1";
 			poiMetadata.altDisplayId = extraData.len() > 2 ? extraData.slice(2).tointeger() : 0;
+			poiMetadata.rank = newRank;
 			
 			myIndicators.push(poiMetadata);
 			
