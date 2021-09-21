@@ -637,9 +637,29 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// if it were right in front of us.
 		local newBlessed = BlessItem();
 		
+		// NOTE: SetData/GetData can work with ints, but not
+		// booleans. Booleans get converted to ints. But
+		// later on, when we check !=, a boolean true and
+		// an int 1 are different, as are a boolean false
+		// and an int 0. So we're trying to normalize all
+		// that here.
+		local wasBlessed = null;
+		
+		if (IsDataSetSub("J4FRadarLastBless"))
+		{
+			// A double negation will turn it into a boolean,
+			// if it wasn't already.
+			wasBlessed = !!GetDataSub("J4FRadarLastBless");
+		}
+		
 		// If our blessing status changes, add or remove us from the list
 		// of targets to review and display.
-		if (!IsDataSetSub("J4FRadarLastBless") || (GetDataSub("J4FRadarLastBless") != newBlessed))
+		if (
+			// If we don't know our previous condition.
+			wasBlessed == null
+			// Or we do know and it has changed.
+			|| wasBlessed != newBlessed
+		)
 		{
 			if (newBlessed)
 			{
