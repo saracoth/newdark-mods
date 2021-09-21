@@ -684,7 +684,7 @@ class J4FRadarQuestTarget extends J4FRadarAbstractTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_QUEST);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_QUEST, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_QUEST);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_QUEST);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_QUEST);}
 	
 	function OnJ4FSetObjective()
 	{
@@ -736,7 +736,7 @@ class J4FRadarSecretTarget extends J4FRadarAbstractTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_SECRET);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_SECRET, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_SECRET);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_SECRET);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_SECRET);}
 	
 	function DisplayTarget()
 	{
@@ -798,7 +798,7 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CREATURE);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CREATURE, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CREATURE);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_CREATURE);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_CREATURE);}
 	
 	// Ignore frozen, dead, and nonhostile creatures.
 	function BlessItem()
@@ -845,7 +845,7 @@ class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_GRAB);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_GRAB, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_GRAB);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_GRAB);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_GRAB);}
 	
 	// Ignore decorative/etc. things we can't pick up.
 	function BlessItem()
@@ -866,7 +866,7 @@ class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CONTAINER);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CONTAINER, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CONTAINER);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_CONTAINER);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_CONTAINER);}
 	
 	// Ignore empty containers and containers with points of interest.
 	// If we contain a POI item, the item should already be displaying
@@ -916,7 +916,7 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_DEVICE);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_DEVICE, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_DEVICE);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_DEVICE);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_DEVICE);}
 	
 	// Ignore invisible devices, which are sometimes used by
 	// mission authors to trigger scripted events. Note that
@@ -954,7 +954,7 @@ class J4FRadarEquipTarget extends J4FRadarGrabbableTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_EQUIP);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_EQUIP, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_EQUIP);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_EQUIP);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_EQUIP);}
 }
 
 // This script goes on the loot of interest.
@@ -969,7 +969,7 @@ class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_LOOT);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_LOOT, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_LOOT);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_LOOT);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_LOOT);}
 }
 
 // This script goes on the readable of interest. We're applying this only to
@@ -985,7 +985,7 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_READABLE);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_READABLE, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_READABLE);}
-	function IsDataSetSub(key) {return IsDataSetSub(key + DATA_SUFFIX_READABLE);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_READABLE);}
 	
 	// Looking for a frob event is the only way we can tell when we've been
 	// read. Even that might have weird corner cases through scripting, but
