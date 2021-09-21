@@ -101,6 +101,9 @@ const POI_QUEST = "J4FRadarQuestPOI";
 const POI_READABLE = "J4FRadarReadablePOI";
 const POI_SECRET = "J4FRadarSecretPOI";
 
+// This metaproperty has the script which manages our bless checking timer.
+const POI_CLOCK = "J4FRadarPOITimer";
+
 // This indicates an item has been processed as a point of interest and can be
 // ignored from now on.
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
@@ -221,7 +224,7 @@ class J4FRadarUtilities extends SqRootScript
 		// created more metaproperties, some with scripts (for the marker),
 		// and some without scripts (for the interesting objects).
 		local handledAny = false;
-
+		
 		if (Object.InheritsFrom(forItem, POI_SECRET))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_SECRET + "_S");
@@ -287,6 +290,9 @@ class J4FRadarUtilities extends SqRootScript
 			PostMessage(scriptWhat, "J4FSetObjective", objectiveNumber);
 		}
 		
+		// With all that stuff out of the way, we can start the timer.
+		Object.AddMetaProperty(scriptWhat, POI_CLOCK);
+		
 		return true;
 	}
 }
@@ -309,6 +315,37 @@ class J4FRadarToggler extends SqRootScript
 		{
 			Property.SetSimple(self, "GameName", "name_j4f_radar_inactive: \"Radar (Inactive)\"");
 		}
+	}
+}
+
+class J4FRadarPOIClock extends J4FRadarUtilities
+{
+	// This will fire on mission start, on reloading a save, and when
+	// an object with this script is created after the game has started.
+	function OnBeginScript()
+	{
+		// Depending on which order objects are set up, things like the
+		// overlay marker may not be ready yet. We'll add a slight
+		// startup delay before registering our existence with them.
+		// NOTE: Multiple POI target scripts on the same object will
+		// share the same timer.
+		if (!IsDataSet("J4FRadarReviewStarted"))
+		{
+			SetOneShotTimer("J4FRadarTargetReview", 0.25);
+			SetData("J4FRadarReviewStarted", true);
+		}
+	}
+	
+	function OnTimer()
+	{
+		if (message().name != "J4FRadarTargetReview")
+			return;
+		
+		// Repeat. We don't need to do anything else.
+		// Instead, the individual target scripts will
+		// have their own logic. Everyone will hear this
+		// timer event and can react as they please.
+		SetOneShotTimer("J4FRadarTargetReview", 0.25);
 	}
 }
 
@@ -578,17 +615,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// Default to unknown on a reload. Mostly so that we can be
 		// sure to add or remove us from the overlay.
 		ClearDataSub("J4FRadarLastBless");
-		
-		// Depending on which order objects are set up, things like the
-		// overlay marker may not be ready yet. We'll add a slight
-		// startup delay before registering our existence with them.
-		// NOTE: Multiple POI target scripts on the same object will
-		// share the same timer.
-		if (!IsDataSet("J4FRadarReviewStarted"))
-		{
-			SetOneShotTimer("J4FRadarTargetReview", 0.25);
-			SetData("J4FRadarReviewStarted", true);
-		}
 	}
 	
 	function OnTimer()
@@ -601,7 +627,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		if (interfaceId < 1)
 		{
 			// Try again later.
-			SetOneShotTimer("J4FRadarTargetReview", 0.25);
 			return;
 		}
 		
@@ -635,9 +660,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			
 			SetDataSub("J4FRadarLastBless", newBlessed);
 		}
-		
-		// Periodically review our blessing status.
-		SetOneShotTimer("J4FRadarTargetReview", 0.25);
 	}
 	
 	// Because item IDs can be reused, we need to be sure a destroyed

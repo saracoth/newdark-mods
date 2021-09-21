@@ -197,6 +197,32 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarSecretPOI_S"
 
 /*
 ================================================================================
+== Point of Interest Timer Script ==============================================
+================================================================================
+*/
+
+// All timers are one-shot, not repeating forever. So if the POI target scripts
+// were responsible for repeating the timer on every tick, two or more scripts
+// on the same item will result in an explosion. The first timer tick hits both
+// scripts, which each schedule another timer. Now we have two timers running.
+// Those two ticks will result in scheduling four timers. Those four ticks will
+// result in scheduling eight timers, and so on and so on.
+//
+// To avoid this, we rely on a separate script which is not part of our
+// hierarchy of POI target logic. So this script will manage the timer, and all
+// the other target scripts will listen for it.
+
+CreateArch "MetaProperty" "J4FRadarPOITimer"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarPOIClock"
+		"Don't Inherit" FALSE
+	}
+}
+
+/*
+================================================================================
 == Radar Point-of-interest Proxies =============================================
 ================================================================================
 */
