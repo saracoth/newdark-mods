@@ -1,0 +1,86 @@
+DML1
+
+// Let's limit this to Thief-like games. Note that it's not necessarily
+// possible to detect whether the base mod has been applied or not. If it
+// adds a property to a vanilla game object, we can maybe look for that.
+// But we can't check whether the base mod's new CreateArch objects exist or
+// not, since we don't necessarily know what IDs they'll end up with.
+FINGERPRINT
+{
+	NAME -2099 Garrett
+}
+
+/*
+================================================================================
+== Enable Dynamic Features =====================================================
+================================================================================
+*/
+
+// This is a nonfunctional metaproperty we don't even assign to anything. We
+// instead use its existence to control certain behaviors in the .nut files. In
+// theory we could use custom values in config files and Engine.ConfigGetRaw()
+// as well, but I'm trying to stick with the "just drop the files in place"
+// approach, rather than instructing people to edit config files by hand.
+
+CreateArch "MetaProperty" "J4FRadarEnableDirectScript"
+
+/*
+================================================================================
+== Radar Control Item ==========================================================
+================================================================================
+*/
+
+// Create an item the player can use to toggle the radar display on and off.
+// Basing it off of Compass2 because we're going to use the old/unused compass
+// model anyway, so may a well make it behave like a proper compass item.
+
+CreateArch "Compass2" "J4FRadarControlItem"
+{
+	+ObjProp "GameName" = name_j4f_radar_inactive: "Radar (Inactive)"
+	
+	+ObjProp "ModelName" = compass
+	
+	// Permit using from inventory.
+	+ObjProp "FrobInfo"
+	{
+		"World Action" "Move, FocusScript"
+		// When using it from our inventory, it should tell our scripts.
+		"Inv Action" "Script"
+		"Tool Action" "[None]"
+	}
+	
+	// This script will turn the radar effect on and off when frobbed.
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarToggler"
+		"Don't Inherit" FALSE
+	}
+}
+
+/*
+================================================================================
+== Radar-Enabled Player ========================================================
+================================================================================
+*/
+
+// It's not safe for generic gameplay mods to add scripts directly to the
+// Garrett archetype. Doing so could clash with other mods and FMs. So instead,
+// we create a brand new metaproperty with a single script, then give the
+// metaproperty to Garrett. This safely puts the new scripts on the player,
+// without risk of interfering with other mods and behaviors.
+
+CreateArch "MetaProperty" "J4FRadarEnabledPlayer"
+{
+	+ObjProp "Scripts"
+	{
+		// This adds the control item to our inventory on game start.
+		"Script 0" "J4FGiveRadarItem"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Assign the new metaproperty to the Garrett object, which is the usual Avatar
+// type used in missions. As a bonus, mods of this mod could *remove* this
+// metaproperty to prevent automatically giving the item to the player!
+
++MetaProp "Garrett" "J4FRadarEnabledPlayer"
