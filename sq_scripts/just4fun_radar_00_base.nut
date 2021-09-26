@@ -82,6 +82,7 @@ const FEATURE_CREATURE = "J4FRadarEnableCreature";
 const FEATURE_CREATURE_GOOD = "J4FRadarEnableCreatureG";
 const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
+const FEATURE_DIRECT_SCRIPT = "J4FRadarEnableDirectScript";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
 const FEATURE_LOOT = "J4FRadarEnableLoot";
 const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
@@ -190,6 +191,7 @@ class J4FRadarUtilities extends SqRootScript
 		// item itself.
 		local scriptWhat = forItem;
 		local proxyNeeded = false;
+		local directScriptNeeded = false;
 		
 		if (
 			// If the item is not allowed to inherit scripts, we
@@ -271,10 +273,16 @@ class J4FRadarUtilities extends SqRootScript
 		
 		if (Object.InheritsFrom(forItem, POI_READABLE))
 		{
-			// The read/unread tracking won't work for proxies :(
+			// The read/unread tracking won't work for proxies,
+			// unless direct scripting is enabled.
 			if (scriptWhat == forItem)
 			{
 				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
+			}
+			else if (ObjID(FEATURE_DIRECT_SCRIPT) < 0)
+			{
+				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
+				directScriptNeeded = true;
 			}
 			
 			handledAny = true;
@@ -292,10 +300,51 @@ class J4FRadarUtilities extends SqRootScript
 			PostMessage(scriptWhat, "J4FSetObjective", objectiveNumber);
 		}
 		
+		if (directScriptNeeded)
+		{
+			AddScriptDirectly(forItem, "J4FPassToProxy");
+		}
+		
 		// With all that stuff out of the way, we can start the timer.
 		Object.AddMetaProperty(scriptWhat, POI_CLOCK);
 		
 		return true;
+	}
+	
+	function AddScriptDirectly(toItem, scriptName)
+	{
+		local firstEmptySlot = -1;
+		
+		// Loop through all slots to see if the script is already
+		// attached, but make note of the first empty slot if any.
+		// This gracefully handles gaps in script slots.
+		for (local i = -1; ++i < 4; )
+		{
+			local currentScript = Property.Get(toItem, "Scripts", "Script " + i);
+			
+			// We already have the script! Abort.
+			if (currentScript == scriptName)
+				return;
+			
+			if (currentScript == null || currentScript == "")
+			{
+				if (firstEmptySlot < 0)
+				{
+					firstEmptySlot = i;
+				}
+			}
+		}
+		
+		// We don't already have the script.
+		// Do we have an empty slot to put it in?
+		if (firstEmptySlot > -1)
+		{
+			Property.Set(toItem, "Scripts", "Script " + firstEmptySlot, scriptName);
+		}
+		else
+		{
+			print(format("Unable to directly script %s %s %i", Object.GetName(Object.Archetype(toItem)), Object.GetName(toItem), toItem));
+		}
 	}
 }
 
@@ -348,6 +397,36 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		// have their own logic. Everyone will hear this
 		// timer event and can react as they please.
 		SetOneShotTimer("J4FRadarTargetReview", 0.25);
+	}
+}
+
+// This goes on the original item, but passes certain events to its proxy.
+class J4FPassToProxy extends SqRootScript
+{
+	function GetProxy()
+	{
+		if (IsDataSet("J4FRadarProxyCache"))
+		{
+			return GetData("J4FRadarProxyCache");
+		}
+		
+		// What are we pointing at? The attach link is from the
+		// proxy to us.
+		local myProxy = sLink(Link.GetOne(PROXY_ATTACH_METHOD, 0, self)).source;
+		SetData("J4FRadarProxyCache", myProxy);
+		return myProxy;
+	}
+	
+	function OnFrobWorldEnd()
+	{
+		if (Object.InheritsFrom(message().Frobber, "Avatar"))
+			PostMessage(GetProxy(), "J4FPlayerFrob");
+	}
+	
+	function OnFrobInvEnd()
+	{
+		if (Object.InheritsFrom(message().Frobber, "Avatar"))
+			PostMessage(GetProxy(), "J4FPlayerFrob");
 	}
 }
 
@@ -1111,16 +1190,23 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 	
 	function OnFrobWorldEnd()
 	{
-		local myText = Property.Possessed(self, "Book") ? Property.Get(self, "Book") : "";
-		if (myText != "")
-		{
-			PostMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarReadFlag", myText)
-		}
+		MarkAsRead();
 	}
 	
 	function OnFrobInvEnd()
 	{
-		local myText = Property.Possessed(self, "Book") ? Property.Get(self, "Book") : "";
+		MarkAsRead();
+	}
+	
+	function OnJ4FPlayerFrob()
+	{
+		MarkAsRead();
+	}
+	
+	function MarkAsRead()
+	{
+		local target = PoiTarget();
+		local myText = Property.Possessed(target, "Book") ? Property.Get(target, "Book") : "";
 		if (myText != "")
 		{
 			PostMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarReadFlag", myText)
