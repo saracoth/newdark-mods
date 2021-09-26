@@ -310,7 +310,7 @@ CreateArch "Haunt" "J4FSummonedSwordGuy"
 	+ObjProp "CretScale" = 0.5
 	
 	// So maybe they should get in closer before hitting things? Best effort.
-	+ObjProp "HTHCombatDist" = 1.75, 2.75, 5.00
+	+ObjProp "HTHCombatDist" = 2.25, 3.25, 5.5
 	
 	// Speed them up! 3x speed.
 	+ObjProp "TimeWarp" = 0.33
