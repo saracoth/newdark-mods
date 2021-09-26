@@ -140,6 +140,8 @@ const OBJECTIVE_TYPE_ROOM = 4;
 // can be found.
 const STATBIT_HIDDEN = 4;
 
+const AINonHostilityEnum_kAINH_Always = 6;
+
 // Between the lack of a true static/utility method class concept
 // in squirrel and to avoid questions about when we do or don't
 // have access to API-reference_services.txt stuff, we're using
@@ -858,11 +860,64 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 		
 		local team = Property.Get(target, "AI_Team");
 		
-		if (team == eAITeam.kAIT_Neutral && ObjID(FEATURE_CREATURE_NEUTRAL) > -1)
-			return false;
-		
 		if (team == eAITeam.kAIT_Good && ObjID(FEATURE_CREATURE_GOOD) > -1)
 			return false;
+		
+		if (ObjID(FEATURE_CREATURE_NEUTRAL) > -1)
+		{
+			if (team == eAITeam.kAIT_Neutral)
+				return false;
+			
+			// Hacks below. Some things aren't technically neutral,
+			// but a player probably thinks of them that way.
+			
+			// Disabled security systems are kinda-sorta
+			// neutral, in that they don't care about anything.
+			if (
+				// Sleeping
+				Property.Possessed(target, "AI_Mode")
+				&& Property.Get(target, "AI_Mode") == eAIMode.kAIM_Asleep
+				// Disabled camera or turret.
+				&& (
+					// Disabled camera.
+					(
+						Property.Get(target, "AI", "Behavior set") == "DarkCamera"
+						&& Object.InheritsFrom(target, "M-AI-Stasis")
+					)
+					// Disabled turret.
+					|| (
+						Property.Get(target, "AI", "Behavior set") == "turret"
+						&& Property.Get(target, "AI_AlertCap", "Max level") == eAIScriptAlertLevel.kNoAlert
+					)
+				)
+			)
+			{
+				return false;
+			}
+			
+			// Rats aren't neutral, but may as well be.
+			// Inform others is false, non-hostile is Always,
+			// and uses doors is false. AI is SimpleNC. Plus
+			// Small Creature: true, this recipe should make
+			// any creature effectively neutral. There may be
+			// some weird scripting or source/receptron stuff,
+			// but in general, better to treat them as neutral.
+			if (
+				// Smol == true.
+				!!Property.Get(target, "AI_IsSmall")
+				// Never hostile.
+				&& Property.Get(target, "AI_NonHst") == AINonHostilityEnum_kAINH_Always
+				// Informs others == false.
+				&& !Property.Get(target, "AI_InfOtr")
+				// Opens doors == false.
+				&& !Property.Get(target, "AI_UsesDoors")
+				// Simple noncombatant AI.
+				&& Property.Get(target, "AI", "Behavior set") == "SimpleNC"
+			)
+			{
+				return false;
+			}
+		}
 		
 		return true;
 	}
