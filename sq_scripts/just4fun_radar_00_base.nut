@@ -110,7 +110,8 @@ const POI_CLOCK = "J4FRadarPOITimer";
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
 
 // Link flavour used to associate a POI proxy marker with its target.
-const PROXY_ATTACH_METHOD = "PhysAttach";
+const PROXY_ATTACH_METHOD_TO_TARGET = "PhysAttach";
+const PROXY_ATTACH_METHOD_TO_PROXY = "~PhysAttach";
 
 // Used to figure out difficulty level, for want of a clear function to do so.
 const DIFFICULTY_0 = "M-GarrettDiffNormal";
@@ -214,7 +215,7 @@ class J4FRadarUtilities extends SqRootScript
 			Object.EndCreate(proxyMarker);
 			
 			// Link these items together.
-			local proxyAttach = Link.Create(PROXY_ATTACH_METHOD, proxyMarker, forItem);
+			local proxyAttach = Link.Create(PROXY_ATTACH_METHOD_TO_TARGET, proxyMarker, forItem);
 			
 			// We'll attach the scripts to the proxy instead of the target.
 			scriptWhat = proxyMarker;
@@ -346,6 +347,26 @@ class J4FRadarUtilities extends SqRootScript
 			print(format("Unable to directly script %s %s %i", Object.GetName(Object.Archetype(toItem)), Object.GetName(toItem), toItem));
 		}
 	}
+	
+	// Returns checkId if it has no POI proxy marker,
+	// or returns the object ID of its marker.
+	function GetObjectOrProxy(checkId)
+	{
+		// What are we pointing at? The attach link is from the
+		// proxy to us.
+		local possibleProxyLinks = Link.GetAll(PROXY_ATTACH_METHOD_TO_PROXY, checkId);
+		foreach (checkLink in possibleProxyLinks)
+		{
+			local linkedTo = LinkDest(checkLink);
+			if (Object.InheritsFrom(linkedTo, POI_PROXY_MARKER))
+			{
+				SetData("J4FRadarProxyCache", linkedTo);
+				return linkedTo;
+			}
+		}
+		
+		return checkId;
+	}
 }
 
 // This script goes on an inventory item the player can use to turn the
@@ -401,7 +422,7 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 }
 
 // This goes on the original item, but passes certain events to its proxy.
-class J4FPassToProxy extends SqRootScript
+class J4FPassToProxy extends J4FRadarUtilities
 {
 	function GetProxy()
 	{
@@ -410,9 +431,7 @@ class J4FPassToProxy extends SqRootScript
 			return GetData("J4FRadarProxyCache");
 		}
 		
-		// What are we pointing at? The attach link is from the
-		// proxy to us.
-		local myProxy = sLink(Link.GetOne(PROXY_ATTACH_METHOD, 0, self)).source;
+		local myProxy = GetObjectOrProxy(self);
 		SetData("J4FRadarProxyCache", myProxy);
 		return myProxy;
 	}
@@ -473,7 +492,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		{
 			// What are we pointing at? The attach link is from us
 			// to the real point of interest.
-			whoAmI = LinkDest(Link.GetOne(PROXY_ATTACH_METHOD, self));
+			whoAmI = LinkDest(Link.GetOne(PROXY_ATTACH_METHOD_TO_TARGET, self));
 		}
 		else
 		{
@@ -1100,13 +1119,50 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 		}
 	}
 	
+	function OnFrobWorldEnd()
+	{
+		if (Object.InheritsFrom(message().Frobber, "Avatar"))
+			MarkAsTouched();
+	}
+	
+	function OnJ4FPlayerFrob()
+	{
+		MarkAsTouched();
+	}
+	
+	function MarkAsTouched()
+	{
+		// If we've already been marked, do nothing.
+		// Might help avoid infinite loops if there are
+		// circular references via FrobProxy links.
+		if (IsDataSet("J4FRadarDeviceUsed"))
+			return;
+		
+		SetData("J4FRadarDeviceUsed", true);
+		
+		// FrobProxy links can be used to have many switches
+		// act as one. So maybe the player frobbed us, or
+		// maybe they frobbed one of our ~FrobProxy links
+		// instead. So let's inform any ~FrobProxy reverse
+		// links that we've been touched, so they can flag
+		// themselves as well.
+		// Of course, these ~FrobProxy links may be point to
+		// objects with POI proxies. So we may have to hop
+		// through two links: the FrobProxy and the POI proxy.
+		local myFrobbers = Link.GetAll("~FrobProxy", PoiTarget());
+		foreach (frobberLink in myFrobbers)
+		{
+			PostMessage(GetObjectOrProxy(LinkDest(frobberLink)), "J4FPlayerFrob");
+		}
+	}
+	
 	// Ignore invisible devices, which are sometimes used by
 	// mission authors to trigger scripted events. Note that
 	// we don't check IsWorldFrobbable(), because that would
 	// prevent pressure plates from being indicated.
 	function BlessItem()
 	{
-		if (!base.BlessItem() || !IsRendered())
+		if (!base.BlessItem() || !IsRendered() || IsDataSet("J4FRadarDeviceUsed"))
 			return false;
 		
 		local target = PoiTarget();
