@@ -14,12 +14,13 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 * [dbmods\just4fun_radar_00_base.dml](../dbmods/just4fun_radar_00_base.dml?raw=1)
 * [dbmods\miss_all\just4fun_radar_ui.dml](../dbmods/miss_all/just4fun_radar_ui.dml?raw=1) (Unlike the other DML files on this page, this one goes in a miss_all folder inside the dbmods folder.)
 * [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
+* [dbmods\just4fun_radar_01_direct_script.dml](../dbmods/just4fun_radar_01_direct_script.dml?raw=1) (Optional, but recommended. Makes some features of device and readable radars more reliable.)
 * [j4fRes.crf](../j4fRes.crf)
 
 **Optional loot detection**: Yellow indicators.
 * [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_lootdar.dml?raw=1)
 
-**Optional quest/secret detection**: Pink indicators. This isn't as thorough as other indicators, and only handles objectives to pick up, destroy, or protect a thing. Missions may track objectives through special scripts instead, and this includes the Thief 1 original missions. Thief 2 missions and FMs are more likely to use detectable quest objectives.
+**Optional quest/secret detection**: Pink indicators. This isn't as thorough as other indicators, and only handles *some* objectives to pick up, destroy, or protect a thing. Missions may track objectives through special scripts instead, and this includes the Thief 1 original missions. Thief 2 missions and FMs are more likely to use detectable quest objectives, but this is no guarantee.
 * [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_questdar.dml?raw=1)
 
 **Optional equipment detection (keys, arrows, potions, etc.)**: Green indicators.
@@ -35,7 +36,7 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 * [dbmods\just4fun_radar_11_creature_neutral.dml](../dbmods/just4fun_radar_11_creature_neutral.dml?raw=1) (Extra optional, to display neutral creatures as well as hostiles.)
 * [dbmods\just4fun_radar_11_creature_good.dml](../dbmods/just4fun_radar_11_creature_good.dml?raw=1) (Extra optional, to display allied creatures as well as hostiles.)
 
-**Optional device detection (switches, pressure plates, etc.)**: Purple indicators.
+**Optional device detection (switches, pressure plates, etc.)**: Purple indicators. Ignores devices you've used.
 * [dbmods\just4fun_radar_10_devicedar.dml](../dbmods/just4fun_radar_10_devicedar.dml?raw=1)
 
 **Optional container detection (chests, lockboxes, etc.)**: White indicators. Ignores empty containers.
