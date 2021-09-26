@@ -193,6 +193,7 @@ class J4FRadarUtilities extends SqRootScript
 		local scriptWhat = forItem;
 		local proxyNeeded = false;
 		local directScriptNeeded = false;
+		local directScriptEnabled = ObjID(FEATURE_DIRECT_SCRIPT) < 0;
 		
 		if (
 			// If the item is not allowed to inherit scripts, we
@@ -257,6 +258,17 @@ class J4FRadarUtilities extends SqRootScript
 		if (Object.InheritsFrom(forItem, POI_DEVICE))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_DEVICE + "_S");
+			
+			// It'd be nice to flag devices as used when frobbed,
+			// even with proxies.
+			if (
+				directScriptEnabled
+				&& scriptWhat != forItem
+			)
+			{
+				directScriptNeeded = true;
+			}
+			
 			handledAny = true;
 		}
 		
@@ -280,7 +292,7 @@ class J4FRadarUtilities extends SqRootScript
 			{
 				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
 			}
-			else if (ObjID(FEATURE_DIRECT_SCRIPT) < 0)
+			else if (directScriptEnabled)
 			{
 				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
 				directScriptNeeded = true;
@@ -1178,6 +1190,12 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 			// into ints, because boolean is unsupported.
 			&& (!!Property.Get(target, "Locked")) != (!!GetData("J4FRadarInitialLocked"))
 		)
+		{
+			return false;
+		}
+		
+		// Things other than pressure plates should be interactable.
+		if (!IsWorldFrobbable() && !Object.InheritsFrom(target, "PressPlate"))
 		{
 			return false;
 		}
