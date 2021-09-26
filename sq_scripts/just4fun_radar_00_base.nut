@@ -87,7 +87,6 @@ const FEATURE_LOOT = "J4FRadarEnableLoot";
 const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
 const FEATURE_QUEST = "J4FRadarEnableQuest";
 const FEATURE_READABLE = "J4FRadarEnableReadable";
-const FEATURE_READABLE_DIRECT = "J4FRadarDirectScriptReadables";
 
 // These metaproperties are used to flag items as interesting to the radar.
 const POI_ANY = "J4FRadarPointOfInterest";
@@ -277,10 +276,6 @@ class J4FRadarUtilities extends SqRootScript
 			{
 				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
 			}
-			else if (ObjID(FEATURE_READABLE_DIRECT) < 0)
-			{
-				AddScriptDirectly(forItem, "J4FRadarReadableWithClock");
-			}
 			
 			handledAny = true;
 		}
@@ -301,47 +296,6 @@ class J4FRadarUtilities extends SqRootScript
 		Object.AddMetaProperty(scriptWhat, POI_CLOCK);
 		
 		return true;
-	}
-	
-	function AddScriptDirectly(toItem, scriptName)
-	{
-		print(format("Direct scripting %s to %s %s %i", scriptName, Object.GetName(Object.Archetype(toItem)), Object.GetName(toItem), toItem));
-		local firstEmptySlot = -1;
-		for (local i = -1; ++i < 4; )
-		{
-			local currentScript = Property.Get(toItem, "Scripts", "Script " + i);
-			
-			// We already have the script! Abort.
-			if (currentScript == scriptName)
-			{
-				print("Already gots its!");
-				return;
-			}
-			else
-			{
-				print(format("Hases %s in %i", currentScript.tostring(), i));
-			}
-			
-			if (currentScript == null || currentScript == "")
-			{
-				if (firstEmptySlot < 0)
-				{
-					firstEmptySlot = i;
-				}
-			}
-		}
-		
-		// We don't already have the script.
-		// Do we have an empty slot to put it in?
-		if (firstEmptySlot > -1)
-		{
-			print(format("Givings its to %i!", firstEmptySlot));
-			Property.Set(toItem, "Scripts", "Script " + firstEmptySlot, scriptName);
-		}
-		else
-		{
-			print("Noes spaces fors its!");
-		}
 	}
 }
 
@@ -1201,40 +1155,6 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 			return false;
 		
 		return true;
-	}
-}
-
-// This is used with aggressive readable marking, so that we can get by with
-// adding a single script instead of two.
-class J4FRadarReadableWithClock extends J4FRadarReadableTarget
-{
-	// This will fire on mission start, on reloading a save, and when
-	// an object with this script is created after the game has started.
-	function OnBeginScript()
-	{
-		base.OnBeginScript();
-		
-		// Depending on which order objects are set up, things like the
-		// overlay marker may not be ready yet. We'll add a slight
-		// startup delay before registering our existence with them.
-		// NOTE: Multiple POI target scripts on the same object will
-		// share the same timer.
-		if (!IsDataSet("J4FRadarReviewStarted"))
-		{
-			SetOneShotTimer("J4FRadarTargetReview", 0.25);
-			SetData("J4FRadarReviewStarted", true);
-		}
-	}
-	
-	function OnTimer()
-	{
-		if (message().name == "J4FRadarTargetReview")
-		{
-			// Repeat. We don't need to do anything else here.
-			SetOneShotTimer("J4FRadarTargetReview", 0.25);
-		}
-		
-		base.OnTimer();
 	}
 }
 
