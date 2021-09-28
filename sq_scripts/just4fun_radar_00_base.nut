@@ -1411,7 +1411,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		// As we've coded it, there's no harm in calling this more than
 		// once either.
-		j4fRadarOverlayInstance.Teardown();
+		j4fRadarOverlayInstance.logic.Teardown();
 	}
 	
 	// This will fire on start of mission and after reloading saves.
@@ -1420,14 +1420,16 @@ class J4FRadarUi extends J4FRadarUtilities
 		// Call our custom setup method, to do whatever we need to do
 		// when preparing the overlay in a new mission, after loading
 		// a save, or when re-loading a save or moving to next mission.
-		j4fRadarOverlayInstance.Setup();
+		j4fRadarOverlayInstance.logic.Setup();
 		
 		// This is part of NewDark+Squirrel's method of attaching an
 		// overlay handler to the game.
 		((GetDarkGame() == 1) ? ShockOverlay : DarkOverlay).AddHandler(j4fRadarOverlayInstance);
 		
 		// Remember our enabled state.
-		j4fRadarOverlayInstance.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
+		// TODO: testing
+		j4fRadarOverlayInstance.logic.enabled = true;
+		//j4fRadarOverlayInstance.logic.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
 	}
 	
 	// Per sample documentation, it's best practice to tear down the
@@ -1989,14 +1991,14 @@ class J4FRadarUi extends J4FRadarUtilities
 		local myIndicators;
 		
 		// Fetch or create an array to store our data.
-		if (detectedId in j4fRadarOverlayInstance.displayTargets)
+		if (detectedId in j4fRadarOverlayInstance.logic.displayTargets)
 		{
-			myIndicators = j4fRadarOverlayInstance.displayTargets[detectedId];
+			myIndicators = j4fRadarOverlayInstance.logic.displayTargets[detectedId];
 		}
 		else
 		{
 			myIndicators = [];
-			j4fRadarOverlayInstance.displayTargets[detectedId] <- myIndicators;
+			j4fRadarOverlayInstance.logic.displayTargets[detectedId] <- myIndicators;
 		}
 		
 		// No choice but to scan to array to find ourselves.
@@ -2066,7 +2068,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		local destroyedId = message().data;
 		
 		// Not in the list? Great!
-		if (!(destroyedId in j4fRadarOverlayInstance.displayTargets))
+		if (!(destroyedId in j4fRadarOverlayInstance.logic.displayTargets))
 		{
 			return;
 		}
@@ -2078,13 +2080,13 @@ class J4FRadarUi extends J4FRadarUtilities
 		if (destroyedRank < 0)
 		{
 			// Destroy everything.
-			delete j4fRadarOverlayInstance.displayTargets[destroyedId];
+			delete j4fRadarOverlayInstance.logic.displayTargets[destroyedId];
 		}
 		else
 		{
 			// Remove a single thing from the array. If the result would
 			// be an empty array, then remove the whole thing.
-			local checkArray = j4fRadarOverlayInstance.displayTargets[destroyedId];
+			local checkArray = j4fRadarOverlayInstance.logic.displayTargets[destroyedId];
 			local checkLen = checkArray.len();
 			
 			// Quick check: single-element array.
@@ -2092,7 +2094,7 @@ class J4FRadarUi extends J4FRadarUtilities
 			{
 				if (checkArray[0].rank == destroyedRank)
 				{
-					delete j4fRadarOverlayInstance.displayTargets[destroyedId];
+					delete j4fRadarOverlayInstance.logic.displayTargets[destroyedId];
 				}
 			}
 			else
@@ -2116,7 +2118,7 @@ class J4FRadarUi extends J4FRadarUtilities
 	function OnJ4FRadarToggle()
 	{
 		local newState = !(IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState"));
-		j4fRadarOverlayInstance.enabled = newState;
+		j4fRadarOverlayInstance.logic.enabled = newState;
 		SetData("J4FRadarEnableState", newState);
 		Reply(newState);
 	}
@@ -2218,7 +2220,7 @@ class J4FRadarQuestDetails
 // can be defined in squirrel .nut files, and all of them can be set up and
 // used by their respective mods. So our using an IDarkOverlayHandler in this
 // radar mod does *not* prevent other squirrel-based mods from having theirs.
-class J4FRadarOverlayHandler extends IDarkOverlayHandler
+class J4FRadarOverlayHandlerBase
 {
 	// Having various int_ref objects stored centrally avoids having to
 	// create a bunch of these on every frame rendered. The T2OverlaySample.nut
@@ -2783,6 +2785,46 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	}
 }
 
+class J4FRadarOverlayHandler extends IDarkOverlayHandler
+{
+	logic = J4FRadarOverlayHandlerBase();
+	
+	function OnUIEnterMode()
+	{
+		logic.OnUIEnterMode();
+	}
+	
+	function DrawHUD()
+	{
+		logic.DrawHUD();
+	}
+	
+	function DrawTOverlay()
+	{
+		logic.DrawTOverlay();
+	}
+}
+
+class J4FShockdarOverlayHandler extends IShockOverlayHandler
+{
+	logic = J4FRadarOverlayHandlerBase();
+	
+	function OnUIEnterMode()
+	{
+		logic.OnUIEnterMode();
+	}
+	
+	function DrawHUD()
+	{
+		logic.DrawHUD();
+	}
+	
+	function DrawTOverlay()
+	{
+		logic.DrawTOverlay();
+	}
+}
+
 // Create a single instance of the handler. This is squirrel's "new slot"
 // operator "<-" which adds a slot named myOverlay to a table and then sets the
 // value in that slot. Because we're not prefixing myOverlay, presumably this is
@@ -2791,4 +2833,4 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 // sample documentation that comes with NewDark, which states this is a "global"
 // instance. I'm not sure if there's any difference between this approach and
 // global variables, but in any case it gets the job done.
-j4fRadarOverlayInstance <- J4FRadarOverlayHandler();
+j4fRadarOverlayInstance <- (GetDarkGame() == 1) ? J4FShockdarOverlayHandler() : J4FRadarOverlayHandler();
