@@ -1323,49 +1323,71 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 	}
 }
 
+// This script will be called on the player when the game starts, giving them a particular item.
+class J4FGiveAnItem extends SqRootScript
+{
+	function GiveItemIfNeeded(whatItem)
+	{
+		// Assuming this script is attached to the player, "self" refers
+		// to that player. Every object with a "Contains" type link is
+		// stuff in the player's inventory.
+		local playerInventory = Link.GetAll("Contains", self);
+		
+		// Assume they don't have the radar item until we prove otherwise.
+		local hasRadarItem = false;
+		// It may be possible to use the string directly everywhere we use
+		// this variable, but it's probably less efficient than doing the
+		// ID lookup once and storing the result. This approach was used
+		// in the HolyH2O script sample as well.
+		local radarItemId = ObjID(whatItem);
+		
+		// Loop through everything in the player's inventory to find the token.
+		foreach (link in playerInventory)
+		{
+			// Is the inventory item an instance of the radar item?
+			// (InheritsFrom *might* also detect other kinds of items based
+			// on the J4FRadarControlItem as well, but that's not relevant
+			// to this mod.)
+			if ( Object.InheritsFrom(LinkDest(link), radarItemId) )
+			{
+				// The player already has the radar item!
+				hasRadarItem = true;
+				// So we can stop looking through their inventory.
+				break;
+			}
+		}
+		
+		// If the player doesn't already have the radar item...
+		if (!hasRadarItem)
+		{
+			// Then create one and give it to them.
+			Link.Create(LinkTools.LinkKindNamed("Contains"), self, Object.Create(radarItemId));
+		}
+	}
+}
+
 // This script will be called on the player when the game starts, giving them the radar item.
-class J4FGiveRadarItem extends SqRootScript
+class J4FGiveRadarItem extends J4FGiveAnItem
 {
 	// We only need this script to fire once, when the game simulation first starts.
     function OnSim()
 	{
         if (message().starting)
 		{
-			// Assuming this script is attached to the player, "self" refers
-			// to that player. Every object with a "Contains" type link is
-			// stuff in the player's inventory.
-			local playerInventory = Link.GetAll("Contains", self);
-			
-			// Assume they don't have the radar item until we prove otherwise.
-			local hasRadarItem = false;
-			// It may be possible to use the string directly everywhere we use
-			// this variable, but it's probably less efficient than doing the
-			// ID lookup once and storing the result. This approach was used
-			// in the HolyH2O script sample as well.
-			local radarItemId = ObjID("J4FRadarControlItem");
-			
-			// Loop through everything in the player's inventory to find the token.
-			foreach (link in playerInventory)
-			{
-				// Is the inventory item an instance of the radar item?
-				// (InheritsFrom *might* also detect other kinds of items based
-				// on the J4FRadarControlItem as well, but that's not relevant
-				// to this mod.)
-				if ( Object.InheritsFrom(LinkDest(link), radarItemId) )
-				{
-					// The player already has the radar item!
-					hasRadarItem = true;
-					// So we can stop looking through their inventory.
-					break;
-				}
-			}
-			
-			// If the player doesn't already have the radar item...
-			if (!hasRadarItem)
-			{
-				// Then create one and give it to them.
-				Link.Create(LinkTools.LinkKindNamed("Contains"), self, Object.Create(radarItemId));
-			}
+			GiveItemIfNeeded("J4FRadarControlItem");
+        }
+    }
+}
+
+// This script will be called on the player when the game starts, giving them the radar item.
+class J4FGiveShockdarItem extends J4FGiveAnItem
+{
+	// We only need this script to fire once, when the game simulation first starts.
+    function OnSim()
+	{
+		if (message().starting)
+		{
+			GiveItemIfNeeded("J4FShockdarControlItem");
         }
     }
 }
