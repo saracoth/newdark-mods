@@ -151,6 +151,11 @@ const AINonHostilityEnum_kAINH_Always = 6;
 // these utility methods.
 class J4FRadarUtilities extends SqRootScript
 {
+	function GetPlayerArchetype()
+	{
+		return (GetDarkGame() == 1) ? "The Player" : "Avatar";
+	}
+	
 	// While we can attach scripts to existing objects, sometimes
 	// that's a challenge. Stuff like IsLoot is a metaproperty, so
 	// we can't just attach a metaproperty to IsLoot. Other
@@ -450,13 +455,13 @@ class J4FPassToProxy extends J4FRadarUtilities
 	
 	function OnFrobWorldEnd()
 	{
-		if (Object.InheritsFrom(message().Frobber, "Avatar"))
+		if (Object.InheritsFrom(message().Frobber, GetPlayerArchetype()))
 			PostMessage(GetProxy(), "J4FPlayerFrob");
 	}
 	
 	function OnFrobInvEnd()
 	{
-		if (Object.InheritsFrom(message().Frobber, "Avatar"))
+		if (Object.InheritsFrom(message().Frobber, GetPlayerArchetype()))
 			PostMessage(GetProxy(), "J4FPlayerFrob");
 	}
 }
@@ -566,7 +571,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
 		// There's a handy LinkDest() function, but to get the source we need
 		// to instantiate the whole link object.
-		if (linkToMyContainer != 0 && Object.InheritsFrom(sLink(linkToMyContainer).source, "Avatar"))
+		if (linkToMyContainer != 0 && Object.InheritsFrom(sLink(linkToMyContainer).source, GetPlayerArchetype()))
 			return false;
 		
 		// Ignore things involved in certain other kinds of relationship,
@@ -1133,7 +1138,7 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 	
 	function OnFrobWorldEnd()
 	{
-		if (Object.InheritsFrom(message().Frobber, "Avatar"))
+		if (Object.InheritsFrom(message().Frobber, GetPlayerArchetype()))
 			MarkAsTouched();
 	}
 	
@@ -1380,7 +1385,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		// an overlay that's already been removed. So this is just an
 		// extra safety net to be absolutely sure the overlay is removed,
 		// even if the EndScript message never triggers for some reason.
-		DarkOverlay.RemoveHandler(j4fRadarOverlayInstance);
+		((GetDarkGame() == 1) ? ShockOverlay : DarkOverlay).RemoveHandler(j4fRadarOverlayInstance);
 		
 		// As we've coded it, there's no harm in calling this more than
 		// once either.
@@ -1397,7 +1402,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		// This is part of NewDark+Squirrel's method of attaching an
 		// overlay handler to the game.
-		DarkOverlay.AddHandler(j4fRadarOverlayInstance);
+		((GetDarkGame() == 1) ? ShockOverlay : DarkOverlay).AddHandler(j4fRadarOverlayInstance);
 		
 		// Remember our enabled state.
 		j4fRadarOverlayInstance.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
@@ -2214,8 +2219,8 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// This is a table whose keys are strings, indicating the indicator image
 	// they use. For example, RadarW64 for the large, white indicator, etc.
 	// The keys are arrays of overlay handles created with
-	// DarkOverlay.CreateTOverlayItem()
-	// or DarkOverlay.CreateTOverlayItemFromBitmap()
+	// gameOverlay.CreateTOverlayItem()
+	// or gameOverlay.CreateTOverlayItemFromBitmap()
 	overlayPool = {};
 	// This uses the same keys as overlayPool, but the values are integers
 	// counting how many overlays of that type we've used this frame.
@@ -2229,6 +2234,12 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 	// Determines whether the display is enabled or not. We can't persist this
 	// through savegames here, so the marker object's script does that for us.
 	enabled = false;
+	
+	// What might be static methods in other languages are really just
+	// properties on an object in Squirrel. We can hold a reference to the
+	// entire class here, which is handy since the features we actually use
+	// have the same function signatures in both classes.
+	gameOverlay = (GetDarkGame() == 1) ? ShockOverlay : DarkOverlay;
 	
 	// This is used instead of log() functions to quickly check for the
 	// power-of-twoness of a given value. Used in checking bitmap sizes.
@@ -2322,7 +2333,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// of the object. If we want something more...centered, we'll have to use
 			// GetObjectScreenBounds() instead.
 			//local targetPos = Object.Position(targetId);
-			//if (!DarkOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
+			//if (!gameOverlay.WorldToScreen(targetPos, x1_ref, y1_ref))
 			//	continue;
 			
 			// This sets the x/y pairs to the left, top, right, and bottom edges of the
@@ -2331,16 +2342,16 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// work correctly. Then again, their Object.Position is 0,0,0 and their
 			// position properties in DromEd are also 0,0,0. The room's X/Y/Z is
 			// stored somewhere other than ordinary object properties.
-			if (!DarkOverlay.GetObjectScreenBounds(targetId, x1_ref, y1_ref, x2_ref, y2_ref))
+			if (!gameOverlay.GetObjectScreenBounds(targetId, x1_ref, y1_ref, x2_ref, y2_ref))
 				continue;
 			
 			// For debugging purposes, we can also draw directly in the HUD this frame.
 			// This will draw the bounding box we just retrieved.
 			/*
-			DarkOverlay.DrawLine(x1_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y2_ref.tointeger());
-			DarkOverlay.DrawLine(x1_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y2_ref.tointeger());
-			DarkOverlay.DrawLine(x2_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y1_ref.tointeger());
-			DarkOverlay.DrawLine(x2_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y1_ref.tointeger());
+			gameOverlay.DrawLine(x1_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y2_ref.tointeger());
+			gameOverlay.DrawLine(x1_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y2_ref.tointeger());
+			gameOverlay.DrawLine(x2_ref.tointeger(), y2_ref.tointeger(), x2_ref.tointeger(), y1_ref.tointeger());
+			gameOverlay.DrawLine(x2_ref.tointeger(), y1_ref.tointeger(), x1_ref.tointeger(), y1_ref.tointeger());
 			//*/
 			
 			// Only include rendered items (presumably they're visible) and
@@ -2426,9 +2437,9 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			currentOverlay = overlayArray[usedInPool];
 			
 			// Position it on top of its new target.
-			DarkOverlay.UpdateTOverlayPosition(currentOverlay, targetX - overlayOffset, targetY - overlayOffset);
+			gameOverlay.UpdateTOverlayPosition(currentOverlay, targetX - overlayOffset, targetY - overlayOffset);
 			// And update its transparency.
-			DarkOverlay.UpdateTOverlayAlpha(currentOverlay, alpha);
+			gameOverlay.UpdateTOverlayAlpha(currentOverlay, alpha);
 			
 			// NOTE: The engine remembers the contents of the overlay,
 			// so we don't need to re-draw them. We only need to tell
@@ -2447,14 +2458,14 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			}
 			else
 			{
-				newBitmap = DarkOverlay.GetBitmap(bitmapName, "j4fres\\");
+				newBitmap = gameOverlay.GetBitmap(bitmapName, "j4fres\\");
 				
 				// Images not installed in the needed location? Fallback to
 				// this. There's no particular reason to choose this, except
 				// that it happens to exist in both Thief games.
 				if (newBitmap == -1)
 				{
-					newBitmap = DarkOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
+					newBitmap = gameOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
 				}
 				
 				bitmaps[bitmapName] <- newBitmap;
@@ -2464,7 +2475,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// into an overlay.
 			if (bitmapSize == overlaySize)
 			{
-				currentOverlay = DarkOverlay.CreateTOverlayItemFromBitmap(targetX - overlayOffset, targetY - overlayOffset, alpha, newBitmap, true);
+				currentOverlay = gameOverlay.CreateTOverlayItemFromBitmap(targetX - overlayOffset, targetY - overlayOffset, alpha, newBitmap, true);
 				
 				// If we failed, best to abort now.
 				if (currentOverlay == -1)
@@ -2476,7 +2487,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				// two, create an empty overlay, and draw the bitmap in its
 				// center by hand.
 				
-				currentOverlay = DarkOverlay.CreateTOverlayItem(targetX - overlayOffset, targetY - overlayOffset, overlaySize, overlaySize, alpha, true);
+				currentOverlay = gameOverlay.CreateTOverlayItem(targetX - overlayOffset, targetY - overlayOffset, overlaySize, overlaySize, alpha, true);
 				
 				// If we failed, best to abort now.
 				if (currentOverlay == -1)
@@ -2487,15 +2498,15 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 				
 				// This redirects generic functions like DrawBitmap so that
 				// they draw *inside* the overlay we're setting up.
-				if (DarkOverlay.BeginTOverlayUpdate(currentOverlay))
+				if (gameOverlay.BeginTOverlayUpdate(currentOverlay))
 				{
 					// These x/y coordinates are relative to the overlay itself.
 					// So 0,0 is the top-left corner of the overlay, no matter
 					// where we end up drawing it on the screen later.
-					DarkOverlay.DrawBitmap(newBitmap, upgradedOffset, upgradedOffset);
+					gameOverlay.DrawBitmap(newBitmap, upgradedOffset, upgradedOffset);
 				
 					// Tell the engine we're done drawing the overlay contents.
-					DarkOverlay.EndTOverlayUpdate();
+					gameOverlay.EndTOverlayUpdate();
 				}
 			}
 			
@@ -2615,7 +2626,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 		// issues that can occur if an overlay handle exists and
 		// is not used. This was not a reliably reproducible
 		// issue in the original code, but was easily doable
-		// when commenting out the DarkOverlay.DrawTOverlayItem()
+		// when commenting out the gameOverlay.DrawTOverlayItem()
 		// line. Plenty of overlays would exist and be set up
 		// and not a one of them would be drawn, and the crash
 		// would happen regularly. In the original code, I
@@ -2670,7 +2681,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			currentWaveStep = 0;
 		}
 		
-		// Max opacity is 127, min is 0. We'll cycle between our desired
+		// Max opacity is 255, min is 0. We'll cycle between our desired
 		// min and max instead, using sine waves to give a more visually
 		// pleasant pulsing effect. The sin() sine function expects
 		// values in radians, ranging from 0 to 2*pi. It returns values
@@ -2723,7 +2734,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			{
 				// And whether or not we drew the contents of the overlay earlier,
 				// we need to instruct it to draw the overlay itself this frame.
-				DarkOverlay.DrawTOverlayItem(currentOverlay);
+				gameOverlay.DrawTOverlayItem(currentOverlay);
 			}
 		}
 		
@@ -2744,7 +2755,7 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 			// advantage of pop() to reduce the array size as we go.
 			for (local i = poolArray.len(); --i > keepThisIndexAndBelow; )
 			{
-				DarkOverlay.DestroyTOverlayItem(poolArray.pop());
+				gameOverlay.DestroyTOverlayItem(poolArray.pop());
 			}
 		}
 	}
