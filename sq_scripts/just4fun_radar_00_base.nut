@@ -637,6 +637,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		// Ignore anything contained by the player.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		
 		// There's a handy LinkDest() function, but to get the source we need
 		// to instantiate the whole link object.
 		if (linkToMyContainer != 0 && Object.InheritsFrom(sLink(linkToMyContainer).source, GetPlayerArchetype()))
@@ -664,20 +665,46 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		local target = PoiTarget();
 		
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		
 		// Are we contained by something in a way that prevent us from rendering?
-		if (
-			// We are contained.
-			linkToMyContainer != 0
-			// In a non-visible way. (Negative values are for visible
-			// contents, like on a creature's belt.)
-			&& LinkTools.LinkGetData(linkToMyContainer, "") >= 0
-			// And our container is a...Container.
-			// As opposed to a creature or some other presumably
-			// non-openable item.
-			&& Object.InheritsFrom(sLink(linkToMyContainer).source, "Container")
-		)
+		if (linkToMyContainer != 0)
 		{
-			return true;
+			local shockGame = (GetDarkGame() == 1);
+			
+			// We are contained.
+			if (
+				// SS2 doesn't seem to support this. In fact, trying to read this
+				// seems to cause a hang followed by a crash?
+				!shockGame
+				// But in Thief, we should check for Contains link data.
+				&& LinkTools.LinkGetData(linkToMyContainer, "") < 0
+			)
+			{
+				return false;
+			}
+			
+			local linkSource = sLink(linkToMyContainer).source;
+			
+			if (
+				(
+					// Thief
+					!shockGame
+					&& Object.InheritsFrom(linkSource, "Container")
+				)
+				|| (
+					// Shock
+					shockGame
+					&& (
+						Object.InheritsFrom(linkSource, "Usable Containers")
+						|| Object.InheritsFrom(linkSource, "Corpses")
+						// Well, they should become openable when they're dead, anyway.
+						|| Object.InheritsFrom(linkSource, "Monsters")
+					)
+				)
+			)
+			{
+				return true;
+			}
 		}
 		
 		return false;
