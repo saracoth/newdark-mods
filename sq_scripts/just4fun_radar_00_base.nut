@@ -1691,7 +1691,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		local keysEnabled = ObjID(FEATURE_EQUIP) < 0;
 		local keyPoiProperty = ObjID(POI_EQUIP);
 		
-		local readablesEnabled = ObjID(FEATURE_READABLE) < 0;
+		local thiefReadablesEnabled = (ObjID(FEATURE_READABLE) < 0) && (GetDarkGame() != 1);
 		local readablePoiProperty = ObjID(POI_READABLE);
 		
 		local lootEnabled = ObjID(FEATURE_LOOT) < 0;
@@ -2016,7 +2016,7 @@ class J4FRadarUi extends J4FRadarUtilities
 					// Sometimes weird items can be made readable.
 					if (
 						// The optional readables module is installed.
-						readablesEnabled
+						thiefReadablesEnabled
 						// This isn't isn't flagged yet.
 						&& !Object.InheritsFrom(i, readablePoiProperty)
 						// And the item has something worth reading.
