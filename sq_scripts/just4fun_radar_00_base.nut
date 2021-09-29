@@ -40,7 +40,7 @@ const READ_LIST_SEPARATOR = ";";
 // These correspond to the various RadarX64.png filenames.
 const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
-const COLOR_CYBERMODULE = "K";
+const COLOR_CYBERMODULE = "P";
 const COLOR_DEFAULT = "W";
 const COLOR_DEVICE = "P";
 const COLOR_EQUIP = "G";

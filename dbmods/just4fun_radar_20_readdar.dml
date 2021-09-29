@@ -22,7 +22,7 @@ FINGERPRINT
 // as well, but I'm trying to stick with the "just drop the files in place"
 // approach, rather than instructing people to edit config files by hand.
 
-CreateArch "MetaProperty" "J4FRadarEnableCyberModule"
+CreateArch "MetaProperty" "J4FRadarEnableReadable"
 
 /*
 ================================================================================
@@ -32,6 +32,10 @@ CreateArch "MetaProperty" "J4FRadarEnableCyberModule"
 
 // These items are flagged as interesting to the radar scanning system.
 
-+MetaProp "EXP Cookies" "J4FRadarCyberModulePOI"
-// TODO: logic to hide after triggered?
-+MetaProp "Experience Trap" "J4FRadarCyberModulePOI"
+// TODO: need new metaprop, less complex than thief, no read/unread tracking
++MetaProp "Audio Log" "J4FRadarReadablePOI"
+// TODO: "PDA Soft" or "PDA"?
+// TODO: need logic to hide these after triggered
++MetaProp "LogTrap" "J4FRadarReadablePOI"
++MetaProp "MediaTrap" "J4FRadarReadablePOI"
++MetaProp "EmailTrap" "J4FRadarReadablePOI"
