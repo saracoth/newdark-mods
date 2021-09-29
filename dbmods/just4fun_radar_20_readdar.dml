@@ -32,10 +32,8 @@ CreateArch "MetaProperty" "J4FRadarEnableReadable"
 
 // These items are flagged as interesting to the radar scanning system.
 
-// TODO: need new metaprop, less complex than thief, no read/unread tracking
-+MetaProp "Audio Log" "J4FRadarReadablePOI"
++MetaProp "Audio Log" "J4FRadarSimpleReadablePOI"
 // TODO: "PDA Soft" or "PDA"?
-// TODO: need logic to hide these after triggered
-+MetaProp "LogTrap" "J4FRadarReadablePOI"
-+MetaProp "MediaTrap" "J4FRadarReadablePOI"
-+MetaProp "EmailTrap" "J4FRadarReadablePOI"
++MetaProp "LogTrap" "J4FRadarReadableTrapPOI"
++MetaProp "MediaTrap" "J4FRadarReadableTrapPOI"
++MetaProp "EmailTrap" "J4FRadarReadableTrapPOI"

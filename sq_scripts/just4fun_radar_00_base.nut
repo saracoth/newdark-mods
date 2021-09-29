@@ -104,6 +104,7 @@ const POI_ANY = "J4FRadarPointOfInterest";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
 const POI_CYBERMODULE = "J4FRadarCyberModulePOI";
+const POI_CYBERTRAP = "J4FRadarCyberModuleTrapPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
 const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_GENERIC = "J4FRadarFallbackPOI";
@@ -112,6 +113,8 @@ const POI_NANITE = "J4FRadarNanitePOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_QUEST = "J4FRadarQuestPOI";
 const POI_READABLE = "J4FRadarReadablePOI";
+const POI_READABLE_SIMPLE = "J4FRadarSimpleReadablePOI";
+const POI_READABLE_TRAP = "J4FRadarReadableTrapPOI";
 const POI_SECRET = "J4FRadarSecretPOI";
 
 // This metaproperty has the script which manages our bless checking timer.
@@ -266,16 +269,25 @@ class J4FRadarUtilities extends SqRootScript
 			handledAny = true;
 		}
 		
-		if (Object.InheritsFrom(forItem, POI_LOOT))
-		{
-			Object.AddMetaProperty(scriptWhat, POI_LOOT + "_S");
-			handledAny = true;
-		}
-		
 		if (Object.InheritsFrom(forItem, POI_CYBERMODULE))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_CYBERMODULE + "_S");
 			handledAny = true;
+		}
+		
+		if (Object.InheritsFrom(forItem, POI_CYBERTRAP))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_CYBERTRAP + "_S");
+			handledAny = true;
+			
+			// May need direct scripting to know when the trap has been triggered.
+			if (
+				directScriptEnabled
+				&& scriptWhat != forItem
+			)
+			{
+				directScriptNeeded = true;
+			}
 		}
 		
 		if (Object.InheritsFrom(forItem, POI_NANITE))
@@ -334,6 +346,25 @@ class J4FRadarUtilities extends SqRootScript
 			}
 			
 			handledAny = true;
+		}
+		else if (Object.InheritsFrom(forItem, POI_READABLE_SIMPLE))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_READABLE_SIMPLE + "_S");
+			handledAny = true;
+		}
+		else if (Object.InheritsFrom(forItem, POI_READABLE_TRAP))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_READABLE_TRAP + "_S");
+			handledAny = true;
+			
+			// May need direct scripting to know when the trap has been triggered.
+			if (
+				directScriptEnabled
+				&& scriptWhat != forItem
+			)
+			{
+				directScriptNeeded = true;
+			}
 		}
 		
 		// If no more specific POI type applies, fall back to the generic one.
@@ -493,6 +524,11 @@ class J4FPassToProxy extends J4FRadarUtilities
 	{
 		if (Object.InheritsFrom(message().Frobber, GetPlayerArchetype()))
 			PostMessage(GetProxy(), "J4FPlayerFrob");
+	}
+	
+	function OnTurnOn()
+	{
+		PostMessage(GetProxy(), "J4FTurnedOn");
 	}
 }
 
@@ -1090,6 +1126,43 @@ class J4FRadarGrabbableTarget extends J4FRadarAbstractTarget
 	}
 }
 
+class J4FRadarUntilTurnOnTarget extends J4FRadarAbstractTarget
+{
+	constructor(color = COLOR_DEFAULT, uncapDistance = false, rank = POI_RANK_GRAB)
+	{
+		base.constructor(color, uncapDistance, rank);
+	}
+	
+	function OnTurnOn()
+	{
+		MarkAsTurnedOn();
+	}
+	
+	function OnJ4FTurnedOn()
+	{
+		MarkAsTurnedOn();
+	}
+	
+	function MarkAsTurnedOn()
+	{
+		// If we've already been marked, do nothing.
+		// Might help avoid infinite loops if there are
+		// circular references via relay traps.
+		if (IsDataSet("J4FEverTurnedOn"))
+			return;
+		
+		SetData("J4FEverTurnedOn", true);
+	}
+	
+	function BlessItem()
+	{
+		if (!base.BlessItem() || IsDataSet("J4FEverTurnedOn"))
+			return false;
+		
+		return true;
+	}
+}
+
 // This script goes on the container of interest.
 class J4FRadarContainerTarget extends J4FRadarAbstractTarget
 {
@@ -1287,6 +1360,25 @@ class J4FRadarCyberModuleTarget extends J4FRadarAbstractTarget
 	}
 	
 	// See comments in J4FRadarAbstractTarget for details.
+	// NOTE: This overlaps with J4FRadarCyberModuleTrapTarget data, but
+	// we shouldn't have both scripts on one object.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CYBERMODULE);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CYBERMODULE, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CYBERMODULE);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_CYBERMODULE);}
+}
+
+// This script goes on the equipment of interest.
+class J4FRadarCyberModuleTrapTarget extends J4FRadarUntilTurnOnTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_CYBERMODULE, true, POI_RANK_CYBERMODULE);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	// NOTE: This overlaps with J4FRadarCyberModuleTarget data, but
+	// we shouldn't have both scripts on one object.
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CYBERMODULE);}
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CYBERMODULE, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CYBERMODULE);}
@@ -1381,6 +1473,34 @@ class J4FRadarReadableTarget extends J4FRadarGrabbableTarget
 		
 		return true;
 	}
+}
+
+class J4FRadarSimpleReadableTarget extends J4FRadarGrabbableTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_READABLE, true, POI_RANK_READABLE);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + POI_RANK_READABLE);}
+	function SetDataSub(key, value) {SetData(key + POI_RANK_READABLE, value);}
+	function ClearDataSub(key) {ClearData(key + POI_RANK_READABLE);}
+	function IsDataSetSub(key) {return IsDataSet(key + POI_RANK_READABLE);}
+}
+
+class J4FRadarReadableTrapTarget extends J4FRadarUntilTurnOnTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_READABLE, true, POI_RANK_READABLE);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + POI_RANK_READABLE);}
+	function SetDataSub(key, value) {SetData(key + POI_RANK_READABLE, value);}
+	function ClearDataSub(key) {ClearData(key + POI_RANK_READABLE);}
+	function IsDataSetSub(key) {return IsDataSet(key + POI_RANK_READABLE);}
 }
 
 // This script will be called on the player when the game starts, giving them a particular item.

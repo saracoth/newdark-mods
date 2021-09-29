@@ -33,5 +33,6 @@ CreateArch "MetaProperty" "J4FRadarEnableCyberModule"
 // These items are flagged as interesting to the radar scanning system.
 
 +MetaProp "EXP Cookies" "J4FRadarCyberModulePOI"
-// TODO: logic to hide after triggered?
-+MetaProp "Experience Trap" "J4FRadarCyberModulePOI"
+
++MetaProp "Experience Trap" "J4FRadarCyberModuleTrapPOI"
+

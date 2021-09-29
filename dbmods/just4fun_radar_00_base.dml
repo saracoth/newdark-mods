@@ -150,6 +150,39 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarCyberModulePOI_S"
 	}
 }
 
+CreateArch "J4FRadarPointOfInterest" "J4FRadarCyberModuleTrapPOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarCyberModuleTrapPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarCyberModuleTrapTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarSimpleReadablePOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarSimpleReadablePOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarSimpleReadableTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarReadableTrapPOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarReadableTrapPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarReadableTrapTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 /*
 ================================================================================
 == Point of Interest Timer Script ==============================================
