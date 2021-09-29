@@ -50,6 +50,6 @@ CreateArch "MetaProperty" "J4FRadarEnableEquip"
 +MetaProp "MFD Games" "J4FRadarEquipPOI"
 // TODO: hide weapons we have? (unless modified?)
 // TODO: crap...what about all those shotguns on corpses? :/
-+MetaProp "Weapons" "J4FRadarEquipPOI"
++MetaProp "Weapon" "J4FRadarEquipPOI"
 // TODO: maybe equipdar needs split up? :/
 +MetaProp "ID Cards" "J4FRadarEquipPOI"
