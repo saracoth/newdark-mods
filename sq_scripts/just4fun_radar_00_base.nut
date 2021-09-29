@@ -381,7 +381,7 @@ class J4FRadarUtilities extends SqRootScript
 			PostMessage(scriptWhat, "J4FSetObjective", objectiveNumber);
 		}
 		
-		if (directScriptNeeded)
+		if (directScriptEnabled && directScriptNeeded)
 		{
 			AddScriptDirectly(forItem, "J4FPassToProxy");
 		}
@@ -483,8 +483,8 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		// share the same timer.
 		if (!IsDataSet("J4FRadarReviewStarted"))
 		{
-			SetOneShotTimer("J4FRadarTargetReview", 0.25);
 			SetData("J4FRadarReviewStarted", true);
+			SetOneShotTimer("J4FRadarTargetReview", 0.25);
 		}
 	}
 	
@@ -1462,6 +1462,11 @@ class J4FGiveAnItem extends SqRootScript
 {
 	function GiveItemIfNeeded(whatItem)
 	{
+		// See comments below about the infinite recursion this addresses.
+		local dataKey = "J4FGiving_" + whatItem;
+		if (IsDataSet(dataKey))
+			return;
+		
 		// Assuming this script is attached to the player, "self" refers
 		// to that player. Every object with a "Contains" type link is
 		// stuff in the player's inventory.
@@ -1495,7 +1500,15 @@ class J4FGiveAnItem extends SqRootScript
 		if (!hasRadarItem)
 		{
 			// Then create one and give it to them.
+			
+			SetData(dataKey, true);
+			
+			// NOTE: In SS2, for some reason this resulted in a
+			// stack overflow going from OnBeginScript to GiveItemIfNeeded
+			// to native code, and repeating those three infinitely :/
 			Link.Create(LinkTools.LinkKindNamed("Contains"), self, Object.Create(radarItemId));
+			
+			ClearData(dataKey);
 		}
 	}
 }
