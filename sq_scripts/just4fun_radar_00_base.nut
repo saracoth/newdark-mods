@@ -2,6 +2,8 @@
 // However, some functionality only kicks in when extra DML files are installed
 // to enable those features.
 
+// TODO: get radar toggle working how we'd like
+// TODO: review DML TODOs
 // TODO: is "Player" also appropriate for SS2?
 
 // The point-of-interest overlays will bounce between these two transparencies.
@@ -754,54 +756,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		// I dunno, I guess it's rendered. I suppose we also need things
 		// like a model and whatever.
 		return true;
-	}
-	
-	// Rooms don't work with our indicator display logic. To handle
-	// these, we'll need a kind of proxy. Instead of proxying the
-	// target item to bless it, we need to proxy the display item
-	// to render its indicator!
-	// TODO: this is probably unused because it does nothing useful
-	function ProxyDisplayIfNeeded(originalTarget)
-	{
-		if (!originalTarget || originalTarget == 0)
-			return originalTarget;
-		
-		local cacheKey = "J4FRadarDisplayProxy" + originalTarget;
-		
-		// If we already created a proxy, just reuse it.
-		// NOTE: Because we're only doing this for rooms, which
-		// don't (AFAIK) ever move, we don't need to teleport
-		// the proxy to the object's current location, attach it
-		// via links, etc.
-		if (IsDataSet(cacheKey))
-			return GetData(cacheKey);
-		
-		local proxyNeeded = false;
-		
-		if (Object.InheritsFrom(originalTarget, "Base Room"))
-		{
-			proxyNeeded = true;
-		}
-		
-		if (!proxyNeeded)
-			return originalTarget;
-		
-		// Create a proxy for display purposes.
-		local newProxy = Object.Create("Marker");
-		local zeros = vector(0);
-		// Nope. The rooms all have 0/0/0 positions, in properties for
-		// Edit mode in dromed, in Object.Position() in scripts, and
-		// Object.Teleport() via scripts. Rooms clearly have some kind
-		// of X/Y/Z coordinates, but I don't see how to access them :(
-		Object.Teleport(newProxy, zeros, zeros, originalTarget);
-		
-		// Remember it for future reference.
-		SetData(cacheKey, newProxy);
-		
-		//print(format("Room Stuff: %i %s %s", originalTarget, Object.GetName(originalTarget), Object.GetName(Object.Archetype(originalTarget))));
-		//print(format("%g / %g / %g", Object.Position(originalTarget).x, Object.Position(originalTarget).y, Object.Position(originalTarget).z ));
-		
-		return newProxy;
 	}
 	
 	// This will fire on mission start, on reloading a save, and when
@@ -1739,7 +1693,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		if (questEnabled)
 		{
-			// TODO: is there a better way to get difficulty levels?
+			// I'm not sure of a better way to get difficulty level via script :/
 			local difficultyObjectId = ObjID("Player");
 			local difficultyLevel = 2;
 			if (Object.InheritsFrom(difficultyObjectId, DIFFICULTY_0))
@@ -1764,7 +1718,6 @@ class J4FRadarUi extends J4FRadarUtilities
 			foreach (qKey,qVal in Quest.GetAllVars(eQuestDataType.kQuestDataMission))
 			{
 				// All the variables we can do anything with should be integers.
-				// TODO: verify whether "string" might sneak in here?
 				if (typeof qVal != "integer")
 					continue;
 				
@@ -2061,8 +2014,7 @@ class J4FRadarUi extends J4FRadarUtilities
 							&& (Property.Get(i, "Loot", "Special") & questSpecials) != 0
 						)
 						{
-							// TODO: technically this should also have the related
-							// objective, so we can honor quest blessing behaviors :/
+							// TODO: objective number tracking for loot special flags?
 							isQuest = true;
 						}
 						
@@ -2126,10 +2078,6 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		// Track how many consecutive scan groups came up empty and,
 		// if needed, halt scanning.
-		// TODO: Can we safely read values like "obj_max" or "max_refs"
-		//	with Engine.ConfigGetInt() and such? That might be useful
-		//	in combination with max empty range scanning, to allow for
-		//	even earlier loop termination in some cases.
 		if (!scannedAny)
 		{
 			// Increment and test consecutiveEmptyGroups.
@@ -2672,13 +2620,19 @@ class J4FRadarOverlayHandlerBase
 			{
 				newBitmap = gameOverlay.GetBitmap(bitmapName, "j4fres\\");
 				
-				// Images not installed in the needed location? Fallback to
-				// this. There's no particular reason to choose this, except
-				// that it happens to exist in both Thief games.
+				// Images not installed in the needed location? Fallback.
 				if (newBitmap == -1)
 				{
-					// TODO: SS2 default?
-					newBitmap = gameOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
+					if (GetDarkGame() == 1)
+					{
+						newBitmap = gameOverlay.GetBitmap("DHKONG0", "iface\\");
+					}
+					else
+					{
+						// There's no particular reason to choose this, except
+						// that it happens to exist in both Thief games.
+						newBitmap = gameOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
+					}
 				}
 				
 				bitmaps[bitmapName] <- newBitmap;
@@ -2888,7 +2842,6 @@ class J4FRadarOverlayHandlerBase
 		
 		// We'll do a complete alpha cycle in 120 frames. If and only
 		// if running at 60fps will that take 2 seconds.
-		// TODO: is there a function we can use to track time instead?
 		if (++currentWaveStep > 119)
 		{
 			currentWaveStep = 0;
