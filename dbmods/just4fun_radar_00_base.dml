@@ -128,6 +128,28 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarSecretPOI_S"
 	}
 }
 
+CreateArch "J4FRadarPointOfInterest" "J4FRadarNanitePOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarNanitePOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarNaniteTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarCyberModulePOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarCyberModulePOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarCyberModuleTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 /*
 ================================================================================
 == Point of Interest Timer Script ==============================================

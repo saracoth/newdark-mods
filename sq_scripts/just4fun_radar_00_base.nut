@@ -38,12 +38,14 @@ const INTERESTING_FROB_FLAGS = 131;
 const READ_LIST_SEPARATOR = ";";
 
 // These correspond to the various RadarX64.png filenames.
-const COLOR_DEFAULT = "W";
 const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
+const COLOR_CYBERMODULE = "K";
+const COLOR_DEFAULT = "W";
 const COLOR_DEVICE = "P";
 const COLOR_EQUIP = "G";
 const COLOR_LOOT = "Y";
+const COLOR_NANITE = "Y";
 const COLOR_QUEST = "K";
 const COLOR_READABLE = "B";
 
@@ -51,10 +53,12 @@ const COLOR_READABLE = "B";
 // to the same object.
 const DATA_SUFFIX_CONTAINER = "_B";
 const DATA_SUFFIX_CREATURE = "_C";
+const DATA_SUFFIX_CYBERMODULE = "_M";
 const DATA_SUFFIX_DEVICE = "_D";
 const DATA_SUFFIX_EQUIP = "_E";
 const DATA_SUFFIX_GRAB = "_G";
 const DATA_SUFFIX_LOOT = "_L";
+const DATA_SUFFIX_NANITE = "_N";
 const DATA_SUFFIX_QUEST = "_Q";
 const DATA_SUFFIX_READABLE = "_R";
 const DATA_SUFFIX_SECRET = "_S";
@@ -64,11 +68,13 @@ const DATA_SUFFIX_SECRET = "_S";
 const POI_RANK_QUEST = 1;
 const POI_RANK_SECRET = 2;
 const POI_RANK_LOOT = 3;
-const POI_RANK_EQUIP = 4;
-const POI_RANK_READABLE = 5;
-const POI_RANK_CONTAINER = 6;
-const POI_RANK_CREATURE = 7;
-const POI_RANK_DEVICE = 8;
+const POI_RANK_CYBERMODULE = 4;
+const POI_RANK_NANITE = 5;
+const POI_RANK_EQUIP = 6;
+const POI_RANK_READABLE = 7;
+const POI_RANK_CONTAINER = 8;
+const POI_RANK_CREATURE = 9;
+const POI_RANK_DEVICE = 10;
 const POI_RANK_GRAB = 99;
 
 // Various class, metaproperty, and object name strings.
@@ -83,10 +89,12 @@ const FEATURE_CONTAINER = "J4FRadarEnableContainer";
 const FEATURE_CREATURE = "J4FRadarEnableCreature";
 const FEATURE_CREATURE_GOOD = "J4FRadarEnableCreatureG";
 const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
+const FEATURE_CYBERMODULE = "J4FRadarEnableCyberModule";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
 const FEATURE_DIRECT_SCRIPT = "J4FRadarEnableDirectScript";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
 const FEATURE_LOOT = "J4FRadarEnableLoot";
+const FEATURE_NANITE = "J4FRadarEnableNanite";
 const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
 const FEATURE_QUEST = "J4FRadarEnableQuest";
 const FEATURE_READABLE = "J4FRadarEnableReadable";
@@ -95,10 +103,12 @@ const FEATURE_READABLE = "J4FRadarEnableReadable";
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
+const POI_CYBERMODULE = "J4FRadarCyberModulePOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
 const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_LOOT = "J4FRadarLootPOI";
+const POI_NANITE = "J4FRadarNanitePOI";
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_QUEST = "J4FRadarQuestPOI";
 const POI_READABLE = "J4FRadarReadablePOI";
@@ -253,6 +263,24 @@ class J4FRadarUtilities extends SqRootScript
 		if (Object.InheritsFrom(forItem, POI_LOOT))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_LOOT + "_S");
+			handledAny = true;
+		}
+		
+		if (Object.InheritsFrom(forItem, POI_LOOT))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_LOOT + "_S");
+			handledAny = true;
+		}
+		
+		if (Object.InheritsFrom(forItem, POI_CYBERMODULE))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_CYBERMODULE + "_S");
+			handledAny = true;
+		}
+		
+		if (Object.InheritsFrom(forItem, POI_NANITE))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_NANITE + "_S");
 			handledAny = true;
 		}
 		
@@ -1248,6 +1276,36 @@ class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_LOOT, value);}
 	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_LOOT);}
 	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_LOOT);}
+}
+
+// This script goes on the equipment of interest.
+class J4FRadarCyberModuleTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_CYBERMODULE, true, POI_RANK_CYBERMODULE);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CYBERMODULE);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CYBERMODULE, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CYBERMODULE);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_CYBERMODULE);}
+}
+
+// This script goes on the equipment of interest.
+class J4FRadarNaniteTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_NANITE, true, POI_RANK_NANITE);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_NANITE);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_NANITE, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_NANITE);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_NANITE);}
 }
 
 // This script goes on the readable of interest. We're applying this only to
