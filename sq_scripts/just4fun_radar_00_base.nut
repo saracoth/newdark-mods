@@ -161,6 +161,10 @@ const STATBIT_HIDDEN = 4;
 
 const AINonHostilityEnum_kAINH_Always = 6;
 
+j4fIsShock <- (GetDarkGame() == 1);
+j4fIsThief <- (GetDarkGame() != 1);
+j4fPlayerArchetype <- j4fIsShock ? "The Player" : "Avatar";
+
 // Between the lack of a true static/utility method class concept
 // in squirrel and to avoid questions about when we do or don't
 // have access to API-reference_services.txt stuff, we're using
@@ -168,11 +172,6 @@ const AINonHostilityEnum_kAINH_Always = 6;
 // these utility methods.
 class J4FRadarUtilities extends SqRootScript
 {
-	function GetPlayerArchetype()
-	{
-		return (GetDarkGame() == 1) ? "The Player" : "Avatar";
-	}
-	
 	// While we can attach scripts to existing objects, sometimes
 	// that's a challenge. Stuff like IsLoot is a metaproperty, so
 	// we can't just attach a metaproperty to IsLoot. Other
@@ -447,6 +446,16 @@ class J4FRadarUtilities extends SqRootScript
 		
 		return checkId;
 	}
+	
+	// Negative values are rendered, like belt and quiver items that
+	// can be pickpocketed.
+	function IsVisiblyContained(linkId)
+	{
+		// Even attempting to call LinkGetData on this in SS2
+		// causes a hang-and-crash issue. Doesn't seem like
+		// pickpocketing is SS2's thing anyway.
+		return j4fIsThief && (LinkTools.LinkGetData(linkId, "") < 0);
+	}
 }
 
 // This script goes on an inventory item the player can use to turn the
@@ -518,13 +527,13 @@ class J4FPassToProxy extends J4FRadarUtilities
 	
 	function OnFrobWorldEnd()
 	{
-		if (Object.InheritsFrom(message().Frobber, GetPlayerArchetype()))
+		if (Object.InheritsFrom(message().Frobber, j4fPlayerArchetype))
 			PostMessage(GetProxy(), "J4FPlayerFrob");
 	}
 	
 	function OnFrobInvEnd()
 	{
-		if (Object.InheritsFrom(message().Frobber, GetPlayerArchetype()))
+		if (Object.InheritsFrom(message().Frobber, j4fPlayerArchetype))
 			PostMessage(GetProxy(), "J4FPlayerFrob");
 	}
 	
@@ -595,12 +604,9 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		local target = PoiTarget();
 		
 		// But if the item is in a container in a non-visible way, we'll
-		// display the container instead. Note that the link data for
-		// "Contains" can indicate pickpocketable belt items, etc. All
-		// negative enum values are rendered, while 0 and up are hidden
-		// inside the container itself.
+		// display the container instead.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
-		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") >= 0)
+		if (linkToMyContainer != 0 && !IsVisiblyContained(linkToMyContainer))
 		{
 			// There's a handy LinkDest() function, but to get the source we need
 			// to instantiate the whole link object.
@@ -617,9 +623,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	function AltDisplayTarget()
 	{
 		local linkToMyContainer = Link.GetOne("Contains", 0, PoiTarget());
-		// Negative link data is used for renderable contents, like
-		// belts and quivers.
-		if (linkToMyContainer != 0 && LinkTools.LinkGetData(linkToMyContainer, "") < 0)
+		if (linkToMyContainer != 0 && IsVisiblyContained(linkToMyContainer))
 		{
 			// There's a handy LinkDest() function, but to get the source we need
 			// to instantiate the whole link object.
@@ -640,7 +644,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		// There's a handy LinkDest() function, but to get the source we need
 		// to instantiate the whole link object.
-		if (linkToMyContainer != 0 && Object.InheritsFrom(sLink(linkToMyContainer).source, GetPlayerArchetype()))
+		if (linkToMyContainer != 0 && Object.InheritsFrom(sLink(linkToMyContainer).source, j4fPlayerArchetype))
 			return false;
 		
 		// Ignore things involved in certain other kinds of relationship,
@@ -667,33 +671,22 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
 		
 		// Are we contained by something in a way that prevent us from rendering?
-		if (linkToMyContainer != 0)
-		{
-			local shockGame = (GetDarkGame() == 1);
-			
+		if (
 			// We are contained.
-			if (
-				// SS2 doesn't seem to support this. In fact, trying to read this
-				// seems to cause a hang followed by a crash?
-				!shockGame
-				// But in Thief, we should check for Contains link data.
-				&& LinkTools.LinkGetData(linkToMyContainer, "") < 0
-			)
-			{
-				return false;
-			}
-			
+			linkToMyContainer != 0
+			// But not visibly, like on a belt for pickpocketing.
+			&& !IsVisiblyContained(linkToMyContainer)
+		)
+		{
 			local linkSource = sLink(linkToMyContainer).source;
 			
 			if (
 				(
-					// Thief
-					!shockGame
+					j4fIsThief
 					&& Object.InheritsFrom(linkSource, "Container")
 				)
 				|| (
-					// Shock
-					shockGame
+					j4fIsShock
 					&& (
 						Object.InheritsFrom(linkSource, "Usable Containers")
 						|| Object.InheritsFrom(linkSource, "Corpses")
@@ -772,9 +765,8 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		if (
 			// We are contained.
 			linkToMyContainer != 0
-			// In a non-visible way. (Negative values are for visible
-			// contents, like on a creature's belt.)
-			&& LinkTools.LinkGetData(linkToMyContainer, "") >= 0
+			// In a non-visible way.
+			&& !IsVisiblyContained(linkToMyContainer)
 		)
 		{
 			return false;
@@ -1222,7 +1214,7 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 	
 	function OnFrobWorldEnd()
 	{
-		if (Object.InheritsFrom(message().Frobber, GetPlayerArchetype()))
+		if (Object.InheritsFrom(message().Frobber, j4fPlayerArchetype))
 			MarkAsTouched();
 	}
 	
@@ -1577,7 +1569,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		// an overlay that's already been removed. So this is just an
 		// extra safety net to be absolutely sure the overlay is removed,
 		// even if the EndScript message never triggers for some reason.
-		((GetDarkGame() == 1) ? ShockOverlay : DarkOverlay).RemoveHandler(j4fRadarOverlayInstance);
+		(j4fIsShock ? ShockOverlay : DarkOverlay).RemoveHandler(j4fRadarOverlayInstance);
 		
 		// As we've coded it, there's no harm in calling this more than
 		// once either.
@@ -1623,7 +1615,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		// This is part of NewDark+Squirrel's method of attaching an
 		// overlay handler to the game.
-		((GetDarkGame() == 1) ? ShockOverlay : DarkOverlay).AddHandler(j4fRadarOverlayInstance);
+		(j4fIsShock ? ShockOverlay : DarkOverlay).AddHandler(j4fRadarOverlayInstance);
 		
 		// Remember our enabled state.
 		// TODO: testing
@@ -1685,7 +1677,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		local keysEnabled = ObjID(FEATURE_EQUIP) < 0;
 		local keyPoiProperty = ObjID(POI_EQUIP);
 		
-		local thiefReadablesEnabled = (ObjID(FEATURE_READABLE) < 0) && (GetDarkGame() != 1);
+		local thiefReadablesEnabled = (ObjID(FEATURE_READABLE) < 0) && j4fIsThief;
 		local readablePoiProperty = ObjID(POI_READABLE);
 		
 		local lootEnabled = ObjID(FEATURE_LOOT) < 0;
@@ -2439,7 +2431,7 @@ class J4FRadarOverlayHandlerBase
 	// properties on an object in Squirrel. We can hold a reference to the
 	// entire class here, which is handy since the features we actually use
 	// have the same function signatures in both classes.
-	gameOverlay = (GetDarkGame() == 1) ? ShockOverlay : DarkOverlay;
+	gameOverlay = j4fIsShock ? ShockOverlay : DarkOverlay;
 	
 	// This is used instead of log() functions to quickly check for the
 	// power-of-twoness of a given value. Used in checking bitmap sizes.
@@ -2663,7 +2655,7 @@ class J4FRadarOverlayHandlerBase
 				// Images not installed in the needed location? Fallback.
 				if (newBitmap == -1)
 				{
-					if (GetDarkGame() == 1)
+					if (j4fIsShock)
 					{
 						newBitmap = gameOverlay.GetBitmap("DHKONG0", "iface\\");
 					}
@@ -3015,4 +3007,4 @@ class J4FShockdarOverlayHandler extends IShockOverlayHandler
 // sample documentation that comes with NewDark, which states this is a "global"
 // instance. I'm not sure if there's any difference between this approach and
 // global variables, but in any case it gets the job done.
-j4fRadarOverlayInstance <- (GetDarkGame() == 1) ? J4FShockdarOverlayHandler() : J4FRadarOverlayHandler();
+j4fRadarOverlayInstance <- j4fIsShock ? J4FShockdarOverlayHandler() : J4FRadarOverlayHandler();
