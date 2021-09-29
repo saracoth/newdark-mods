@@ -2,6 +2,8 @@
 // However, some functionality only kicks in when extra DML files are installed
 // to enable those features.
 
+// TODO: is "Player" also appropriate for SS2?
+
 // The point-of-interest overlays will bounce between these two transparencies.
 const MIN_ALPHA = 32;
 const MAX_ALPHA = 100;
@@ -1379,16 +1381,12 @@ class J4FGiveRadarItem extends J4FGiveAnItem
     }
 }
 
-// This script will be called on the player when the game starts, giving them the radar item.
+// Similar for SS2, but we have to check on BeginScript, since there are no Sim messages.
 class J4FGiveShockdarItem extends J4FGiveAnItem
 {
-	// We only need this script to fire once, when the game simulation first starts.
-    function OnSim()
+    function OnBeginScript()
 	{
-		if (message().starting)
-		{
-			GiveItemIfNeeded("J4FShockdarControlItem");
-        }
+		GiveItemIfNeeded("J4FShockdarControlItem");
     }
 }
 
@@ -1414,24 +1412,6 @@ class J4FRadarUi extends J4FRadarUtilities
 		j4fRadarOverlayInstance.logic.Teardown();
 	}
 	
-	// This will fire on start of mission and after reloading saves.
-	function OnBeginScript()
-	{
-		// Call our custom setup method, to do whatever we need to do
-		// when preparing the overlay in a new mission, after loading
-		// a save, or when re-loading a save or moving to next mission.
-		j4fRadarOverlayInstance.logic.Setup();
-		
-		// This is part of NewDark+Squirrel's method of attaching an
-		// overlay handler to the game.
-		((GetDarkGame() == 1) ? ShockOverlay : DarkOverlay).AddHandler(j4fRadarOverlayInstance);
-		
-		// Remember our enabled state.
-		// TODO: testing
-		j4fRadarOverlayInstance.logic.enabled = true;
-		//j4fRadarOverlayInstance.logic.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
-	}
-	
 	// Per sample documentation, it's best practice to tear down the
 	// overlay both when this instance is destroyed and when it
 	// receives an EndScript message.
@@ -1451,6 +1431,8 @@ class J4FRadarUi extends J4FRadarUtilities
 	// is to scan the entire level.
 	// When the level first starts, we'll queue up a scan of all the
 	// objects. The actual scanning happens in the timer function.
+	
+	// This will trigger in Thief-like games, but not Shock-engine ones.
     function OnSim()
 	{
         if (message().starting)
@@ -1459,8 +1441,32 @@ class J4FRadarUi extends J4FRadarUtilities
         }
     }
 	
+	// This will fire on start of mission and after reloading saves.
+	function OnBeginScript()
+	{
+		// Call our custom setup method, to do whatever we need to do
+		// when preparing the overlay in a new mission, after loading
+		// a save, or when re-loading a save or moving to next mission.
+		j4fRadarOverlayInstance.logic.Setup();
+		
+		// This is part of NewDark+Squirrel's method of attaching an
+		// overlay handler to the game.
+		((GetDarkGame() == 1) ? ShockOverlay : DarkOverlay).AddHandler(j4fRadarOverlayInstance);
+		
+		// Remember our enabled state.
+		// TODO: testing
+		j4fRadarOverlayInstance.logic.enabled = true;
+		//j4fRadarOverlayInstance.logic.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
+		
+		QueueNewScan(0.01);
+	}
+	
 	function QueueNewScan(afterDelay)
 	{
+		// Don't do anything if a scan is already scheduled.
+		if (IsDataSet("ConsecutiveEmptyGroups"))
+			return;
+		
 		//DarkUI.TextMessage("Scanning area...", 0, 1000);
 		
 		// Start with objects 1 through whatever.
@@ -1480,6 +1486,8 @@ class J4FRadarUi extends J4FRadarUtilities
 	{
 		if (message().name != "J4FRadarMissionScan")
 			return;
+		
+		//print("Scanning area...");
 		
 		// We will scan objects down to and including this value.
 		local scanFromInclusive = GetData("AddToScanId");
@@ -1531,6 +1539,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		// object in the whole mission. That feels like
 		// overkill.
 		// TODO: periodically do deep scans, or try out the flagging approach?
+		// TODO: given its tendency to spawn things in, more relevant in SS2
 		local shouldExamineProperties = !IsDataSet("J4FHasDeepScanned");
 		
 		// Table of integer keys.
@@ -1955,6 +1964,7 @@ class J4FRadarUi extends J4FRadarUtilities
 				// We're done! Break the loop. We'll re-scan all
 				// the objects again periodically, to cover any
 				// new-to-the-mission items.
+				ClearData("ConsecutiveEmptyGroups");
 				QueueNewScan(5.00);
 				return;
 			}
@@ -2489,6 +2499,7 @@ class J4FRadarOverlayHandlerBase
 				// that it happens to exist in both Thief games.
 				if (newBitmap == -1)
 				{
+					// TODO: SS2 default?
 					newBitmap = gameOverlay.GetBitmap("BUBB00", "bitmap\\txt\\");
 				}
 				

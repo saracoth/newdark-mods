@@ -32,7 +32,7 @@ class J4FDebugger extends SqRootScript
 			print(format("\tTimer %s", currentMessage.name));
 		}
 		
-		if (currentMessage instanceof ::sDarkGameModeScrMsg)
+		if ("sDarkGameModeScrMsg" in getroottable() && currentMessage instanceof ::sDarkGameModeScrMsg)
 		{
 			print(format("\tGameMode { resuming = %s, suspending = %s }", currentMessage.resuming.tostring(), currentMessage.suspending.tostring()));
 		}
