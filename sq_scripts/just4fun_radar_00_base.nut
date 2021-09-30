@@ -755,6 +755,11 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			}
 		}
 		
+		// HasRefs is often used to "disable" items, making them not
+		// render or collide.
+		if (Property.Possessed(target, "HasRefs") && !Property.Get(target, "HasRefs"))
+			return false;
+		
 		// Some types of containment make us invisible. Note that we
 		// also checked IsInOpenableContainer() above, which means
 		// we don't care about being in a chest or something. The
@@ -1106,6 +1111,8 @@ class J4FRadarUntilTurnOnTarget extends J4FRadarAbstractTarget
 		base.constructor(color, uncapDistance, rank);
 	}
 	
+	// TODO: check ~SwitchLink links from the trap to a switch/etc.?
+	
 	function OnTurnOn()
 	{
 		MarkAsTurnedOn();
@@ -1324,7 +1331,6 @@ class J4FRadarLootTarget extends J4FRadarGrabbableTarget
 	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_LOOT);}
 }
 
-// This script goes on the equipment of interest.
 class J4FRadarCyberModuleTarget extends J4FRadarAbstractTarget
 {
 	constructor()
@@ -1341,7 +1347,6 @@ class J4FRadarCyberModuleTarget extends J4FRadarAbstractTarget
 	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_CYBERMODULE);}
 }
 
-// This script goes on the equipment of interest.
 class J4FRadarCyberModuleTrapTarget extends J4FRadarUntilTurnOnTarget
 {
 	constructor()
@@ -1358,8 +1363,7 @@ class J4FRadarCyberModuleTrapTarget extends J4FRadarUntilTurnOnTarget
 	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_CYBERMODULE);}
 }
 
-// This script goes on the equipment of interest.
-class J4FRadarNaniteTarget extends J4FRadarAbstractTarget
+class J4FRadarNaniteTarget extends J4FRadarGrabbableTarget
 {
 	constructor()
 	{
