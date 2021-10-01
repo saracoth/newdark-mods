@@ -105,7 +105,9 @@ find "$IN_DIR" -maxdepth 1 -type f -iname '*.dml' -print0 | while IFS= read -r -
 		echo "	GAM $IN_FILE"
 		echo "}"
 		echo ""
-		if simplePrompt "Ready to edit file? [Y/n] " "" 1; then
+		if simplePrompt "Ready to edit the original file? [Y/n] " "y"; then
+			"$EDITOR" "$IN_PATH"
+		else
 			echo "Skipping file. It will be left in place." >&2
 			continue
 		fi
