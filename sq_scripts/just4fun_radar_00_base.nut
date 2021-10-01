@@ -1126,7 +1126,7 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 {
 	constructor()
 	{
-		base.constructor(COLOR_CREATURE, true, POI_RANK_CREATURE);
+		base.constructor(COLOR_CREATURE, j4fIsThief, POI_RANK_CREATURE);
 	}
 	
 	// See comments in J4FRadarAbstractTarget for details.
