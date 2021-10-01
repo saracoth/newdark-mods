@@ -112,19 +112,26 @@ const POI_EQUIP = "J4FRadarEquipPOI";
 const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_LOOT = "J4FRadarLootPOI";
 const POI_NANITE = "J4FRadarNanitePOI";
-const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 const POI_QUEST = "J4FRadarQuestPOI";
 const POI_READABLE = "J4FRadarReadablePOI";
 const POI_READABLE_SIMPLE = "J4FRadarSimpleReadablePOI";
 const POI_READABLE_TRAP = "J4FRadarReadableTrapPOI";
 const POI_SECRET = "J4FRadarSecretPOI";
 
+// Objects of this type are spawned to represent tricky items to the
+// radar system instead.
+const POI_PROXY_MARKER = "J4FRadarProxyPOI";
 // This metaproperty has the script which manages our bless checking timer.
 const POI_CLOCK = "J4FRadarPOITimer";
 
 // This indicates an item has been processed as a point of interest and can be
 // ignored from now on.
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
+
+// This indicates a previously-processed item was ended. If we see it hanging
+// around on the next scan, it probably needs to be re-initialized with a
+// proxy.
+const POI_NEUTERED_FLAG = "J4FRadarPoiNeutered";
 
 // Link flavour used to associate a POI proxy marker with its target.
 const PROXY_ATTACH_METHOD_TO_TARGET = "PhysAttach";
@@ -198,8 +205,10 @@ class J4FRadarUtilities extends SqRootScript
 	{
 		// Do some quick checks up front.
 		if (
-			// It's not a point of interest.
-			!Object.InheritsFrom(forItem, POI_ANY)
+			// Stopped existing.
+			!Object.Exists(forItem)
+			// Or it's not a point of interest.
+			|| !Object.InheritsFrom(forItem, POI_ANY)
 			// Or it's already been processed.
 			|| Object.HasMetaProperty(forItem, POI_INIT_FLAG)
 			// Or it's a proxy to some other item.
@@ -215,6 +224,14 @@ class J4FRadarUtilities extends SqRootScript
 		local proxyNeeded = false;
 		local directScriptNeeded = false;
 		local directScriptEnabled = ObjID(FEATURE_DIRECT_SCRIPT) < 0;
+		
+		// Although, for a previously neutered item we're processing
+		// again, we must use a proxy this time.
+		if (Object.HasMetaProperty(forItem, POI_NEUTERED_FLAG))
+		{
+			print(format("J4FRadar: Re-initializing %s %i \"%s\" %i", Object.GetName(Object.Archetype(forItem)), Object.Archetype(forItem), Object.GetName(forItem), forItem));
+			proxyNeeded = false;
+		}
 		
 		if (
 			// If the item is not allowed to inherit scripts, we
@@ -507,6 +524,45 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		// have their own logic. Everyone will hear this
 		// timer event and can react as they please.
 		SetOneShotTimer("J4FRadarTargetReview", 0.25);
+	}
+	
+	// I've encountered cases where an object contines to exist, but
+	// something kills all the scripts on it. For example, opening a
+	// desk container in SS2's first real game area.
+	// WARNING: OnEndScript fires in at least four cases I've seen.
+	//	1) When ending a game.
+	//	2) When destroying an object with scripts on it. At least,
+	//		I think I've seen that. Granted, I was paying more
+	//		attention to the other cases listed here....
+	//	3) When loading a save game, EndScript will be passed to
+	//		everything before a BeginScript. Just try adding
+	//		Object.Destroy(self) to an OnEndScript and watch things
+	//		disappear when you load your saves. Fun.
+	//	4) When scripts are removed, such as when metaproperty-
+	//		inherited scripts are killed because something turned
+	//		"Don't Inherit" on after the fact.
+	// So many things aren't safe to do during OnEndScript, because
+	// it happens for so many reasons and we can't tell them apart.
+	function OnEndScript()
+	{
+		// If the proxy dies, chances are it's because we're deleting
+		// it or something. We shouldn't need to care.
+		if (Object.InheritsFrom(self, POI_PROXY_MARKER))
+			return;
+		
+		// Someone turned on Don't Inherit? That's a little mean.
+		if (Property.Possessed(self, "Scripts") && Property.Get(self, "Scripts", "Don't Inherit"))
+		{
+			print(format("J4FRadar: Clock neutered %s %i \"%s\" %i", Object.GetName(Object.Archetype(self)), Object.Archetype(self), Object.GetName(self), self));
+			
+			// TODO: fuller cleanup, in case turning don't inherit off
+			// would resurrect some of our scripts? :/
+			
+			// Make sure we use a proxy next time.
+			Object.AddMetaProperty(self, POI_NEUTERED_FLAG);
+			// Allow us to be re-initialized on the next scan.
+			Object.RemoveMetaProperty(self, POI_INIT_FLAG);
+		}
 	}
 }
 
@@ -860,6 +916,38 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// item is removed from the list. Otherwise, we could treat some
 	// random arrow or blood splatter as a point of interest.
 	function OnDestroy()
+	{
+		SendDestroyMessage();
+	}
+	
+	// I've encountered cases where an object contines to exist, but
+	// something kills all the scripts on it. For example, opening a
+	// desk container in SS2's first real game area.
+	// WARNING: OnEndScript fires in at least four cases I've seen.
+	//	1) When ending a game.
+	//	2) When destroying an object with scripts on it. At least,
+	//		I think I've seen that. Granted, I was paying more
+	//		attention to the other cases listed here....
+	//	3) When loading a save game, EndScript will be passed to
+	//		everything before a BeginScript. Just try adding
+	//		Object.Destroy(self) to an OnEndScript and watch things
+	//		disappear when you load your saves. Fun.
+	//	4) When scripts are removed, such as when metaproperty-
+	//		inherited scripts are killed because something turned
+	//		"Don't Inherit" on after the fact.
+	// So many things aren't safe to do during OnEndScript, because
+	// it happens for so many reasons and we can't tell them apart.
+	function OnEndScript()
+	{
+		// Someone turned on Don't Inherit? That's a little mean.
+		if (Property.Possessed(self, "Scripts") && Property.Get(self, "Scripts", "Don't Inherit"))
+		{
+			print(format("J4FRadar: Target neutered %s %i \"%s\" %i", Object.GetName(Object.Archetype(self)), Object.Archetype(self), Object.GetName(self), self));
+			SendDestroyMessage();
+		}
+	}
+	
+	function SendDestroyMessage()
 	{
 		// Does our interface exist yet?
 		local interfaceId = ObjID(OVERLAY_INTERFACE);
