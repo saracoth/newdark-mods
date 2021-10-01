@@ -109,7 +109,7 @@ find "$IN_DIR" -maxdepth 1 -type f -iname '*.dml' -print0 | while IFS= read -r -
 			echo "Skipping file. It will be left in place." >&2
 			continue
 		fi
-		OUT_PATH="$OUT_DIR/$PREFIX-$(basename "$$IN_FILE" .gam)-gamesys.dml"
+		OUT_PATH="$OUT_DIR/$PREFIX-$(basename "$IN_FILE" .gam)-gamesys.dml"
 	else
 		OUT_PATH="$OUT_DIR/$PREFIX-$IN_FILE.dml"
 	fi
