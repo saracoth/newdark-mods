@@ -1911,8 +1911,9 @@ class J4FRadarUi extends J4FRadarUtilities
 		// do that is by adding a flag metaproperty to every
 		// object in the whole mission. That feels like
 		// overkill.
-		// TODO: periodically do deep scans, or try out the flagging approach?
-		// TODO: given its tendency to spawn things in, more relevant in SS2
+		// TODO: Periodically do deep scans, or try out the flagging approach?
+		//	Given its tendency to spawn things in, more relevant in SS2.
+		//	But are we really doing any useful deep scanning in SS2 yet?
 		local shouldExamineProperties = !IsDataSet("J4FHasDeepScanned");
 		
 		// Table of integer keys.
