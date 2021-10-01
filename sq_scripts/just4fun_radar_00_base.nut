@@ -1155,7 +1155,7 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 		// Ignore nonhostiles unless the user has specifically enabled
 		// those features.
 		
-		local team = Property.Get(target, "AI_Team");
+		local team = Property.Possessed(target, "AI_Team") ? Property.Get(target, "AI_Team") : -1;
 		
 		if (team == eAITeam.kAIT_Good && ObjID(FEATURE_CREATURE_GOOD) > -1)
 			return false;
