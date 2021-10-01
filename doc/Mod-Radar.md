@@ -13,12 +13,12 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to show or hide the location of nearby points of interest.
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
+* [j4fRes.crf](../j4fRes.crf)
+* [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
 * [dbmods\just4fun_radar_00_base.dml](../dbmods/just4fun_radar_00_base.dml?raw=1)
 * [dbmods\just4fun_radar_02_thief.dml](../dbmods/just4fun_radar_02_thief.dml?raw=1)
 * [dbmods\miss_all\just4fun_radar_ui.dml](../dbmods/miss_all/just4fun_radar_ui.dml?raw=1) (Unlike the other DML files on this page, this one goes in a miss_all folder inside the dbmods folder.)
-* [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
 * [dbmods\just4fun_radar_01_direct_script.dml](../dbmods/just4fun_radar_01_direct_script.dml?raw=1) (Optional, but recommended. Makes some features of device and readable radars more reliable.)
-* [j4fRes.crf](../j4fRes.crf)
 
 **Optional loot detection**: Yellow indicators.
 * [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_lootdar.dml?raw=1)
@@ -55,12 +55,12 @@ When this mod is installed, a compass-like item will be put in your inventory du
 The radar is active by default.
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
+* [j4fRes.crf](../j4fRes.crf)
+* [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
 * [dbmods\just4fun_radar_00_base.dml](../dbmods/just4fun_radar_00_base.dml?raw=1)
 * [dbmods\just4fun_radar_02_shock.dml](../dbmods/just4fun_radar_02_shock.dml?raw=1)
 * [dbmods\miss_all\just4fun_radar_ui.dml](../dbmods/miss_all/just4fun_radar_ui.dml?raw=1) (Unlike the other DML files on this page, this one goes in a miss_all folder inside the dbmods folder.)
-* [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
 * [dbmods\just4fun_radar_01_direct_script.dml](../dbmods/just4fun_radar_01_direct_script.dml?raw=1) (Optional, but recommended. Makes some features of device and readable radars more reliable.)
-* [j4fRes.crf](../j4fRes.crf)
 
 **Optional cybermodule detection**: Green indicators. Includes some scripted events, which may highlight buttons or empty air until you earn the modules.
 * [dbmods\just4fun_radar_20_moduledar.dml](../dbmods/just4fun_radar_20_moduledar.dml?raw=1)
@@ -77,7 +77,7 @@ The radar is active by default.
 **Optional unstackable equipment detection**: Purple indicators. Includes weapons and armor.
 * [dbmods\just4fun_radar_20_equipdar_slotted.dml](../dbmods/just4fun_radar_20_equipdar_slotted.dml?raw=1)
 
-**Optional creature detection**: Red indicators. Ignores dead creatures. Ignores nonhostile creatures (allies, rats, etc.), depending on which files you install.
+**Optional creature detection**: Red indicators. Ignores dead creatures. Ignores nonhostile creatures (allies, psychic impressions, etc.), depending on which files you install.
 * [dbmods\just4fun_radar_20_creaturedar.dml](../dbmods/just4fun_radar_20_creaturedar.dml?raw=1)
 * [dbmods\just4fun_radar_21_creature_neutral.dml](../dbmods/just4fun_radar_21_creature_neutral.dml?raw=1) (Extra optional, to display neutral creatures as well as hostiles.)
 * [dbmods\just4fun_radar_21_creature_good.dml](../dbmods/just4fun_radar_21_creature_good.dml?raw=1) (Extra optional, to display allied creatures as well as hostiles.)
