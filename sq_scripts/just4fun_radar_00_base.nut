@@ -96,6 +96,7 @@ const FEATURE_CYBERMODULE = "J4FRadarEnableCyberModule";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
 const FEATURE_DIRECT_SCRIPT = "J4FRadarEnableDirectScript";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
+const FEATURE_KEYCODE = "J4FRadarEnableCurrentKeycode";
 const FEATURE_LOOT = "J4FRadarEnableLoot";
 const FEATURE_NANITE = "J4FRadarEnableNanite";
 const FEATURE_PICKPOCKET = "J4FRadarEnablePickPocket";
@@ -2675,11 +2676,15 @@ class J4FRadarOverlayHandlerBase
 		if (newCanvasWidth != canvasWidth)
 		{
 			canvasWidth = newCanvasWidth;
+			// If we wanted, we could also set a flag indicating that
+			// we should recalculate other stuff elsewhere.
 		}
 		
 		if (newCanvasHeight != canvasHeight)
 		{
 			canvasHeight = newCanvasHeight;
+			// If we wanted, we could also set a flag indicating that
+			// we should recalculate other stuff elsewhere.
 		}
 	}
 	
@@ -3191,6 +3196,12 @@ class J4FRadarOverlayHandler extends IDarkOverlayHandler
 
 class J4FShockdarOverlayHandler extends IShockOverlayHandler
 {
+	// Having various int_ref objects stored centrally avoids having to
+	// create a bunch of these on every frame rendered. The T2OverlaySample.nut
+	// takes a similar approach.
+	i0_ref = int_ref();
+	i1_ref = int_ref();
+	
 	logic = J4FRadarOverlayHandlerBase();
 	
 	function OnUIEnterMode()
@@ -3201,6 +3212,41 @@ class J4FShockdarOverlayHandler extends IShockOverlayHandler
 	function DrawHUD()
 	{
 		logic.DrawHUD();
+		
+		// TODO: Can we limit keycode display to known codes?
+		// By looking the logs the player has, to see if any
+		// contain the code. If that's not possible, this
+		// could just encourage accidental sequence breaking :(
+		// NOTE: Can't use ObjID() in this context. But all
+		// feature flag metaproperties should inherit from
+		// MetaProperty itself, which means they have a non-
+		// zero archetype.
+		if (Object.Archetype(FEATURE_KEYCODE) != 0)
+		{
+			local overlayObject = ShockGame.OverlayGetObj();
+			if (
+				// It exists.
+				overlayObject > 0
+				// It has a keycode.
+				&& Property.Possessed(overlayObject, "KeypadCode")
+			)
+			{
+				local showCode = Property.Get(overlayObject, "KeypadCode");
+				
+				// Centered.
+				Engine.GetCanvasSize(i0_ref, i1_ref);
+				local x = i0_ref.tointeger() / 2;
+				local y = i1_ref.tointeger() / 2;
+				
+				ShockOverlay.GetStringSize(showCode, i0_ref, i1_ref);
+				
+				x = x + (i0_ref.tointeger() / 2);
+				y = y + (i1_ref.tointeger() / 2);
+				
+				//ShockOverlay.SetTextColor(r,g,b);
+				ShockOverlay.DrawString(showCode, x, y);
+			}
+		}
 	}
 	
 	function DrawTOverlay()
