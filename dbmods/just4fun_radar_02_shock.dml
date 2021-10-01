@@ -16,51 +16,15 @@ FINGERPRINT
 ================================================================================
 */
 
-// Create an item the player can use to toggle the radar display on and off.
+// Since I can't figure out how to create an inventory item that doesn't take up
+// any slots, we'll instead rely on summon_obj commands in keybinds.
 
-CreateArch "Goodies" "J4FShockdarControlItem"
+CreateArch "Marker" "J4FShockdarControlItem"
 {
-	// Permit using from inventory.
-	+ObjProp "FrobInfo"
-	{
-		"World Action" "Move, FocusScript"
-		// When using it from our inventory, it should tell our scripts.
-		"Inv Action" "Script"
-		"Tool Action" "[None]"
-	}
-	
 	// This script will turn the radar effect on and off when frobbed.
 	+ObjProp "Scripts"
 	{
-		"Script 0" "J4FRadarToggler"
+		"Script 0" "J4FRadarSpawnToggler"
 		"Don't Inherit" FALSE
 	}
 }
-
-/*
-================================================================================
-== Radar-Enabled Player ========================================================
-================================================================================
-*/
-
-// It's not safe for generic gameplay mods to add scripts directly to the
-// Garrett archetype. Doing so could clash with other mods and FMs. So instead,
-// we create a brand new metaproperty with a single script, then give the
-// metaproperty to Garrett. This safely puts the new scripts on the player,
-// without risk of interfering with other mods and behaviors.
-
-CreateArch "MetaProperty" "J4FShockdarEnabledPlayer"
-{
-	+ObjProp "Scripts"
-	{
-		// This adds the control item to our inventory on game start.
-		"Script 0" "J4FGiveShockdarItem"
-		"Don't Inherit" FALSE
-	}
-}
-
-// Assign the new metaproperty to the Garrett object, which is the usual Avatar
-// type used in missions. As a bonus, mods of this mod could *remove* this
-// metaproperty to prevent automatically giving the item to the player!
-
-+MetaProp "The Player" "J4FShockdarEnabledPlayer"

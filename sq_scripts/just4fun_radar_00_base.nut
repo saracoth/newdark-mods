@@ -2,9 +2,7 @@
 // However, some functionality only kicks in when extra DML files are installed
 // to enable those features.
 
-// TODO: get radar toggle working how we'd like
 // TODO: review DML TODOs
-// TODO: is "Player" also appropriate for SS2?
 
 // The point-of-interest overlays will bounce between these two transparencies.
 const MIN_ALPHA = 32;
@@ -496,6 +494,20 @@ class J4FRadarToggler extends SqRootScript
 	}
 }
 
+class J4FRadarSpawnToggler extends SqRootScript
+{
+	function OnCreate()
+	{
+		SendMessage(ObjID(OVERLAY_INTERFACE), "J4FRadarToggle", self);
+		SetOneShotTimer("J4FDestroyMe", 0.01);
+	}
+	
+	function OnTimer()
+	{
+		Object.Destroy(self);
+	}
+}
+
 class J4FRadarPOIClock extends J4FRadarUtilities
 {
 	// This will fire on mission start, on reloading a save, and when
@@ -555,8 +567,10 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		{
 			print(format("J4FRadar: Clock neutered %s %i \"%s\" %i", Object.GetName(Object.Archetype(self)), Object.Archetype(self), Object.GetName(self), self));
 			
-			// TODO: fuller cleanup, in case turning don't inherit off
-			// would resurrect some of our scripts? :/
+			// TODO: remove all our metaproperties
+			//	if someone turns "don't inherit" off again later,
+			//	we don't want to end up having *both* those
+			//	scripts and the POI proxy active.
 			
 			// Make sure we use a proxy next time.
 			Object.AddMetaProperty(self, POI_NEUTERED_FLAG);
@@ -1583,32 +1597,31 @@ class J4FGiveAnItem extends SqRootScript
 		// stuff in the player's inventory.
 		local playerInventory = Link.GetAll("Contains", self);
 		
-		// Assume they don't have the radar item until we prove otherwise.
-		local hasRadarItem = false;
+		// Assume they don't have the desired item until we prove otherwise.
+		local hasTheItem = false;
 		// It may be possible to use the string directly everywhere we use
 		// this variable, but it's probably less efficient than doing the
 		// ID lookup once and storing the result. This approach was used
 		// in the HolyH2O script sample as well.
-		local radarItemId = ObjID(whatItem);
+		local theItemId = ObjID(whatItem);
 		
 		// Loop through everything in the player's inventory to find the token.
 		foreach (link in playerInventory)
 		{
-			// Is the inventory item an instance of the radar item?
+			// Is the inventory item an instance of the wanted item?
 			// (InheritsFrom *might* also detect other kinds of items based
-			// on the J4FRadarControlItem as well, but that's not relevant
-			// to this mod.)
-			if ( Object.InheritsFrom(LinkDest(link), radarItemId) )
+			// on the archetype as well, but that's not relevant to this mod.)
+			if ( Object.InheritsFrom(LinkDest(link), theItemId) )
 			{
-				// The player already has the radar item!
-				hasRadarItem = true;
+				// The player already has the item!
+				hasTheItem = true;
 				// So we can stop looking through their inventory.
 				break;
 			}
 		}
 		
-		// If the player doesn't already have the radar item...
-		if (!hasRadarItem)
+		// If the player doesn't already have the item...
+		if (!hasTheItem)
 		{
 			// Then create one and give it to them.
 			
@@ -1617,7 +1630,7 @@ class J4FGiveAnItem extends SqRootScript
 			// NOTE: In SS2, for some reason this resulted in a
 			// stack overflow going from OnBeginScript to GiveItemIfNeeded
 			// to native code, and repeating those three infinitely :/
-			Link.Create(LinkTools.LinkKindNamed("Contains"), self, Object.Create(radarItemId));
+			Link.Create(LinkTools.LinkKindNamed("Contains"), self, Object.Create(theItemId));
 			
 			ClearData(dataKey);
 		}
@@ -1634,15 +1647,6 @@ class J4FGiveRadarItem extends J4FGiveAnItem
 		{
 			GiveItemIfNeeded("J4FRadarControlItem");
         }
-    }
-}
-
-// Similar for SS2, but we have to check on BeginScript, since there are no Sim messages.
-class J4FGiveShockdarItem extends J4FGiveAnItem
-{
-    function OnBeginScript()
-	{
-		GiveItemIfNeeded("J4FShockdarControlItem");
     }
 }
 
