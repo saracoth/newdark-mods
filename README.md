@@ -45,7 +45,7 @@ Sample, simple mod that spawns minions on command.
 
 For more information or to install this mod, check out the [Minion Summoner](doc/Mod-MinionSummoner.md) documentation.
 
-### X-Raydar (Thief 1/Gold/2)
+### X-Raydar (Thief 1/Gold/2; System Shock 2)
 
 Visual that helps find nearby loot or other items of interest. Useful for tracking down those pesky little coins and other hard-to-spot items.
 

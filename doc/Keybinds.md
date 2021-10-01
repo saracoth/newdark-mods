@@ -1,6 +1,6 @@
 # Keybinds for Mod Items
 
-I'm not aware of a way to add mod items to the controller configuration screen. However, if you want to assign a shortcut to mod-related inventory item anyway, you can edit your keybind files.
+While it's possible to add new keybinds to the game's menu, this currently requires editing particular files in a way that's not compatible with other mods. If you want to assign a shortcut to mod-related inventory item anyway, you can edit your keybind files.
 
 These instructions assume you've already launched the game at least once and set up all your other controls.
 
@@ -25,5 +25,6 @@ bind f9+alt "inv_select j4fradarcontrolitem"
 All bindings are in a similar style. 
 
 These are some example user.bnd file locations. Yours may vary depending on your use of GOG, Steam, or other options:
+* C:\Games\System Shock 2\user.bnd
 * C:\Games\Thief\user.bnd
 * C:\Games\Thief 2 The Metal Age\user.bnd

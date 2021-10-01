@@ -4,7 +4,7 @@ See also [Troubleshooting](Troubleshooting.md) if mods aren't working after foll
 
 ## Warnings
 
-Currently, all mods are suitable for either Thief game. These mods use features only available in NewDark version 1.27 and higher. If you're not familiar with what that is or how to install it, look into a program called TFix. TFix version 1.27 and higher should install the necessary files for you.
+Currently, all mods use features only available in NewDark version 1.27 and higher. If you're not familiar with what that is or how to install it, look into a program called TFix (for Thief) or SS2Tool (for System Shock 2). SS2Tool will also install a mod manager for you.
 
 Installing and uninstalling mods like this will probably break existing saves. It's recommended to start a new game after installing or removing any of these mods.
 
@@ -25,6 +25,10 @@ In total, you should have stuff like this:
 You can now download or copy files from this repository into the appropriate folders. Be sure to grab both the dbmods .dml files and the sq_scripts .nut files for a given mod!
 
 If a mod requires the j4fRes.crf file, that goes directly in the Usermods folder, like "C:\Games\Thief 2 The Metal Age\UserMods\j4fRes.crf"
+
+## Dark Mod Manager Method (DMM)
+
+These mods could be packaged into files compatible with DMM. So far, such packages haven't been created, but it's on the TODO list for a future release version.
 
 ## Alternative Method
 
@@ -48,6 +52,10 @@ Installation now proceeds as with the simple method, but with something like "C:
 ## Simple Method
 
 If you used the simple install method, you only need to delete the just4fun*.dml and just4fun*.nut files. Removing mods breaks existing saves just as much as installing them, so be sure to start a new game afterward.
+
+## Dark Mod Manager Method (DMM)
+
+Use the mod manager to deactivate the mod as normal.
 
 ## Alternative Method
 
