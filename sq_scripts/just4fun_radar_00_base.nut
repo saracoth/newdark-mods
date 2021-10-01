@@ -5,8 +5,8 @@
 // TODO: review DML TODOs
 
 // The point-of-interest overlays will bounce between these two transparencies.
-const MIN_ALPHA = 32;
-const MAX_ALPHA = 100;
+const MIN_ALPHA = 40;
+const MAX_ALPHA = 132;
 // NOTE: This can help performance in some cases, but is mostly a user
 // convenience. With the device radar, for example, there's no way to know when
 // a switch or lever has become uninteresting. Rather than bother the player
