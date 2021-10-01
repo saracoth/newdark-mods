@@ -567,10 +567,10 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		{
 			print(format("J4FRadar: Clock neutered %s %i \"%s\" %i", Object.GetName(Object.Archetype(self)), Object.Archetype(self), Object.GetName(self), self));
 			
-			// TODO: remove all our metaproperties
-			//	if someone turns "don't inherit" off again later,
-			//	we don't want to end up having *both* those
-			//	scripts and the POI proxy active.
+			// Make sure the clock stays neutered. We don't want to
+			// end up with both a proxy and a direct POI for the same
+			// thing.
+			Object.RemoveMetaProperty(self, POI_CLOCK);
 			
 			// Make sure we use a proxy next time.
 			Object.AddMetaProperty(self, POI_NEUTERED_FLAG);
@@ -734,9 +734,10 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	}
 	
 	// This isn't for pickpocketable things, but for chests and such.
-	function IsInOpenableContainer()
+	function IsInOpenableContainer(target = null)
 	{
-		local target = PoiTarget();
+		if (target == null)
+			target = PoiTarget();
 		
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
 		
@@ -775,9 +776,10 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	
 	// This is a common need for many points of interest, and implemented
 	// here so they can add it to their BlessItem() if desired.
-	function IsWorldFrobbable()
+	function IsWorldFrobbable(target = null)
 	{
-		local target = PoiTarget();
+		if (target == null)
+			target = PoiTarget();
 		
 		// If we're in a container (not in a pickpocket way, but a
 		// regular chest kind of way), our frob status is irrelevant.
@@ -797,13 +799,14 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	// can also skip rendering out-of-sight items, but we're specifically
 	// *not* concerned about that here. We want to know if the item
 	// would probably be rendered if we were staring at its location.
-	function IsRendered()
+	function IsRendered(target = null)
 	{
-		local target = PoiTarget();
+		if (target == null)
+			target = PoiTarget();
 		
 		// If we're in a container (not in a pickpocket way, but a
 		// regular chest kind of way), our render status is irrelevant.
-		if (IsInOpenableContainer())
+		if (IsInOpenableContainer(target))
 			return true;
 		
 		// We'll assume invisible render statuses are irrelevant.
@@ -1213,7 +1216,31 @@ class J4FRadarUntilTurnOnTarget extends J4FRadarAbstractTarget
 		base.constructor(color, uncapDistance, rank);
 	}
 	
-	// TODO: check ~SwitchLink links from the trap to a switch/etc.?
+	// Some traps may be triggered by a usable switch, keypad, etc.
+	// These will have a ~SwitchLink. But for all I know, people can
+	// use invisible switches and buttons like people often used
+	// them in thief FMs.
+	function DisplayTarget()
+	{
+		local target = PoiTarget();
+		
+		// If we have a ~ControlDevice to us, the destination of that
+		// reverse link is the thing which will trigger us. Usually
+		// seen with FindSecretTrap traps and the TrapFindSecret script.
+		// NOTE: This could even be a room with a script to trigger
+		// when the player enters it!
+		local linkToMyController = Link.GetOne("~SwitchLink", target);
+		if (linkToMyController != 0)
+		{
+			local myController = LinkDest(linkToMyController);
+			
+			if (IsWorldFrobbable(myController) && IsRendered(myController))
+				return myController;
+		}
+		
+		// Fall back to standard behavior.
+		return base.DisplayTarget();
+	}
 	
 	function OnTurnOn()
 	{
@@ -1713,10 +1740,16 @@ class J4FRadarUi extends J4FRadarUtilities
 		// overlay handler to the game.
 		(j4fIsShock ? ShockOverlay : DarkOverlay).AddHandler(j4fRadarOverlayInstance);
 		
+		// In SS2, we may start the game unable to toggle the radar
+		// due to lack of UI, HUD, and various console commands and
+		// keybinds. So default to enabled.
+		if (!IsDataSet("J4FRadarEnableState") && j4fIsShock)
+		{
+			SetData("J4FRadarEnableState", true);
+		}
+		
 		// Remember our enabled state.
-		// TODO: testing
-		j4fRadarOverlayInstance.logic.enabled = true;
-		//j4fRadarOverlayInstance.logic.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
+		j4fRadarOverlayInstance.logic.enabled = IsDataSet("J4FRadarEnableState") && GetData("J4FRadarEnableState");
 		
 		QueueNewScan(0.01);
 	}
