@@ -12,7 +12,7 @@ const MAX_ALPHA = 100;
 // a switch or lever has become uninteresting. Rather than bother the player
 // about a switch halfway across the map, we can limit their display to nearby
 // items instead.
-const MAX_DIST = 150;
+const MAX_DIST = 100;
 // While NewDark v1.27 allows a max of 64, we'll intentionally cap
 // ourselves at a smaller value. After all, we don't want to hog all
 // 64 and not leave any for other, more sanely-written mods!
@@ -40,10 +40,13 @@ const READ_LIST_SEPARATOR = ";";
 // These correspond to the various RadarX64.png filenames.
 const COLOR_CONTAINER = "W";
 const COLOR_CREATURE = "R";
-const COLOR_CYBERMODULE = "P";
+const COLOR_CYBERMODULE = "G";
 const COLOR_DEFAULT = "W";
 const COLOR_DEVICE = "P";
 const COLOR_EQUIP = "G";
+const COLOR_EQUIP_STACKED = "K";
+const COLOR_EQUIP_SLOTTED = "P";
+const COLOR_EQUIP_UNLIMITED = "Y";
 const COLOR_LOOT = "Y";
 const COLOR_NANITE = "Y";
 const COLOR_QUEST = "K";
@@ -107,6 +110,9 @@ const POI_CYBERMODULE = "J4FRadarCyberModulePOI";
 const POI_CYBERTRAP = "J4FRadarCyberModuleTrapPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
 const POI_EQUIP = "J4FRadarEquipPOI";
+const POI_EQUIP_SLOTTED = "J4FRadarEquipSlottedPOI";
+const POI_EQUIP_STACKED = "J4FRadarEquipStackedPOI";
+const POI_EQUIP_UNLIMITED = "J4FRadarEquipUnlimitedPOI";
 const POI_GENERIC = "J4FRadarFallbackPOI";
 const POI_LOOT = "J4FRadarLootPOI";
 const POI_NANITE = "J4FRadarNanitePOI";
@@ -314,7 +320,33 @@ class J4FRadarUtilities extends SqRootScript
 		
 		if (Object.InheritsFrom(forItem, POI_EQUIP))
 		{
-			Object.AddMetaProperty(scriptWhat, POI_EQUIP + "_S");
+			local whichEquipScript = POI_EQUIP + "_S";
+			
+			if (j4fIsShock)
+			{
+				if (Object.InheritsFrom(forItem, POI_EQUIP_UNLIMITED))
+				{
+					whichEquipScript = whichEquipScript + "U";
+				}
+				else if (Object.InheritsFrom(forItem, POI_EQUIP_SLOTTED))
+				{
+					whichEquipScript = whichEquipScript + "S";
+				}
+				else if (Object.InheritsFrom(forItem, POI_EQUIP_STACKED))
+				{
+					whichEquipScript = whichEquipScript + "T";
+				}
+				else if (Property.Possessed(forItem, "CombineType") && !!Property.Get(forItem, "CombineType"))
+				{
+					whichEquipScript = whichEquipScript + "T";
+				}
+				else
+				{
+					whichEquipScript = whichEquipScript + "S";
+				}
+			}
+			
+			Object.AddMetaProperty(scriptWhat, whichEquipScript);
 			handledAny = true;
 		}
 		
@@ -1433,10 +1465,58 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 // This script goes on the equipment of interest.
 class J4FRadarEquipTarget extends J4FRadarGrabbableTarget
 {
+	constructor(color = COLOR_EQUIP, uncapDistance = true, rank = POI_RANK_EQUIP)
+	{
+		base.constructor(color, uncapDistance, rank);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_EQUIP);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_EQUIP, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_EQUIP);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_EQUIP);}
+}
+
+class J4FRadarEquipUnlimitedTarget extends J4FRadarGrabbableTarget
+{
 	constructor()
 	{
-		base.constructor(COLOR_EQUIP, true, POI_RANK_EQUIP);
+		base.constructor(COLOR_EQUIP_UNLIMITED, true, POI_RANK_EQUIP);
 	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_EQUIP);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_EQUIP, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_EQUIP);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_EQUIP);}
+}
+
+class J4FRadarEquipStackTarget extends J4FRadarGrabbableTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_EQUIP_STACKED, true, POI_RANK_EQUIP);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_EQUIP);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_EQUIP, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_EQUIP);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_EQUIP);}
+}
+
+class J4FRadarEquipSlottedTarget extends J4FRadarGrabbableTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_EQUIP_SLOTTED, false, POI_RANK_EQUIP);
+	}
+	
+	// TODO: Ignore stuff we already have? armor and weapons, at least.
+	//	I guess stuff like a non-stackable, one-use, useful item is
+	//	interesting regardless. Power cells, for example? Those aren't
+	//	equipment, though, so maybe not relevant here.
+	// TODO: what about all those shotguns and grenade launchers on corpses?
 	
 	// See comments in J4FRadarAbstractTarget for details.
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_EQUIP);}

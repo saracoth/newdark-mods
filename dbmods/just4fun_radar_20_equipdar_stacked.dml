@@ -32,24 +32,12 @@ CreateArch "MetaProperty" "J4FRadarEnableEquip"
 
 // These items are flagged as interesting to the radar scanning system.
 
+// Stackables.
 +MetaProp "Patches" "J4FRadarEquipPOI"
 +MetaProp "Ammo" "J4FRadarEquipPOI"
-// These are things like automod, autorepair, etc. equipment.
-+MetaProp "Device" "J4FRadarEquipPOI"
-// TODO: ignore armor we already have?
-+MetaProp "Armor" "J4FRadarEquipPOI"
-+MetaProp "Implants" "J4FRadarEquipPOI"
-//+MetaProp "Softs" "J4FRadarEquipPOI"
-// TODO: ignore softs we already have?
-+MetaProp "Hack Soft" "J4FRadarEquipPOI"
-+MetaProp "Repair Soft" "J4FRadarEquipPOI"
-+MetaProp "Modify Soft" "J4FRadarEquipPOI"
-+MetaProp "Research Soft" "J4FRadarEquipPOI"
 +MetaProp "Beakers" "J4FRadarEquipPOI"
 +MetaProp "Cheeseborger" "J4FRadarEquipPOI"
-+MetaProp "MFD Games" "J4FRadarEquipPOI"
-// TODO: hide weapons we have? (unless modified?)
-// TODO: crap...what about all those shotguns on corpses? :/
-+MetaProp "Weapon" "J4FRadarEquipPOI"
-// TODO: maybe equipdar needs split up? :/
-+MetaProp "ID Cards" "J4FRadarEquipPOI"
+
+// These are things like automod, autorepair, etc. equipment.
+// Some are technically stackable, some are not.
++MetaProp "Device" "J4FRadarEquipPOI"

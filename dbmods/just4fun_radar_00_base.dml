@@ -60,12 +60,46 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarDevicePOI_S"
 }
 
 CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI"
+// More specific stuff for SS2, which has a bigger variety.
+// Still, everything can have at most one equip type,
+// even if multiple are assigned, so they're all created
+// from the basic equipment POI.
+CreateArch "J4FRadarEquipPOI" "J4FRadarEquipUnlimitedPOI"
+CreateArch "J4FRadarEquipPOI" "J4FRadarEquipStackedPOI"
+CreateArch "J4FRadarEquipPOI" "J4FRadarEquipSlottedPOI"
 
 CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI_S"
 {
 	+ObjProp "Scripts"
 	{
 		"Script 0" "J4FRadarEquipTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI_SU"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarEquipUnlimitedTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI_ST"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarEquipStackTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarEquipPOI_SS"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarEquipSlottedTarget"
 		"Don't Inherit" FALSE
 	}
 }
