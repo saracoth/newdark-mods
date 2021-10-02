@@ -12,6 +12,18 @@ Once the fairy has been summoned, attempting to drop the Tinker's Bell will inst
 
 When tailing the player, the fairy will project a larger light radius for your convenience. When tailing any other creature, the fairy will try really, really hard to not give away your position. If you need to, you can always douse the fairy in an emergency.
 
+**Keybind item name** ([What's this?](Keybinds.md)): j4ffairycontrolbell
+
+## Dark Mod Manager Installation (Recommended)
+
+**Mod Archive** (see [installation instructions](Installation%20and%20Removal.md)): [J4F-glowfairy.7z](https://github.com/saracoth/newdark-mods/releases/download/2.5/J4F-glowfairy.7z)
+
+In addition, you can install any of these extra files if you want. They're optional.
+
+**Original Control Scheme**: [J4F-glowfairy_orig_control.7z](https://github.com/saracoth/newdark-mods/releases/download/2.5/J4F-glowfairy_orig_control.7z)
+
+## Manual Installation
+
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * [dbmods\just4fun_glowfairy.dml](../dbmods/just4fun_glowfairy.dml?raw=1)
 * [sq_scripts\just4fun_glowfairy.nut](../sq_scripts/just4fun_glowfairy.nut?raw=1)
@@ -19,6 +31,10 @@ When tailing the player, the fairy will project a larger light radius for your c
 **Optional extras**:
 * [dbmods\just4fun_glowfairy_orig_control.dml](../dbmods/just4fun_glowfairy_orig_control.dml?raw=1) (Original control scheme. Dropping the bell douses the fairy. A single ring switches between waiting and gaze following.)
 
-**Keybind item name** ([What's this?](Keybinds.md)): j4ffairycontrolbell
+## Modder's Notes
 
-*Modder's Notes*: Fairy motion is based on elevators and other moving terrain. Some juggling is required to keep the movement butter smooth, but it's more visually appealing than teleporting a light directly. That would require much more frequent updates, which could affect performance. Using an ObjRaycast() instead of PortalRaycast() could eliminate the "flies through doors" effect if one so wanted. As for selecting targets to follow, that uses a combination of the act/react system to find targets within an area, and several layers of scripting to process the results.
+Fairy motion is based on elevators and other moving terrain. Some juggling is required to keep the movement butter smooth, but it's more visually appealing than teleporting a light directly.
+
+Using an ObjRaycast() instead of PortalRaycast() could eliminate the "flies through doors" effect if one so wanted.
+
+As for selecting targets to follow, that uses a combination of the act/react system to find targets within an area, and several layers of scripting to process the results.

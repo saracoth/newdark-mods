@@ -10,7 +10,7 @@ This feature should work on almost every "lockable" item, including unconvention
 
 ## Dark Mod Manager Installation (Recommended)
 
-**DMM Mod** (see [installation instructions](Installation%20and%20Removal.md)): https://github.com/saracoth/newdark-mods/releases/download/2.3/J4F-keyring.7z
+**Mod Archive** (see [installation instructions](Installation%20and%20Removal.md)): [J4F-keyring.7z](https://github.com/saracoth/newdark-mods/releases/download/2.3/J4F-keyring.7z)
 
 ## Manual Installation
 
