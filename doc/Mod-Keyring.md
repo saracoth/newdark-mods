@@ -6,6 +6,14 @@ If you have no key, but a lockpick will work, the appropriate pick will be selec
 
 This feature should work on almost every "lockable" item, including unconventional ones like the elemental ward stones outside the haunted cathedral.
 
+:warning: Some doors and receptacles do not trigger the auto-select right now. This is *usually* limited to things that have special scripted behaviors already, like a safe in the Thieves' Guild original mission.
+
+## Dark Mod Manager Installation (Recommended)
+
+**DMM Mod** (see [installation instructions](Installation%20and%20Removal.md)): https://github.com/saracoth/newdark-mods/releases/download/2.3/J4F-keyring.7z
+
+## Manual Installation
+
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * [dbmods\just4fun_keyring.dml](../dbmods/just4fun_keyring.dml?raw=1)
 * [sq_scripts\just4fun_keyring.nut](../sq_scripts/just4fun_keyring.nut?raw=1)
