@@ -1,0 +1,75 @@
+# Lines are in the form of <suffix>:<pattern>
+# A suffix can have multiple patterns.
+# If a pattern begins with a ! it excludes rather than includes.
+
+# By default, block these from the main mod package.
+:!*/just4fun_glowfairy_orig_control.dml
+:!*/just4fun_summoner_modmod.dml
+
+# And include them in sub-packages.
+orig_control:*/just4fun_glowfairy_orig_control.dml
+modmod:*/just4fun_summoner_modmod.dml
+
+# The radar mod is complicated. Let's use suffixes for everything.
+:!*/just4fun_radar*
+:!j4fRes.crf
+
+# The all-in-one.
+all_in_one:just4fun_radar*
+all_in_one:j4fRes.crf
+
+# All the individual radar pieces.
+1_base:*/just4fun_radar_0*.dml
+1_base:*/miss_all/just4fun_radar_*.dml
+1_base:*/just4fun_radar_*.nut
+1_base:j4fRes.crf
+
+#2_stats:*/just4fun_radar_10_lootdar.dml
+#2_stats:*/just4fun_radar_10_pocketdar.dml
+
+2_loot:*/just4fun_radar_10_lootdar.dml
+
+2_pickpocket:*/just4fun_radar_10_pocketdar.dml
+
+2_creature:*/just4fun_radar_10_creaturedar.dml
+2_creature:*/just4fun_radar_20_creaturedar.dml
+
+2_creature_all:*/just4fun_radar_10_creaturedar.dml
+2_creature_all:*/just4fun_radar_20_creaturedar.dml
+2_creature_all:*/just4fun_radar_11_creature_good.dml
+2_creature_all:*/just4fun_radar_11_creature_neutral.dml
+2_creature_all:*/just4fun_radar_21_creature_good.dml
+2_creature_all:*/just4fun_radar_21_creature_neutral.dml
+
+2_readable:*/just4fun_radar_10_bookdar.dml
+2_readable:*/just4fun_radar_20_readdar.dml
+
+2_cybermodule:*/just4fun_radar_20_moduledar.dml
+
+2_nanite:*/just4fun_radar_20_nanitedar.dml
+
+2_container:*/just4fun_radar_10_containerdar.dml
+2_container:*/just4fun_radar_20_containerdar.dml
+
+2_device:*/just4fun_radar_10_devicedar.dml
+
+2_allequip:*/just4fun_radar_10_equipdar.dml
+2_allequip:*/just4fun_radar_11_T1_equip.dml
+2_allequip:*/just4fun_radar_11_T2_equip.dml
+2_allequip:*/just4fun_radar_20_equipdar_slotless.dml
+2_allequip:*/just4fun_radar_20_equipdar_slotted.dml
+2_allequip:*/just4fun_radar_20_equipdar_stacked.dml
+
+2_equip_unlimited:*/just4fun_radar_10_equipdar.dml
+2_equip_unlimited:*/just4fun_radar_11_T1_equip.dml
+2_equip_unlimited:*/just4fun_radar_11_T2_equip.dml
+2_equip_unlimited:*/just4fun_radar_20_equipdar_slotless.dml
+
+2_equip_stackable:*/just4fun_radar_10_equipdar.dml
+2_equip_stackable:*/just4fun_radar_11_T1_equip.dml
+2_equip_stackable:*/just4fun_radar_11_T2_equip.dml
+2_equip_stackable:*/just4fun_radar_20_equipdar_stacked.dml
+
+2_equip_unstackable:*/just4fun_radar_20_equipdar_slotted.dml
+
+2_questsecret:*/just4fun_radar_10_questdar.dml
