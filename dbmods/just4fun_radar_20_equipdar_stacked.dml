@@ -37,6 +37,7 @@ CreateArch "MetaProperty" "J4FRadarEnableEquip"
 +MetaProp "Ammo" "J4FRadarEquipPOI"
 +MetaProp "Beakers" "J4FRadarEquipPOI"
 +MetaProp "Cheeseborger" "J4FRadarEquipPOI"
++MetaProp "Med Bed Key" "J4FRadarEquipPOI"
 
 // These are things like automod, autorepair, etc. equipment.
 // Some are technically stackable, some are not.

@@ -33,3 +33,4 @@ CreateArch "MetaProperty" "J4FRadarEnableContainer"
 // These items are flagged as interesting to the radar scanning system.
 
 +MetaProp "Usable Containers" "J4FRadarContainerPOI"
++MetaProp "Corpses" "J4FRadarContainerPOI"
