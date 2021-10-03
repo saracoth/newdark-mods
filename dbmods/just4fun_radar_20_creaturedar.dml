@@ -33,3 +33,5 @@ CreateArch "MetaProperty" "J4FRadarEnableCreature"
 // These items are flagged as interesting to the radar scanning system.
 
 +MetaProp "Monsters" "J4FRadarCreaturePOI"
+
++MetaProp "Protocol Droid Boxes" "J4FRadarCreatureBoxPOI"

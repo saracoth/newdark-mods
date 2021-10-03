@@ -56,6 +56,7 @@ const COLOR_READABLE = "B";
 // to the same object.
 const DATA_SUFFIX_CONTAINER = "_B";
 const DATA_SUFFIX_CREATURE = "_C";
+const DATA_SUFFIX_CREATUREBOX = "_CB";
 const DATA_SUFFIX_CYBERMODULE = "_M";
 const DATA_SUFFIX_DEVICE = "_D";
 const DATA_SUFFIX_EQUIP = "_E";
@@ -107,6 +108,7 @@ const FEATURE_READABLE = "J4FRadarEnableReadable";
 const POI_ANY = "J4FRadarPointOfInterest";
 const POI_CONTAINER = "J4FRadarContainerPOI";
 const POI_CREATURE = "J4FRadarCreaturePOI";
+const POI_CREATUREBOX = "J4FRadarCreatureBoxPOI";
 const POI_CYBERMODULE = "J4FRadarCyberModulePOI";
 const POI_CYBERTRAP = "J4FRadarCyberModuleTrapPOI";
 const POI_DEVICE = "J4FRadarDevicePOI";
@@ -377,6 +379,12 @@ class J4FRadarUtilities extends SqRootScript
 		if (Object.InheritsFrom(forItem, POI_CREATURE))
 		{
 			Object.AddMetaProperty(scriptWhat, POI_CREATURE + "_S");
+			handledAny = true;
+		}
+		
+		if (Object.InheritsFrom(forItem, POI_CREATUREBOX))
+		{
+			Object.AddMetaProperty(scriptWhat, POI_CREATUREBOX + "_S");
 			handledAny = true;
 		}
 		
@@ -1217,6 +1225,50 @@ class J4FRadarCreatureTarget extends J4FRadarAbstractTarget
 		}
 		
 		return true;
+	}
+}
+
+class J4FRadarCreatureBoxTarget extends J4FRadarAbstractTarget
+{
+	constructor()
+	{
+		base.constructor(COLOR_CREATURE, j4fIsThief, POI_RANK_CREATURE);
+	}
+	
+	// See comments in J4FRadarAbstractTarget for details.
+	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_CREATUREBOX);}
+	function SetDataSub(key, value) {SetData(key + DATA_SUFFIX_CREATUREBOX, value);}
+	function ClearDataSub(key) {ClearData(key + DATA_SUFFIX_CREATUREBOX);}
+	function IsDataSetSub(key) {return IsDataSet(key + DATA_SUFFIX_CREATUREBOX);}
+	
+	function BlessItem()
+	{
+		if (!base.BlessItem() || !IsRendered())
+			return false;
+		
+		local target = PoiTarget();
+		
+		local corpses = Link.GetAll("Corpse", target);
+		foreach (corpseLink in corpses)
+		{
+			// Assume hostile.
+			if (Object.InheritsFrom(LinkDest(corpseLink), POI_CREATURE))
+				return true;
+		}
+		
+		local targetArchetype = Object.Archetype(target);
+		if (targetArchetype != 0)
+		{
+			corpses = Link.GetAll("Corpse", targetArchetype);
+			foreach (corpseLink in corpses)
+			{
+				// Assume hostile.
+				if (Object.InheritsFrom(LinkDest(corpseLink), POI_CREATURE))
+					return true;
+			}
+		}
+		
+		return false;
 	}
 }
 

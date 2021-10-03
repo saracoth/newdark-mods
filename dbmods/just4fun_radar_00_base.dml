@@ -115,6 +115,17 @@ CreateArch "J4FRadarPointOfInterest" "J4FRadarCreaturePOI_S"
 	}
 }
 
+CreateArch "J4FRadarPointOfInterest" "J4FRadarCreatureBoxPOI"
+
+CreateArch "J4FRadarPointOfInterest" "J4FRadarCreatureBoxPOI_S"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FRadarCreatureBoxTarget"
+		"Don't Inherit" FALSE
+	}
+}
+
 CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI"
 
 CreateArch "J4FRadarPointOfInterest" "J4FRadarLootPOI_S"
