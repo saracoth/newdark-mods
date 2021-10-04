@@ -290,6 +290,9 @@ CreateArch "Marker" "J4FRadarProxyPOI"
 // "do I have a proxy yet?" checks.
 CreateArch "MetaProperty" "J4FRadarPoiInitted"
 
+// A variation on J4FRadarPoiInitted saying that this item needs a proxy.
+CreateArch "J4FRadarPoiInitted" "J4FRadarPoiProxyInitted"
+
 // This let us know we've seen our scripts be killed because something was
 // set to Don't Inherit after we intialized it. This allows us to re-initialize
 // it later, and force use of proxies.

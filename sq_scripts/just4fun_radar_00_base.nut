@@ -134,6 +134,7 @@ const POI_CLOCK = "J4FRadarPOITimer";
 // This indicates an item has been processed as a point of interest and can be
 // ignored from now on.
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
+const POI_INIT_WITH_PROXY_FLAG = "J4FRadarPoiProxyInitted";
 
 // This indicates a previously-processed item was ended. If we see it hanging
 // around on the next scan, it probably needs to be re-initialized with a
@@ -216,13 +217,32 @@ class J4FRadarUtilities extends SqRootScript
 			!Object.Exists(forItem)
 			// Or it's not a point of interest.
 			|| !Object.InheritsFrom(forItem, POI_ANY)
-			// Or it's already been processed.
+			// Or it's already been processed, without a proxy.
 			|| Object.HasMetaProperty(forItem, POI_INIT_FLAG)
 			// Or it's a proxy to some other item.
 			|| Object.InheritsFrom(forItem, POI_PROXY_MARKER)
 		)
 		{
 			return false;
+		}
+		
+		// Was this handled via proxy?
+		if (Object.HasMetaProperty(forItem, POI_INIT_WITH_PROXY_FLAG))
+		{
+			// Is the proxy intact?
+			local possibleProxyLinks = Link.GetAll(PROXY_ATTACH_METHOD_TO_PROXY, forItem);
+			foreach (checkLink in possibleProxyLinks)
+			{
+				if (Object.InheritsFrom(LinkDest(checkLink), POI_PROXY_MARKER))
+				{
+					// Proxy still working.
+					return false;
+				}
+			}
+			
+			// Uh-oh. Proxy is gone now. Do-over.
+			print(format("Proxy lost %s %s %i",  Object.GetName(Object.Archetype(forItem)), Object.GetName(forItem), forItem));
+			Object.RemoveMetaProperty(forItem, POI_INIT_WITH_PROXY_FLAG);
 		}
 		
 		// By default, assume we're going to attach scripts to the
@@ -268,7 +288,7 @@ class J4FRadarUtilities extends SqRootScript
 		}
 		
 		// Flag the item as having been set up.
-		Object.AddMetaProperty(forItem, POI_INIT_FLAG);
+		Object.AddMetaProperty(forItem, proxyNeeded ? POI_INIT_WITH_PROXY_FLAG : POI_INIT_FLAG);
 		
 		// Copy the POI metaproperty of the target item, then activate
 		// the appropriate script on the proxy. We could have also
