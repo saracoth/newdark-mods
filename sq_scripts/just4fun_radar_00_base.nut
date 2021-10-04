@@ -532,6 +532,51 @@ class J4FRadarUtilities extends SqRootScript
 		// pickpocketing is SS2's thing anyway.
 		return j4fIsThief && (LinkTools.LinkGetData(linkId, "") < 0);
 	}
+	
+	// In transitions between hub missions, objects can make a
+	// transition between levels, but their proxy attachments
+	// do not. However, when returning to a previous area, the
+	// proxy may discover its attachment is no longer valid.
+	// Maybe the object was destroyed, or a different item has
+	// the item ID we were attached to!
+	function IsProxyOnOriginalTarget()
+	{
+		// So far, haven't encountered issues with non-proxy
+		// objects.
+		if (!Object.InheritsFrom(self, POI_PROXY_MARKER))
+			return true;
+		
+		local attachLinkId = Link.GetOne(PROXY_ATTACH_METHOD_TO_TARGET, self);
+		local linkedToId = LinkDest(attachLinkId);
+		local isIntact = true;
+		
+		if (!Object.Exists(linkedToId))
+		{
+			print("Proxy's target no longer exists.");
+			isIntact = false;
+		}
+		else
+		{
+			// It's still technically possible that the archetype
+			// will be the same and we end up pointing at a
+			// different instance of it, but that corner case
+			// should be relatively harmless. Compared to, say,
+			// indicating a grub pod organ as a readable.
+			local linkedToArchetype = Object.Archetype(linkedToId);
+			
+			if (!IsDataSet("J4FOriginalTargetArchetype"))
+			{
+				SetData("J4FOriginalTargetArchetype", linkedToArchetype);
+			}
+			else if (GetData("J4FOriginalTargetArchetype") != linkedToArchetype)
+			{
+				print(format("Proxy target changed from %s %i to %s %i", Object.GetName(GetData("J4FOriginalTargetArchetype")), GetData("J4FOriginalTargetArchetype"), Object.GetName(linkedToArchetype), linkedToArchetype));
+				isIntact = false;
+			}
+		}
+		
+		return isIntact;
+	}
 }
 
 // This script goes on an inventory item the player can use to turn the
@@ -929,6 +974,13 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	{
 		if (message().name != "J4FRadarTargetReview")
 			return;
+		
+		if (!IsProxyOnOriginalTarget())
+		{
+			print("Destroying invalidated proxy.");
+			Object.Destroy(self);
+			return;
+		}
 		
 		// Does our interface exist yet?
 		local interfaceId = ObjID(OVERLAY_INTERFACE);
