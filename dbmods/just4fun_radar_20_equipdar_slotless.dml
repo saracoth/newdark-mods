@@ -42,5 +42,4 @@ CreateArch "MetaProperty" "J4FRadarEnableEquip"
 +MetaProp "ID Cards" "J4FRadarEquipUnlimitedPOI"
 +MetaProp "Hooker_Cards" "J4FRadarEquipUnlimitedPOI"
 +MetaProp "Ops Chips" "J4FRadarEquipUnlimitedPOI"
-+MetaProp "RadKey Card" "J4FRadarEquipUnlimitedPOI"
 
