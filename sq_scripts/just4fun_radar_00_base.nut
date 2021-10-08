@@ -2,8 +2,6 @@
 // However, some functionality only kicks in when extra DML files are installed
 // to enable those features.
 
-// TODO: review DML TODOs
-
 // The point-of-interest overlays will bounce between these two transparencies.
 const MIN_ALPHA = 40;
 const MAX_ALPHA = 132;
@@ -1636,12 +1634,6 @@ class J4FRadarEquipSlottedTarget extends J4FRadarGrabbableTarget
 	{
 		base.constructor(COLOR_EQUIP_SLOTTED, false, POI_RANK_EQUIP);
 	}
-	
-	// TODO: Ignore stuff we already have? armor and weapons, at least.
-	//	I guess stuff like a non-stackable, one-use, useful item is
-	//	interesting regardless. Power cells, for example? Those aren't
-	//	equipment, though, so maybe not relevant here.
-	// TODO: what about all those shotguns and grenade launchers on corpses?
 	
 	// See comments in J4FRadarAbstractTarget for details.
 	function GetDataSub(key) {return GetData(key + DATA_SUFFIX_EQUIP);}

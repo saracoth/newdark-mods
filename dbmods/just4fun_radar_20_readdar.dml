@@ -33,7 +33,6 @@ CreateArch "MetaProperty" "J4FRadarEnableReadable"
 // These items are flagged as interesting to the radar scanning system.
 
 +MetaProp "Audio Log" "J4FRadarSimpleReadablePOI"
-// TODO: "PDA Soft" or "PDA"?
 +MetaProp "LogTrap" "J4FRadarReadableTrapPOI"
 +MetaProp "MediaTrap" "J4FRadarReadableTrapPOI"
 +MetaProp "EmailTrap" "J4FRadarReadableTrapPOI"
