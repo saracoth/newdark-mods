@@ -575,6 +575,82 @@ class J4FRadarUtilities extends SqRootScript
 		
 		return isIntact;
 	}
+	
+	// Well, Quest.BinSetTable/Quest.BinGetTable look promising, but
+	// are buggy. They claim they use or relate to campaign QVars, yet
+	// they persist across unexpected boundaries. For example, you can
+	// BinSetTable, then start a new game, and that new game will
+	// have access to the QVar you set in the previous game. You can
+	// also load up an old save game. Even if it never had set this
+	// quest data, BinExists will return true, and BinGetTable will
+	// return the new data. This is as of NewDark v1.27/v2.48 :(
+	//
+	// So to store a string in an actual campaign QVar, without these
+	// weird scope bugs, we'll have to deal with all QVars being ints.
+	// So storing a string requires storing a QVar per each character,
+	// in a numeric ASCII or Unicode value.
+	function SetQuestDataString(prefix, value)
+	{
+		if (value == null)
+		{
+			if (Quest.Exists(prefix))
+			{
+				Quest.Delete(prefix);
+			}
+			return;
+		}
+		
+		local len = value.len();
+		
+		Quest.Set(prefix, len, eQuestDataType.kQuestDataCampaign);
+		
+		// Looping backwards, set each character. Apparently, strings
+		// can be treated as arrays of characters. And they'll either
+		// be 8-bit ASCII or 16-bit unicode, depending on how Squirrel
+		// was compiled. Let's hope for ASCII, because as far as I can
+		// tell, even in unicode mode format("%c", i) and i.tochar()
+		// both only expect 8-bit ASCII. Maybe understandable for a
+		// language birthed in the aughties, but feels weird this
+		// day and age. Or maybe it's a difference between the
+		// Squirrel standard and ElectricImp's variant? In any case,
+		// value[x] should be either a C char type or an int 0-255.
+		for (local i = len; --i > -1; )
+		{
+			Quest.Set(prefix + "_" + i, value[i], eQuestDataType.kQuestDataCampaign);
+		}
+	}
+	
+	// Counterpart to SetQuestDataString. See that for details.
+	function GetQuestDataString(prefix)
+	{
+		if (!Quest.Exists(prefix))
+			return null;
+		
+		local len = Quest.Get(prefix);
+		
+		if (len == 0)
+			return "";
+		
+		local r = "";
+		
+		// Loop through until we've built the whole string.
+		// Since strings are immutable, I'm not aware of a
+		// standard join() function, and I don't see any
+		// kind of stringbuilder concept, we're going to do
+		// this through concatenation. At that point, it
+		// really doesn't matter whether we tack a tiny
+		// string onto the end of a longer one or a longer
+		// one after a tiny one. So we'll loop backwards
+		// and prepend characters until done.
+		// See also comments in SetQuestDataString for
+		// Squirrel character behaviors.
+		for (local i = len; --i > -1; )
+		{
+			r = Quest.Get(prefix + "_" + i).tochar() + r;
+		}
+		
+		return r;
+	}
 }
 
 // This script goes on an inventory item the player can use to turn the
@@ -1957,11 +2033,24 @@ class J4FRadarUi extends J4FRadarUtilities
 		if (IsDataSet("ConsecutiveEmptyGroups"))
 			return;
 		
-		//DarkUI.TextMessage("Scanning area...", 0, 1000);
-		
 		// Start with objects 1 through whatever.
 		SetData("AddToScanId", 1);
 		SetData("ConsecutiveEmptyGroups", 0);
+		
+		// Special handling may be needed when transitioning
+		// existing objects to or from a map, like in SS2.
+		// These checks can be expensive, so we generally
+		// avoid them.
+		local mapName = string();
+		Version.GetMap(mapName);
+		mapName = mapName.tostring();
+		
+		local wasMap = GetQuestDataString("j4f_rdr_mis") || "";
+		SetQuestDataString("j4f_rdr_mis", mapName);
+		
+		local hasChanged = (mapName == wasMap) ? 0 : 1;
+		SetData("MapHasChanged", hasChanged);
+		//print(format("Current map is \"%s\", old was \"%s\", changed %i", mapName, wasMap, hasChanged));
 		
 		SetOneShotTimer("J4FRadarMissionScan", afterDelay);
 	}
@@ -1981,6 +2070,12 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		// We will scan objects down to and including this value.
 		local scanFromInclusive = GetData("AddToScanId");
+		
+		// If true, we will review some previously-scanned items.
+		local reviewExistingItems = IsDataSet("MapHasChanged") && (GetData("MapHasChanged") > 0);
+		
+		//if (scanFromInclusive == 1) DarkUI.TextMessage("Scanning area....", 0, 1000);
+		
 		// We will scan objects up to and excluding this value.
 		local scanCapExclusive = scanFromInclusive + MAX_SCANNED_PER_LOOP;
 		// Unless we bail out early, the next round of scans
@@ -2450,6 +2545,9 @@ class J4FRadarUi extends J4FRadarUtilities
 				// the objects again periodically, to cover any
 				// new-to-the-mission items.
 				ClearData("ConsecutiveEmptyGroups");
+				
+				//DarkUI.TextMessage("Scan complete.", 0, 1000);
+				
 				QueueNewScan(5.00);
 				return;
 			}
