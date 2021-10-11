@@ -12,94 +12,107 @@ Some items work with multiple radar types. For example, loot in a chest will be 
 
 When this mod is installed, a compass-like item will be put in your inventory during every mission. Use this inventory item to show or hide the location of nearby points of interest.
 
-**Required files** (see [installation instructions](Installation%20and%20Removal.md)):
-* [j4fRes.crf](../j4fRes.crf)
-* [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
-* [dbmods\just4fun_radar_00_base.dml](../dbmods/just4fun_radar_00_base.dml?raw=1)
-* [dbmods\just4fun_radar_02_thief.dml](../dbmods/just4fun_radar_02_thief.dml?raw=1)
-* [dbmods\miss_all\just4fun_radar_ui.dml](../dbmods/miss_all/just4fun_radar_ui.dml?raw=1) (Unlike the other DML files on this page, this one goes in a miss_all folder inside the dbmods folder.)
-* [dbmods\just4fun_radar_01_direct_script.dml](../dbmods/just4fun_radar_01_direct_script.dml?raw=1) (Optional, but recommended. Makes some features of device and readable radars more reliable.)
+Indicator colors:
+* Yellow: Loot.
+* Green: Equipment.
+* Red: Creatures.
+* Pink: Secrets and objectives. Only some objectives can be detected and highlighted, and basically nothing in Thief 1/Gold original missions.
+* Purple: Devices, like buttons, lockboxes, and pressure plates.
+* Light Blue: Books and similar readables.
+* White: Anything that doesn't fall into another category.
 
-**Optional loot detection**: Yellow indicators.
-* [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_lootdar.dml?raw=1)
+### Dark Mod Manager Installation (Recommended)
 
-**Optional quest/secret detection**: Pink indicators. This isn't as thorough as other indicators, and only handles *some* objectives to pick up, destroy, or protect a thing. Missions may track objectives through special scripts instead, and this includes the Thief 1 original missions. Thief 2 missions and FMs are more likely to use detectable quest objectives, but this is no guarantee.
-* [dbmods\just4fun_radar_10_lootdar.dml](../dbmods/just4fun_radar_10_questdar.dml?raw=1)
-
-**Optional equipment detection (keys, arrows, potions, etc.)**: Green indicators.
-* [dbmods\just4fun_radar_10_equipdar.dml](../dbmods/just4fun_radar_10_equipdar.dml?raw=1)
-* [dbmods\just4fun_radar_11_T1_equip.dml](../dbmods/just4fun_radar_11_T1_equip.dml?raw=1)
-* [dbmods\just4fun_radar_11_T2_equip.dml](../dbmods/just4fun_radar_11_T2_equip.dml?raw=1)
-
-**Optional readable detection (books, scrolls, etc.)**: Blue indicators. Ignores previously read items.
-* [dbmods\just4fun_radar_10_bookdar.dml](../dbmods/just4fun_radar_10_bookdar.dml?raw=1)
-
-**Optional creature detection (guards, robots, cameras, etc.)**: Red indicators. Ignores dead and knocked-out creatures. Ignores nonhostile creatures (allies, rats, etc.), depending on which files you install.
-* [dbmods\just4fun_radar_10_creaturedar.dml](../dbmods/just4fun_radar_10_creaturedar.dml?raw=1)
-* [dbmods\just4fun_radar_11_creature_neutral.dml](../dbmods/just4fun_radar_11_creature_neutral.dml?raw=1) (Extra optional, to display neutral creatures as well as hostiles.)
-* [dbmods\just4fun_radar_11_creature_good.dml](../dbmods/just4fun_radar_11_creature_good.dml?raw=1) (Extra optional, to display allied creatures as well as hostiles.)
-
-**Optional device detection (switches, pressure plates, etc.)**: Purple indicators. Ignores devices you've used.
-* [dbmods\just4fun_radar_10_devicedar.dml](../dbmods/just4fun_radar_10_devicedar.dml?raw=1)
-
-**Optional container detection (chests, lockboxes, etc.)**: White indicators. Ignores empty containers.
-* [dbmods\just4fun_radar_10_containerdar.dml](../dbmods/just4fun_radar_10_containerdar.dml?raw=1)
-
-**Optional pickpocketable detection (purses, quivers, etc.)**: White indicators.
-* [dbmods\just4fun_radar_10_pocketdar.dml](../dbmods/just4fun_radar_10_pocketdar.dml?raw=1)
+See [installation instructions](Installation%20and%20Removal.md) for details.
 
 **Keybind item name** ([What's this?](Keybinds.md)): j4fradarcontrolitem
+
+#### All-in-One Version
+
+You can install a single mod with *all* optional components enabled. If you use this file, you *don't* need the base mod or the point-of-interest mods.
+
+* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_all_in_one.7z)
+
+#### Customized Version
+
+This approach is best if you want, say, a loot-only radar. Install the base mod, plus any desired points of interest. See [installation instructions](Installation%20and%20Removal.md) for details. The base mod should have a higher priority than the POI mods. Other than that, the priorities don't matter.
+
+**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_1_base.7z)
+
+**Points of Interest**: Install one or more of these, as desired.
+* [J4F-radar_2_loot.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_loot.7z) for loot.
+* [J4F-radar_2_allequip.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_allequip.7z) for equipment. Arrow crystals, keys and other inventory items, etc.
+* [J4F-radar_2_questsecret.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_questsecret.7z) for secrets and objectives. Secrets are counted in the end-of-mission stats in Thief 2. Objectives also tend to work only in Thief 2 or in FMs, and not all objectives are detectable.
+* [J4F-radar_2_creature.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature.7z) to detect hostile creatures, or [J4F-radar_2_creature_all.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature_all.7z) to detect all creatures.
+* [J4F-radar_2_device.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_device.7z) for devices like buttons, lockboxes, and pressure plates.
+* [J4F-radar_2_readable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_readable.7z) for books and similar readables. Fullscreen stuff, not name plates. Previously read items are ignored.
+* [J4F-radar_2_pickpocket.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_pickpocket.7z) for pickpocketable items. Since coin purses count as loot and arrows count as equipment, this addon is mostly useful to find weird pickpocket targets.
+* [J4F-radar_2_container.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_container.7z) for non-empty containers. Since items can already be detected inside containers, this addon is mostly useful for finding miscellaneous junk.
+
+### Manual Installation
+
+See [installation instructions](Installation%20and%20Removal.md) for details.
+
+It would be easiest to extract the all-in-one file to a folder somewhere, then delete any unwanted DML files from the dbmods folder. Any DML file named "just4fun_radar_0X" should be kept, and any DML files named "just4fun_radar_1X" or "just4fun_radar_2X" can be deleted if you don't want them.
 
 ## System Shock 2 Details
 
 The radar is active by default.
 
-**Required files** (see [installation instructions](Installation%20and%20Removal.md)):
-* [j4fRes.crf](../j4fRes.crf)
-* [sq_scripts\just4fun_radar_00_base.nut](../sq_scripts/just4fun_radar_00_base.nut?raw=1)
-* [dbmods\just4fun_radar_00_base.dml](../dbmods/just4fun_radar_00_base.dml?raw=1)
-* [dbmods\just4fun_radar_02_shock.dml](../dbmods/just4fun_radar_02_shock.dml?raw=1)
-* [dbmods\miss_all\just4fun_radar_ui.dml](../dbmods/miss_all/just4fun_radar_ui.dml?raw=1) (Unlike the other DML files on this page, this one goes in a miss_all folder inside the dbmods folder.)
-* [dbmods\just4fun_radar_01_direct_script.dml](../dbmods/just4fun_radar_01_direct_script.dml?raw=1) (Optional, but recommended. Makes some features of device and readable radars more reliable.)
-
-**Optional cybermodule detection**: Green indicators. Includes some scripted events, which may highlight buttons or empty air until you earn the modules.
-* [dbmods\just4fun_radar_20_moduledar.dml](../dbmods/just4fun_radar_20_moduledar.dml?raw=1)
-
-**Optional nanite detection**: Yellow indicators.
-* [dbmods\just4fun_radar_20_nanitedar.dml](../dbmods/just4fun_radar_20_nanitedar.dml?raw=1)
-
-**Optional slotless equipment detection**: Yellow indicators. Does not include nanites or cybermodules. Includes installable software, including game cartridges that temporarily take up a space until you install them.
-* [dbmods\just4fun_radar_20_equipdar_slotless.dml](../dbmods/just4fun_radar_20_equipdar_slotless.dml?raw=1)
-
-**Optional stackable equipment detection**: Pink indicators. Includes ammo and hypos.
-* [dbmods\just4fun_radar_20_equipdar_stacked.dml](../dbmods/just4fun_radar_20_equipdar_stacked.dml?raw=1)
-
-**Optional unstackable equipment detection**: Purple indicators. Includes weapons and armor.
-* [dbmods\just4fun_radar_20_equipdar_slotted.dml](../dbmods/just4fun_radar_20_equipdar_slotted.dml?raw=1)
-
-**Optional creature detection**: Red indicators. Ignores dead creatures. Ignores nonhostile creatures (allies, psychic impressions, etc.), depending on which files you install.
-* [dbmods\just4fun_radar_20_creaturedar.dml](../dbmods/just4fun_radar_20_creaturedar.dml?raw=1)
-* [dbmods\just4fun_radar_21_creature_neutral.dml](../dbmods/just4fun_radar_21_creature_neutral.dml?raw=1) (Extra optional, to display neutral creatures as well as hostiles.)
-* [dbmods\just4fun_radar_21_creature_good.dml](../dbmods/just4fun_radar_21_creature_good.dml?raw=1) (Extra optional, to display allied creatures as well as hostiles.)
-
-**Optional data detection**: Blue indicators. Includes audio logs. Includes some scripted messages, which may highlight a button or empty air until you trigger the message.
-* [dbmods\just4fun_radar_20_readdar.dml](../dbmods/just4fun_radar_20_readdar.dml?raw=1)
-
-**Optional container detection (chests, lockboxes, etc.)**: White indicators. Ignores empty containers.
-* [dbmods\just4fun_radar_20_containerdar.dml](../dbmods/just4fun_radar_20_containerdar.dml?raw=1)
-
-**Optional Toggle**:
-
-Toggle controls are possible, but currently a bit of a pain. A future update might add a toggle button to the UI somewhere. In the meanwhile, you could try manually adding a keybind. System Shock 2 instructions are similar to [Thief keybinds](Keybinds.md), but you'll use a summon_obj command instead. Note that these commands only work when your player character has access to their inventory and other controls.
+Toggle controls are possible, but currently a bit of a pain. A future update might add a radar toggle button to the inventory UI somewhere. In the meanwhile, you could try manually adding a keybind. System Shock 2 instructions are similar to [Thief keybinds](Keybinds.md), but you'll use a summon_obj command instead. Note that these commands only work when your player character has access to their inventory and other controls.
 
 ```
 bind r+ctrl "summon_obj j4fshockdarcontrolitem"
 ```
 
+Indicator colors:
+* Yellow: Nanites and most slotless/unlimited inventory. Includes installable software.
+* Green: Cyber module items and reward triggers. Until delivered, reward triggers appear in the empty air or attached to a keypad or other device.
+* Red: Creatures.
+* Pink: Stackable inventory, like ammo and hypos.
+* Purple: Unstackable inventory, like weapons and armor.
+* Light Blue: Audio log objects and e-mail triggers. Triggers appear in empty air until delivered.
+* White: Anything that doesn't fall into another category.
+
+### Dark Mod Manager Installation (Recommended)
+
+See [installation instructions](Installation%20and%20Removal.md) for details.
+
+**Keybind item name** ([What's this?](Keybinds.md)): j4fradarcontrolitem
+
+#### All-in-One Version
+
+You can install a single mod with *all* optional components enabled. If you use this file, you *don't* need the base mod or the point-of-interest mods.
+
+* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_all_in_one.7z)
+
+#### Customized Version
+
+This approach is best if you want, say, a loot-only radar. Install the base mod, plus any desired points of interest. See [installation instructions](Installation%20and%20Removal.md) for details. The base mod should have a higher priority than the POI mods. Other than that, the priorities don't matter.
+
+**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_1_base.7z)
+
+**Points of Interest**: Install one or more of these, as desired.
+* [J4F-radar_2_cybermodule.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_cybermodule.7z) for cybermodules.
+* [J4F-radar_2_nanite.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_nanite.7z) for nanites.
+* [J4F-radar_2_allequip.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_allequip.7z) for all equipment. Alternately, install one or more of the following for specific kinds of equipment.
+	* [J4F-radar_2_equip_unlimited.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_equip_unlimited.7z) for things like keycards, repair software, game cartridges, etc.
+	* [J4F-radar_2_equip_stackable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_equip_stackable.7z) for things like hypos, ammo, repair tools, etc.
+	* [J4F-radar_2_equip_unstackable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_equip_unstackable.7z) for weapons, armor, power cells, etc.
+* [J4F-radar_2_creature.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature.7z) to detect hostile creatures, or [J4F-radar_2_creature_all.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature_all.7z) to detect all creatures.
+* [J4F-radar_2_readable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_readable.7z) for audio logs and e-mails.
+* [J4F-radar_2_container.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_container.7z) for non-empty containers. Since items can already be detected inside containers, this addon is mostly useful for finding miscellaneous junk.
+
+### Manual Installation
+
+See [installation instructions](Installation%20and%20Removal.md) for details.
+
+It would be easiest to extract the all-in-one file to a folder somewhere, then delete any unwanted DML files from the dbmods folder. Any DML file named "just4fun_radar_0X" should be kept, and any DML files named "just4fun_radar_1X" or "just4fun_radar_2X" can be deleted if you don't want them.
+
 ## Modder's Notes
 
 This mod uses the same scripting features someone would use to create new HUD elements. Instead of positioning them on specific parts of the screen, these overlays are created, destroyed, and repositioned to match the location of objects in the game world.
 
-There's a ton of code to handle corner cases, like "don't inherit" objects we cannot safely script directly. In addition to using metaproperties directly where able, the mod also scans every object at mission start to flag items of interest. At least on my machine, none of this processing results in FPS drops. Some processes are capped or staggered over time to help keep it that way.
+There's a ton of code to handle corner cases, like "don't inherit" objects we cannot safely script directly, or broken Links caused by System Shock 2 level transitions. In addition to using metaproperties directly where able, the mod also scans every object at mission start to flag items of interest. At least on my machine, none of this processing results in FPS drops. Some processes are capped or staggered over time to help keep it that way.
 
-The [original version](https://github.com/saracoth/newdark-mods/tree/original) of this mod uses as little scripting as possible, instead creating visible particle effects to indicate nearby items of interest.
+It's not likely most mods need anything like this, but this also demonstrates creating a overlay-based mod that functions in both Thief-like and Shock-like games.
