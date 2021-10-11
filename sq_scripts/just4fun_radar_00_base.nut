@@ -207,7 +207,7 @@ class J4FRadarUtilities extends SqRootScript
 	// capable of reusing smaller ones that have been freed up.
 	// If we weren't mindful of all that, a POI could suddenly
 	// point to an inappropriate or irrelevant object.
-	function InitPointOfInterestIfNeeded(forItem, objectiveNumber = -1)
+	function InitPointOfInterestIfNeeded(forItem, reviewExisting, objectiveNumber = -1)
 	{
 		// Do some quick checks up front.
 		if (
@@ -227,7 +227,14 @@ class J4FRadarUtilities extends SqRootScript
 		// Was this handled via proxy?
 		if (Object.HasMetaProperty(forItem, POI_INIT_WITH_PROXY_FLAG))
 		{
-			// Is the proxy intact?
+			// Cool. If we're not specifically reviewing stuff, count it
+			// good and move on.
+			if (!reviewExisting)
+			{
+				return false;
+			}
+			
+			// Otherwise, is the proxy intact?
 			local possibleProxyLinks = Link.GetAll(PROXY_ATTACH_METHOD_TO_PROXY, forItem);
 			foreach (checkLink in possibleProxyLinks)
 			{
@@ -2521,7 +2528,7 @@ class J4FRadarUi extends J4FRadarUtilities
 					// If the object is a POI of one or more types
 					Object.InheritsFrom(i, anyKindOfPoi)
 					// Attempt to initialize it.
-					&& InitPointOfInterestIfNeeded(i, relatedObjective)
+					&& InitPointOfInterestIfNeeded(i, reviewExistingItems, relatedObjective)
 				)
 				{
 					// And increment the counter if we did initialize it.
