@@ -1015,27 +1015,36 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 			}
 		}
 		
-		// HasRefs is often used to "disable" items, making them not
-		// render or collide.
-		if (Property.Possessed(target, "HasRefs") && !Property.Get(target, "HasRefs"))
-			return false;
-		
 		// Some types of containment make us invisible. Note that we
 		// also checked IsInOpenableContainer() above, which means
 		// we don't care about being in a chest or something. The
 		// logic below is for creatures or other "containers" who
 		// may or may not render us.
 		local linkToMyContainer = Link.GetOne("Contains", 0, target);
+		local visiblyContained = false;
 		// Are we contained by something in a way that prevent us from rendering?
 		if (
-			// We are contained.
+			// We are contained...
 			linkToMyContainer != 0
-			// In a non-visible way.
-			&& !IsVisiblyContained(linkToMyContainer)
 		)
 		{
-			return false;
+			// ...in a visible way
+			if (IsVisiblyContained(linkToMyContainer))
+			{
+				visiblyContained = true;
+			}
+			// ...in a non-visible way
+			else
+			{
+				return false;
+			}
 		}
+		
+		// HasRefs is often used to "disable" items, making them not
+		// render or collide. Note that pickpocketable items have this
+		// attribute as well.
+		if (!visiblyContained && Property.Possessed(target, "HasRefs") && !Property.Get(target, "HasRefs"))
+			return false;
 		
 		// I dunno, I guess it's rendered. I suppose we also need things
 		// like a model and whatever.
