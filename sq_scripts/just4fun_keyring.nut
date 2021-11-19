@@ -1,15 +1,6 @@
-class J4FKeyringTarget extends SqRootScript
+class J4FKeyringBase extends SqRootScript
 {
-	// This happens when the player uses the item directly, as opposed to
-	// using a key, lockpick, or other item on it.
-	// NOTE: Using DarkUI.InvSelect() during OnFrobWorldBegin() can have
-	// side effects in some cases. In Thief 1/Gold, rather than just selecting
-	// the item, you begin to use the tool. For keys and key-like items, this
-	// just focuses them on the world, but doesn't seem to apply them. For
-	// lockpicks, it can begin the picking events, but in a weird way that
-	// can, for example, cause the lock to continually play picking sounds
-	// even after it's been opened. So we use OnFrobWorldEnd() instead.
-	function OnFrobWorldEnd()
+	function HandleLockFrob(targetObject)
 	{
 		local frobMessage = message();
 		
@@ -18,7 +9,7 @@ class J4FKeyringTarget extends SqRootScript
 			return;
 		
 		// We only care when the frobbed object is currently locked.
-		if (!Property.Possessed(self, "Locked") || !Property.Get(self, "Locked"))
+		if (!Property.Possessed(targetObject, "Locked") || !Property.Get(targetObject, "Locked"))
 			return;
 		
 		// Okay, the player has used a locked door. Do they have a key or pick?
@@ -27,22 +18,22 @@ class J4FKeyringTarget extends SqRootScript
 		
 		// Accepting keys requires a KeyDst property, but also a non-zero region
 		// mask. A region mask of 0 means no key will work.
-		local wantsKeyRegion = Property.Possessed(self, "KeyDst") ? Property.Get(self, "KeyDst", "RegionMask") : 0;
+		local wantsKeyRegion = Property.Possessed(targetObject, "KeyDst") ? Property.Get(targetObject, "KeyDst", "RegionMask") : 0;
 		
 		// If picks are accepted at all, which one(s) do we currently accept?
 		local wantsPicks = 0;
-		if (Property.Possessed(self, "PickCfg"))
+		if (Property.Possessed(targetObject, "PickCfg"))
 		{
-			switch (Property.Get(self, "PickState", "CurTumbler/State"))
+			switch (Property.Get(targetObject, "PickState", "CurTumbler/State"))
 			{
 				case 0:
-					wantsPicks = Property.Get(self, "PickCfg", "LockBits 1");
+					wantsPicks = Property.Get(targetObject, "PickCfg", "LockBits 1");
 					break;
 				case 1:
-					wantsPicks = Property.Get(self, "PickCfg", "LockBits 2");
+					wantsPicks = Property.Get(targetObject, "PickCfg", "LockBits 2");
 					break;
 				case 2:
-					wantsPicks = Property.Get(self, "PickCfg", "LockBits 3");
+					wantsPicks = Property.Get(targetObject, "PickCfg", "LockBits 3");
 					break;
 			}
 		}
@@ -81,7 +72,7 @@ class J4FKeyringTarget extends SqRootScript
 				// We're looking at a key.
 				&& Property.Possessed(inventoryItemId, "KeySrc")
 				// The key is for our region.
-				&& Key.TryToUseKey(inventoryItemId, self, eKeyUse.kKeyUseCheck)
+				&& Key.TryToUseKey(inventoryItemId, targetObject, eKeyUse.kKeyUseCheck)
 			)
 			{
 				foundItem = inventoryItemId;
@@ -105,7 +96,7 @@ class J4FKeyringTarget extends SqRootScript
 				// a "truthy" value of 4, even though some of those picks wouldn't work!
 				// So PickLock.CheckPick() is only reliable after the player has begun to
 				// pick the lock, or a level designer explicitly added a PickState property.
-				//&& PickLock.CheckPick(inventoryItemId, self, wantsPickState)
+				//&& PickLock.CheckPick(inventoryItemId, targetObject, wantsPickState)
 				// And the pick matches!
 				&& (Property.Get(inventoryItemId, "PickSrc") & wantsPicks) != 0
 			)
@@ -119,8 +110,50 @@ class J4FKeyringTarget extends SqRootScript
 			// Success! We have a key or pick. Now select it.
 			if (DarkUI.InvItem() != foundItem)
 			{
-				DarkUI.InvSelect(foundItem);
+				SetOneShotTimer("J4FKeyringSelect", 0.01, foundItem);
 			}
 		}
+	}
+	
+	// To avoid event lifecycle issues, we rely on timers to change the player's
+	// inventory item. A timer message is its own self-contained event, whereas
+	// things like FrobWorldEnd are part of a whole sequence of events. It might
+	// be unwise to change our currently selected item before all those events
+	// (and their event listeners) have been processed.
+	function OnTimer()
+	{
+		if (message().name != "J4FKeyringSelect")
+			return;
+		
+		local foundItem = message().data;
+		if (DarkUI.InvItem() != foundItem)
+		{
+			DarkUI.InvSelect(foundItem);
+		}
+	}
+}
+
+class J4FKeyringTarget extends J4FKeyringBase
+{
+	// This happens when the player uses the item directly, as opposed to
+	// using a key, lockpick, or other item on it.
+	// NOTE: Using DarkUI.InvSelect() during OnFrobWorldBegin() can have
+	// side effects in some cases. In Thief 1/Gold, rather than just selecting
+	// the item, you begin to use the tool. For keys and key-like items, this
+	// just focuses them on the world, but doesn't seem to apply them. For
+	// lockpicks, it can begin the picking events, but in a weird way that
+	// can, for example, cause the lock to continually play picking sounds
+	// even after it's been opened. So we use OnFrobWorldEnd() instead.
+	function OnFrobWorldEnd()
+	{
+		HandleLockFrob(self);
+	}
+}
+
+class J4FKeyringSource extends J4FKeyringBase
+{
+	function OnFrobToolEnd()
+	{
+		HandleLockFrob(message().DstObjId);
 	}
 }

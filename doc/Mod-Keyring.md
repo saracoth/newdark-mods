@@ -16,4 +16,6 @@ This feature should work on almost every "lockable" item, including unconvention
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
 * [dbmods\just4fun_keyring.dml](../dbmods/just4fun_keyring.dml?raw=1)
+* [dbmods\just4fun_keyring_T1.dml](../dbmods/just4fun_keyring_T1.dml?raw=1)
+* [dbmods\just4fun_keyring_T2.dml](../dbmods/just4fun_keyring_T2.dml?raw=1)
 * [sq_scripts\just4fun_keyring.nut](../sq_scripts/just4fun_keyring.nut?raw=1)

@@ -41,3 +41,31 @@ CreateArch "MetaProperty" "J4FKeyringEnabled"
 +MetaProp "Door" "J4FKeyringEnabled"
 +MetaProp "Locks" "J4FKeyringEnabled"
 +MetaProp "Container" "J4FKeyringEnabled"
+
+/*
+================================================================================
+== Attach Script to Tools ======================================================
+================================================================================
+*/
+
+// There are also events when a tool (like a key or lockpick) gets used on
+// something. So if we also want to automatically swap from the wrong tool to
+// the right one, we need these items to be on the lookout as well.
+
+CreateArch "MetaProperty" "J4FKeyringSwapEnabled"
+{
+	+ObjProp "Scripts"
+	{
+		"Script 0" "J4FKeyringSource"
+		"Don't Inherit" FALSE
+	}
+}
+
+// Assign the new metaproperty to the types of objects we usually expect to be
+// locked and to have a key item.
+
++MetaProp "Lockpick" "J4FKeyringSwapEnabled"
+// Thief 1/Gold only:
+//+MetaProp "Key" "J4FKeyringSwapEnabled"
+// Thief 2 only:
+//+MetaProp "Key-or-Part" "J4FKeyringSwapEnabled"
