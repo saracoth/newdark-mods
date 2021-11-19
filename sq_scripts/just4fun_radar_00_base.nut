@@ -1671,9 +1671,9 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 // This script goes on the equipment of interest.
 class J4FRadarEquipTarget extends J4FRadarGrabbableTarget
 {
-	constructor(color = COLOR_EQUIP, uncapDistance = true, rank = POI_RANK_EQUIP)
+	constructor()
 	{
-		base.constructor(color, uncapDistance, rank);
+		base.constructor(COLOR_EQUIP, true, POI_RANK_EQUIP);
 	}
 	
 	// See comments in J4FRadarAbstractTarget for details.
