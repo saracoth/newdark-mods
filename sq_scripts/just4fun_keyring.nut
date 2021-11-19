@@ -1,6 +1,6 @@
 class J4FKeyringBase extends SqRootScript
 {
-	function HandleLockFrob(targetObject)
+	function HandleLockFrob(targetObject, usingTool = 0)
 	{
 		local frobMessage = message();
 		
@@ -53,6 +53,13 @@ class J4FKeyringBase extends SqRootScript
 		if (wantsPicks == 0 && wantsKeyRegion == 0)
 			return;
 		
+		// If we're using a valid tool, stick with it.
+		// Otherwise we risk weird things like switching from one perfectly good
+		// key to another, or preventing someone from picking a door they happen
+		// to have a key for.
+		if (!!usingTool && IsValidTool(usingTool, targetObject, wantsKeyRegion, wantsPicks) > 0)
+			return;
+		
 		// All that's left is to see if the player has anything that'll work.
 		// We already know the frobber is an Avatar, so we'll assume it's a
 		// player. Their inventory is anything contained by them, per links.
@@ -64,44 +71,16 @@ class J4FKeyringBase extends SqRootScript
 		{
 			// Are you the keymaster?
 			local inventoryItemId = LinkDest(link);
+			local validityStatus = IsValidTool(inventoryItemId, targetObject, wantsKeyRegion, wantsPicks);
 			
-			// If we find a usable key, we can accept it right away.
-			if (
-				// We want keys.
-				wantsKeyRegion != 0
-				// We're looking at a key.
-				&& Property.Possessed(inventoryItemId, "KeySrc")
-				// The key is for our region.
-				&& Key.TryToUseKey(inventoryItemId, targetObject, eKeyUse.kKeyUseCheck)
-			)
+			if (validityStatus > 0)
 			{
 				foundItem = inventoryItemId;
-				// Stop looping through inventory items.
-				break;
-			}
-			
-			// If we find a usable lockpick, let's make a note of it, but keep looking.
-			// We might find a key later, which would be even more betterer.
-			if (
-				// We want picks.
-				wantsPicks != 0
-				// We're looking at a pick.
-				&& Property.Possessed(inventoryItemId, "PickSrc")
-				// NOTE: CheckPick totally does not work as advertised. The third parameter
-				// is ignored, and the return value is not a boolean. In fact, it
-				// returns 0 for no match and 1 for a match, but it can also return a
-				// value of 4 for things like not having certain properties set yet.
-				// In fact, I've seen locks begin in such a state, before the player
-				// attempts to pick them. In these circumstances, all picks will return
-				// a "truthy" value of 4, even though some of those picks wouldn't work!
-				// So PickLock.CheckPick() is only reliable after the player has begun to
-				// pick the lock, or a level designer explicitly added a PickState property.
-				//&& PickLock.CheckPick(inventoryItemId, targetObject, wantsPickState)
-				// And the pick matches!
-				&& (Property.Get(inventoryItemId, "PickSrc") & wantsPicks) != 0
-			)
-			{
-				foundItem = inventoryItemId;
+				
+				// Did we find a key?
+				if (validityStatus == 1)
+					// If so, stop looping through inventory items.
+					break;
 			}
 		}
 		
@@ -113,6 +92,49 @@ class J4FKeyringBase extends SqRootScript
 				SetOneShotTimer("J4FKeyringSelect", 0.01, foundItem);
 			}
 		}
+	}
+	
+	// Returns 0 if invalid, 1 for valid keys, and 2 for valid lockpicks.
+	function IsValidTool(inventoryItemId, targetObject, wantsKeyRegion, wantsPicks)
+	{
+		// If we find a usable key, we can accept it right away.
+		if (
+			// We want keys.
+			wantsKeyRegion != 0
+			// We're looking at a key.
+			&& Property.Possessed(inventoryItemId, "KeySrc")
+			// The key is for our region.
+			&& Key.TryToUseKey(inventoryItemId, targetObject, eKeyUse.kKeyUseCheck)
+		)
+		{
+			return 1;
+		}
+		
+		// If we find a usable lockpick, let's make a note of it, but keep looking.
+		// We might find a key later, which would be even more betterer.
+		if (
+			// We want picks.
+			wantsPicks != 0
+			// We're looking at a pick.
+			&& Property.Possessed(inventoryItemId, "PickSrc")
+			// NOTE: CheckPick totally does not work as advertised. The third parameter
+			// is ignored, and the return value is not a boolean. In fact, it
+			// returns 0 for no match and 1 for a match, but it can also return a
+			// value of 4 for things like not having certain properties set yet.
+			// In fact, I've seen locks begin in such a state, before the player
+			// attempts to pick them. In these circumstances, all picks will return
+			// a "truthy" value of 4, even though some of those picks wouldn't work!
+			// So PickLock.CheckPick() is only reliable after the player has begun to
+			// pick the lock, or a level designer explicitly added a PickState property.
+			//&& PickLock.CheckPick(inventoryItemId, targetObject, wantsPickState)
+			// And the pick matches!
+			&& (Property.Get(inventoryItemId, "PickSrc") & wantsPicks) != 0
+		)
+		{
+			return 2;
+		}
+		
+		return 0;
 	}
 	
 	// To avoid event lifecycle issues, we rely on timers to change the player's
@@ -154,6 +176,6 @@ class J4FKeyringSource extends J4FKeyringBase
 {
 	function OnFrobToolEnd()
 	{
-		HandleLockFrob(message().DstObjId);
+		HandleLockFrob(message().DstObjId, message().SrcObjId);
 	}
 }
