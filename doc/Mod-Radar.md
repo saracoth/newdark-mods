@@ -84,13 +84,13 @@ See [installation instructions](Installation%20and%20Removal.md) for details.
 
 You can install a single mod with *all* optional components enabled. If you use this file, you *don't* need the base mod or the point-of-interest mods.
 
-* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_all_in_one.7z)
+* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-radar_all_in_one.7z)
 
 #### Customized Version
 
 This approach is best if you want, say, a loot-only radar. Install the base mod, plus any desired points of interest. See [installation instructions](Installation%20and%20Removal.md) for details. The base mod should have a higher priority than the POI mods. Other than that, the priorities don't matter.
 
-**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_1_base.7z)
+**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-radar_1_base.7z)
 
 **Points of Interest**: Install one or more of these, as desired.
 * [J4F-radar_2_cybermodule.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_cybermodule.7z) for cybermodules.
