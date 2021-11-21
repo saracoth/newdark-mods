@@ -12,6 +12,8 @@ This feature should work on almost every "lockable" item, including unconvention
 
 **Mod Archive** (see [installation instructions](Installation%20and%20Removal.md)): [J4F-keyring.7z](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-keyring.7z)
 
+If you prefer, there's an [alternative version](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-keyring_nolockpick.7z) of this mod without the lockpick auto-select. You can install either version separately. There's no need to install both.
+
 ## Manual Installation
 
 **Required files** (see [installation instructions](Installation%20and%20Removal.md)):
@@ -19,3 +21,6 @@ This feature should work on almost every "lockable" item, including unconvention
 * [dbmods\just4fun_keyring_T1.dml](../dbmods/just4fun_keyring_T1.dml?raw=1)
 * [dbmods\just4fun_keyring_T2.dml](../dbmods/just4fun_keyring_T2.dml?raw=1)
 * [sq_scripts\just4fun_keyring.nut](../sq_scripts/just4fun_keyring.nut?raw=1)
+
+**Optional extras**:
+* [dbmods\just4fun_keyring_without_lockpicks.dml](../dbmods/just4fun_keyring_without_lockpicks.dml?raw=1) (disables automatic lockpick selection)

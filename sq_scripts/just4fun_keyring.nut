@@ -57,6 +57,9 @@ class J4FKeyringBase extends SqRootScript
 		// Otherwise we risk weird things like switching from one perfectly good
 		// key to another, or preventing someone from picking a door they happen
 		// to have a key for.
+		// NOTE: Even if lockpicks are disabled, this check will still allow
+		// a player to continue using a correct lockpick, even if they have
+		// a key they could switch to.
 		if (!!usingTool && IsValidTool(usingTool, targetObject, wantsKeyRegion, wantsPicks) > 0)
 			return;
 		
@@ -65,6 +68,7 @@ class J4FKeyringBase extends SqRootScript
 		// player. Their inventory is anything contained by them, per links.
 		local playerInventory = Link.GetAll("Contains", frobMessage.Frobber);
 		local foundItem = 0;
+		local foundType = 0;
 		
 		// Search through the player's inventory, so they don't have to.
 		foreach (link in playerInventory)
@@ -76,6 +80,7 @@ class J4FKeyringBase extends SqRootScript
 			if (validityStatus > 0)
 			{
 				foundItem = inventoryItemId;
+				foundType = validityStatus;
 				
 				// Did we find a key?
 				if (validityStatus == 1)
@@ -84,7 +89,17 @@ class J4FKeyringBase extends SqRootScript
 			}
 		}
 		
-		if (foundItem > 0)
+		if (
+			// We found a candidate.
+			foundItem > 0
+			// And either it's not a lockpick, or lockpicks are enabled.
+			&& (
+				// Key
+				foundType == 1
+				// Or it's a lockpick, but we haven't blacklisted those.
+				|| ObjID("J4FKeyringDisableLockpicks") == 0
+			)
+		)
 		{
 			// Success! We have a key or pick. Now select it.
 			if (DarkUI.InvItem() != foundItem)

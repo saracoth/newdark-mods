@@ -5,10 +5,14 @@
 # By default, block these from the main mod package.
 :!*/just4fun_glowfairy_orig_control.dml
 :!*/just4fun_summoner_modmod.dml
+:!*/just4fun_keyring_without_lockpicks.dml
 
 # And include them in sub-packages.
 orig_control:*/just4fun_glowfairy_orig_control.dml
 modmod:*/just4fun_summoner_modmod.dml
+
+# The no-lockpick version of keyring is the complete package, not a mod-mod.
+nolockpick:*/just4fun_keyring*
 
 # The radar mod is complicated. Let's use suffixes for everything.
 :!*/just4fun_radar*
