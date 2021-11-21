@@ -26,20 +26,23 @@ Unless otherwise stated, the priority of the mods in this github repo doesn't ma
 
 :warning: Do **not** use this method if you have DMM installed. If you have a dmm.exe program in your game directory, I recommend installing mods through DMM instead.
 
-You can manually edit your cam_mod.ini file to change the mod_path list. Create a directory to hold the mod files from this project and add it to the list.
+1. Create a ```Mods``` folder in your game directory, like "C:\Games\Thief 2 The Metal Age\Mods"
+2. Create a ```Just4Fun``` folder inside that, like "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun"
+3. Create a ```dbmods``` folder inside that, like "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun\dbmods"
+4. Do the same for a ```sq_scripts``` folder, like "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun\sq_scripts"
+5. Edit your ```cam_mod.ini``` file (for example, "C:\Games\Thief 2 The Metal Age\cam_mod.ini")
 
-For example, you could create a "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun" folder and do something like this:
+The ```cam_mod.ini``` has a mod_path property. Yours might be missing, or they might all be commented out with a semicolon at the beginning of the line.
+
+If you already have a mod_path, add a plus sign and the new mod folder, like this:
 
 ```
 mod_path usermods+Mods\Just4Fun
 ```
 
-If you already have a mod_path in your cam_mod.ini file, you'd add a plus sign and the new folder at the end of the existing list.
+If you have no mod_path, or they're all commented out, just copy/paste the above example to the bottom of your ```cam_mod.ini``` file and save it.
 
-Installation now proceeds as with the simple method, but with something like "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun" instead of the usermods folder. For example:
-* "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun"
-* "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun\dbmods"
-* "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun\sq_scripts"
+Now you can download the individual mod files to the sq_scripts and/or dbmods folder. See the individual mod pages for a list of files to use in manual installation.
 
 # Uninstalling
 
