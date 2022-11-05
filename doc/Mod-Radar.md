@@ -59,7 +59,9 @@ It would be easiest to extract the all-in-one file to a folder somewhere, then d
 
 The radar is active by default.
 
-Toggle controls are possible, but currently a bit of a pain. A future update might add a radar toggle button to the inventory UI somewhere. In the meanwhile, you could try manually adding a keybind. System Shock 2 instructions are similar to [Thief keybinds](Keybinds.md), but you'll use a summon_obj command instead. Note that these commands only work when your player character has access to their inventory and other controls.
+### Keybinding
+
+Toggle controls are possible, but currently a bit of a pain. A future update might add a radar toggle button to the inventory UI somewhere. In the meanwhile, you could try manually adding a keybind. System Shock 2 instructions are similar to [Thief keybinds](Keybinds.md), but you'll use a `summon_obj` command instead. Note that `summon_obj` commands only work when your player character has access to their inventory and other controls. This same command is used to create navigation markers on your map in the vanilla game.
 
 ```
 bind r+ctrl "summon_obj j4fshockdarcontrolitem"
@@ -78,7 +80,7 @@ Indicator colors:
 
 See [installation instructions](Installation%20and%20Removal.md) for details.
 
-**Keybind item name** ([What's this?](Keybinds.md)): j4fradarcontrolitem
+**Keybind item name** ([What's this?](Keybinds.md)): j4fshockdarcontrolitem (use `summon_obj` instead of `inv_select`)
 
 #### All-in-One Version
 
