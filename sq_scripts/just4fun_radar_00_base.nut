@@ -246,7 +246,7 @@ class J4FRadarUtilities extends SqRootScript
 			}
 			
 			// Uh-oh. Proxy is gone now. Do-over.
-			print(format("Proxy lost %s %s %i",  Object.GetName(Object.Archetype(forItem)), Object.GetName(forItem), forItem));
+			print(format("J4FRadar: Proxy lost %s %s %i", Object.GetName(Object.Archetype(forItem)), Object.GetName(forItem), forItem));
 			Object.RemoveMetaProperty(forItem, POI_INIT_WITH_PROXY_FLAG);
 		}
 		
@@ -504,7 +504,7 @@ class J4FRadarUtilities extends SqRootScript
 		}
 		else
 		{
-			print(format("Unable to directly script %s %s %i", Object.GetName(Object.Archetype(toItem)), Object.GetName(toItem), toItem));
+			print(format("J4FRadar: Unable to directly script %s %s %i", Object.GetName(Object.Archetype(toItem)), Object.GetName(toItem), toItem));
 		}
 	}
 	
@@ -557,7 +557,7 @@ class J4FRadarUtilities extends SqRootScript
 		
 		if (!Object.Exists(linkedToId))
 		{
-			print("Proxy's target no longer exists.");
+			print("J4FRadar: Proxy's target no longer exists.");
 			isIntact = false;
 		}
 		else
@@ -575,7 +575,7 @@ class J4FRadarUtilities extends SqRootScript
 			}
 			else if (GetData("J4FOriginalTargetArchetype") != linkedToArchetype)
 			{
-				print(format("Proxy target changed from %s %i to %s %i", Object.GetName(GetData("J4FOriginalTargetArchetype")), GetData("J4FOriginalTargetArchetype"), Object.GetName(linkedToArchetype), linkedToArchetype));
+				print(format("J4FRadar: Proxy target changed from %s %i to %s %i", Object.GetName(GetData("J4FOriginalTargetArchetype")), GetData("J4FOriginalTargetArchetype"), Object.GetName(linkedToArchetype), linkedToArchetype));
 				isIntact = false;
 			}
 		}
@@ -1067,7 +1067,7 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 		
 		if (!IsProxyOnOriginalTarget())
 		{
-			print("Destroying invalidated proxy.");
+			print("J4FRadar: Destroying invalidated proxy.");
 			Object.Destroy(self);
 			return;
 		}
@@ -1906,7 +1906,10 @@ class J4FGiveAnItem extends SqRootScript
 		// See comments below about the infinite recursion this addresses.
 		local dataKey = "J4FGiving_" + whatItem;
 		if (IsDataSet(dataKey))
+		{
+			print(format("J4FRadar: Already working on giving %s", whatItem));
 			return;
+		}
 		
 		// Assuming this script is attached to the player, "self" refers
 		// to that player. Every object with a "Contains" type link is
@@ -1940,15 +1943,20 @@ class J4FGiveAnItem extends SqRootScript
 		if (!hasTheItem)
 		{
 			// Then create one and give it to them.
-			
 			SetData(dataKey, true);
 			
-			// NOTE: In SS2, for some reason this resulted in a
+			print(format("J4FRadar: Giving player a %s", whatItem));
+			
+			// NOTE: In SS2, for some reason this resulted in a recursive
 			// stack overflow going from OnBeginScript to GiveItemIfNeeded
 			// to native code, and repeating those three infinitely :/
 			Link.Create(LinkTools.LinkKindNamed("Contains"), self, Object.Create(theItemId));
 			
 			ClearData(dataKey);
+		}
+		else
+		{
+			print(format("J4FRadar: Already gave %s", whatItem));
 		}
 	}
 }
@@ -1957,13 +1965,13 @@ class J4FGiveAnItem extends SqRootScript
 class J4FGiveRadarItem extends J4FGiveAnItem
 {
 	// We only need this script to fire once, when the game simulation first starts.
-    function OnSim()
+	function OnSim()
 	{
-        if (message().starting)
+		if (message().starting)
 		{
 			GiveItemIfNeeded("J4FRadarControlItem");
-        }
-    }
+		}
+	}
 }
 
 // This script goes on one marker we add to every mission. It sets up and
@@ -2009,17 +2017,20 @@ class J4FRadarUi extends J4FRadarUtilities
 	// objects. The actual scanning happens in the timer function.
 	
 	// This will trigger in Thief-like games, but not Shock-engine ones.
-    function OnSim()
+	function OnSim()
 	{
-        if (message().starting)
+		if (message().starting)
 		{
+			print("J4FRadar: J4FRadarUi OnSim starting");
 			QueueNewScan(0.01);
-        }
-    }
+		}
+	}
 	
 	// This will fire on start of mission and after reloading saves.
 	function OnBeginScript()
 	{
+		print("J4FRadar: J4FRadarUi OnBeginScript fired");
+		
 		// Call our custom setup method, to do whatever we need to do
 		// when preparing the overlay in a new mission, after loading
 		// a save, or when re-loading a save or moving to next mission.
@@ -2066,7 +2077,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		
 		local hasChanged = (mapName == wasMap) ? 0 : 1;
 		SetData("MapHasChanged", hasChanged);
-		//print(format("Current map is \"%s\", old was \"%s\", changed %i", mapName, wasMap, hasChanged));
+		//print(format("J4FRadar: Current map is \"%s\", old was \"%s\", changed %i", mapName, wasMap, hasChanged));
 		
 		SetOneShotTimer("J4FRadarMissionScan", afterDelay);
 	}
@@ -2082,7 +2093,7 @@ class J4FRadarUi extends J4FRadarUtilities
 		if (message().name != "J4FRadarMissionScan")
 			return;
 		
-		//print("Scanning area...");
+		//print("J4FRadar: Scanning area...");
 		
 		// We will scan objects down to and including this value.
 		local scanFromInclusive = GetData("AddToScanId");
@@ -3004,7 +3015,7 @@ class J4FRadarOverlayHandlerBase
 			poiMetadata.distance = targetDistance;
 			toDrawThisFrame.append(poiMetadata);
 		}
-    }
+	}
 	
 	// The extra overhead of calling another function may not be
 	// desirable, but it's probably worth it just to separate out
