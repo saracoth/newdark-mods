@@ -31,23 +31,23 @@ See [installation instructions](Installation%20and%20Removal.md) for details.
 
 You can install a single mod with *all* optional components enabled. If you use this file, you *don't* need the base mod or the point-of-interest mods.
 
-* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_all_in_one.7z)
+* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_all_in_one.7z)
 
 #### Customized Version
 
 This approach is best if you want, say, a loot-only radar. Install the base mod, plus any desired points of interest. See [installation instructions](Installation%20and%20Removal.md) for details. The base mod should have a higher priority than the POI mods. Other than that, the priorities don't matter.
 
-**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_1_base.7z)
+**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_1_base.7z)
 
 **Points of Interest**: Install one or more of these, as desired.
-* [J4F-radar_2_loot.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_loot.7z) for loot.
-* [J4F-radar_2_allequip.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_allequip.7z) for equipment. Arrow crystals, keys and other inventory items, etc.
-* [J4F-radar_2_questsecret.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_questsecret.7z) for secrets and objectives. Secrets are counted in the end-of-mission stats in Thief 2. Objectives also tend to work only in Thief 2 or in FMs, and not all objectives are detectable.
-* [J4F-radar_2_creature.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature.7z) to detect hostile creatures, or [J4F-radar_2_creature_all.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature_all.7z) to detect all creatures.
-* [J4F-radar_2_device.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_device.7z) for devices like buttons, lockboxes, and pressure plates.
-* [J4F-radar_2_readable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_readable.7z) for books and similar readables. Fullscreen stuff, not name plates. Previously read items are ignored.
-* [J4F-radar_2_pickpocket.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_pickpocket.7z) for pickpocketable items. Since coin purses count as loot and arrows count as equipment, this addon is mostly useful to find weird pickpocket targets.
-* [J4F-radar_2_container.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_container.7z) for non-empty containers. Since items can already be detected inside containers, this addon is mostly useful for finding miscellaneous junk.
+* [J4F-radar_2_loot.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_loot.7z) for loot.
+* [J4F-radar_2_allequip.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_allequip.7z) for equipment. Arrow crystals, keys and other inventory items, etc.
+* [J4F-radar_2_questsecret.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_questsecret.7z) for secrets and objectives. Secrets are counted in the end-of-mission stats in Thief 2. Objectives also tend to work only in Thief 2 or in FMs, and not all objectives are detectable.
+* [J4F-radar_2_creature.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_creature.7z) to detect hostile creatures, or [J4F-radar_2_creature_all.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_creature_all.7z) to detect all creatures.
+* [J4F-radar_2_device.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_device.7z) for devices like buttons, lockboxes, and pressure plates.
+* [J4F-radar_2_readable.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_readable.7z) for books and similar readables. Fullscreen stuff, not name plates. Previously read items are ignored.
+* [J4F-radar_2_pickpocket.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_pickpocket.7z) for pickpocketable items. Since coin purses count as loot and arrows count as equipment, this addon is mostly useful to find weird pickpocket targets.
+* [J4F-radar_2_container.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_container.7z) for non-empty containers. Since items can already be detected inside containers, this addon is mostly useful for finding miscellaneous junk.
 
 ### Manual Installation
 
@@ -86,24 +86,24 @@ See [installation instructions](Installation%20and%20Removal.md) for details.
 
 You can install a single mod with *all* optional components enabled. If you use this file, you *don't* need the base mod or the point-of-interest mods.
 
-* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-radar_all_in_one.7z)
+* [J4F-radar_all_in_one.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_all_in_one.7z)
 
 #### Customized Version
 
 This approach is best if you want, say, a loot-only radar. Install the base mod, plus any desired points of interest. See [installation instructions](Installation%20and%20Removal.md) for details. The base mod should have a higher priority than the POI mods. Other than that, the priorities don't matter.
 
-**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-radar_1_base.7z)
+**Base Mod**: [J4F-radar_1_base.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_1_base.7z)
 
 **Points of Interest**: Install one or more of these, as desired.
-* [J4F-radar_2_cybermodule.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_cybermodule.7z) for cybermodules.
-* [J4F-radar_2_nanite.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_nanite.7z) for nanites.
-* [J4F-radar_2_allequip.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_allequip.7z) for all equipment. Alternately, install one or more of the following for specific kinds of equipment.
-	* [J4F-radar_2_equip_unlimited.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_equip_unlimited.7z) for things like keycards, repair software, game cartridges, etc.
-	* [J4F-radar_2_equip_stackable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_equip_stackable.7z) for things like hypos, ammo, repair tools, etc.
-	* [J4F-radar_2_equip_unstackable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_equip_unstackable.7z) for weapons, armor, power cells, etc.
-* [J4F-radar_2_creature.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature.7z) to detect hostile creatures, or [J4F-radar_2_creature_all.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_creature_all.7z) to detect all creatures.
-* [J4F-radar_2_readable.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_readable.7z) for audio logs and e-mails.
-* [J4F-radar_2_container.7z](https://github.com/saracoth/newdark-mods/releases/download/2.7/J4F-radar_2_container.7z) for non-empty containers. Since items can already be detected inside containers, this addon is mostly useful for finding miscellaneous junk.
+* [J4F-radar_2_cybermodule.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_cybermodule.7z) for cybermodules.
+* [J4F-radar_2_nanite.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_nanite.7z) for nanites.
+* [J4F-radar_2_allequip.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_allequip.7z) for all equipment. Alternately, install one or more of the following for specific kinds of equipment.
+	* [J4F-radar_2_equip_unlimited.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_equip_unlimited.7z) for things like keycards, repair software, game cartridges, etc.
+	* [J4F-radar_2_equip_stackable.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_equip_stackable.7z) for things like hypos, ammo, repair tools, etc.
+	* [J4F-radar_2_equip_unstackable.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_equip_unstackable.7z) for weapons, armor, power cells, etc.
+* [J4F-radar_2_creature.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_creature.7z) to detect hostile creatures, or [J4F-radar_2_creature_all.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_creature_all.7z) to detect all creatures.
+* [J4F-radar_2_readable.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_readable.7z) for audio logs and e-mails.
+* [J4F-radar_2_container.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-radar_2_container.7z) for non-empty containers. Since items can already be detected inside containers, this addon is mostly useful for finding miscellaneous junk.
 
 ### Manual Installation
 

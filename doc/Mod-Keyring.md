@@ -10,9 +10,9 @@ This feature should work on almost every "lockable" item, including unconvention
 
 ## Dark Mod Manager Installation (Recommended)
 
-**Mod Archive** (see [installation instructions](Installation%20and%20Removal.md)): [J4F-keyring.7z](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-keyring.7z)
+**Mod Archive** (see [installation instructions](Installation%20and%20Removal.md)): [J4F-keyring.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-keyring.7z)
 
-If you prefer, there's an [alternative version](https://github.com/saracoth/newdark-mods/releases/download/2.8/J4F-keyring_nolockpick.7z) of this mod without the lockpick auto-select. You can install either version separately. There's no need to install both.
+If you prefer, there's an [alternative version](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-keyring_nolockpick.7z) of this mod without the lockpick auto-select. You can install either version separately. There's no need to install both.
 
 ## Manual Installation
 

@@ -16,11 +16,11 @@ When tailing the player, the fairy will project a larger light radius for your c
 
 ## Dark Mod Manager Installation (Recommended)
 
-**Mod Archive** (see [installation instructions](Installation%20and%20Removal.md)): [J4F-glowfairy.7z](https://github.com/saracoth/newdark-mods/releases/download/2.5/J4F-glowfairy.7z)
+**Mod Archive** (see [installation instructions](Installation%20and%20Removal.md)): [J4F-glowfairy.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-glowfairy.7z)
 
 In addition, you can install any of these extra files if you want. They're optional.
 
-**Original Control Scheme**: [J4F-glowfairy_orig_control.7z](https://github.com/saracoth/newdark-mods/releases/download/2.5/J4F-glowfairy_orig_control.7z)
+**Original Control Scheme**: [J4F-glowfairy_orig_control.7z](https://github.com/saracoth/newdark-mods/releases/latest/download/J4F-glowfairy_orig_control.7z)
 
 ## Manual Installation
 
