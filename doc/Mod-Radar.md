@@ -53,7 +53,9 @@ This approach is best if you want, say, a loot-only radar. Install the base mod,
 
 See [installation instructions](Installation%20and%20Removal.md) for details.
 
-It would be easiest to extract the all-in-one file to a folder somewhere, then delete any unwanted DML files from the dbmods folder. Any DML file named "just4fun_radar_0X" should be kept, and any DML files named "just4fun_radar_1X" or "just4fun_radar_2X" can be deleted if you don't want them.
+It would be easiest to extract the all-in-one file to a folder somewhere, then delete any unwanted DML files from the dbmods folder. Any DML file named "just4fun_radar_0X" should be kept, and any DML files named "just4fun_radar_1X" or "just4fun_radar_2X" can be deleted if you don't want them. For example, delete the creature and book DML files to avoid highlighting those things.
+
+Assuming you have a `Mods\Just4Fun` folder per the general manual installation instructions, move any surviving DML files to the `Mods\Just4Fun\dbmods` folder, all the NUT files to `Mods\Just4Fun\sq_scripts`, and the j4fRes.crf file to the `Mods\Just4Fun` folder itself.
 
 ## System Shock 2 Details
 
@@ -109,7 +111,9 @@ This approach is best if you want, say, a loot-only radar. Install the base mod,
 
 See [installation instructions](Installation%20and%20Removal.md) for details.
 
-It would be easiest to extract the all-in-one file to a folder somewhere, then delete any unwanted DML files from the dbmods folder. Any DML file named "just4fun_radar_0X" should be kept, and any DML files named "just4fun_radar_1X" or "just4fun_radar_2X" can be deleted if you don't want them.
+It would be easiest to extract the all-in-one file to a folder somewhere, then delete any unwanted DML files from the dbmods folder. Any DML file named "just4fun_radar_0X" should be kept, and any DML files named "just4fun_radar_1X" or "just4fun_radar_2X" can be deleted if you don't want them. For example, delete the creature and readable DML files to avoid highlighting those things.
+
+Assuming you have a `Mods\Just4Fun` folder per the general manual installation instructions, move any surviving DML files to the `Mods\Just4Fun\dbmods` folder, all the NUT files to `Mods\Just4Fun\sq_scripts`, and the j4fRes.crf file to the `Mods\Just4Fun` folder itself.
 
 ## Modder's Notes
 
