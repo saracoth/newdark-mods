@@ -12,6 +12,8 @@ Currently, all mods use features only available in Thief version 1.27 and higher
 
 Some mods include prepackaged files for use with the DMM Dark Mod Manager. These can be installed like any other standard mod. Refer to the [DMM Homepage](https://pshjt.github.io/dmm/) for instructions or other details.
 
+:bulb: I recommend using [TFix](https://www.ttlg.com/forums/showthread.php?t=134733) or [TFix2](https://www.ttlg.com/forums/showthread.php?t=149669) for the [easiest modding experience](https://www.ttlg.com/forums/showthread.php?t=152783). They include the Dark Engine Mod Manager.
+
 Short version:
 1. Click the "Install mod archive(s)" button.
 2. Browse to wherever you downloaded the mod package.
@@ -24,7 +26,7 @@ Unless otherwise stated, the priority of the mods in this github repo doesn't ma
 
 ## Manual Installation Method
 
-:warning: Do **not** use this method if you have DMM installed. If you have a dmm.exe program in your game directory, I recommend installing mods through DMM instead.
+:warning: Do **not** use this method if you have Dark Engine Mod Manager installed. If you have a dmm.exe program in your game directory, I recommend installing mods through DMM instead. If you don't have DMM, consider installing it individually or as part of a fresh [TFix](https://www.ttlg.com/forums/showthread.php?t=134733)/[TFix2](https://www.ttlg.com/forums/showthread.php?t=149669) installation in place of your current Thief/Thief 2 install.
 
 1. Create a ```Mods``` folder in your game directory, like "C:\Games\Thief 2 The Metal Age\Mods"
 2. Create a ```Just4Fun``` folder inside that, like "C:\Games\Thief 2 The Metal Age\Mods\Just4Fun"
