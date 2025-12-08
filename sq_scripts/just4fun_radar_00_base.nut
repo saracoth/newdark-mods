@@ -14,10 +14,11 @@ const MAX_DIST = 100;
 // While NewDark v1.27 allows a max of 64, we'll intentionally cap
 // ourselves at a smaller value. After all, we don't want to hog all
 // 64 and not leave any for other, more sanely-written mods!
+// TODO: (performance) Lower this to...24, maybe?
 const MAX_POI_RENDERED = 32;
 // While I've been able to scan *all* object IDs in a level in a single tick
 // of a script timer without issue, it might be wise to spread that out over
-// time for performance or other reason.
+// time for performance or other reasons.
 const MAX_SCANNED_PER_LOOP = 500;
 // Set this to lower than MAX_SCANNED_PER_LOOP to limit how many points of
 // interest will be registered in a single pass through the level scanning.
@@ -27,6 +28,10 @@ const MAX_INITIALIZED_PER_LOOP = 500;
 // objects exist in a level, object IDs can have gaps in them, and object IDs
 // can even be reused as objects are destroyed and created. This should be set
 // high enough to be thorough, but not so high as to waste time on empty space.
+// This value is how many multiples of MAX_SCANNED_PER_LOOP we came up completely
+// empty on. So if we want to give up after seeing 1500 non-existant objects
+// in a row, we this should be set to 3 if MAX_SCANNED_PER_LOOP was 500, or to
+// 15 if MAX_SCANNED_PER_LOOP was just 100, etc.
 const MAX_EMPTY_SCAN_GROUPS = 3;
 
 // 1 (move) + 2 (script) + 128 (default) = 131
@@ -709,6 +714,7 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		if (!IsDataSet("J4FRadarReviewStarted"))
 		{
 			SetData("J4FRadarReviewStarted", true);
+			// TODO: (performance) Longer delay, and randomize the first timer to spread objects out.
 			SetOneShotTimer("J4FRadarTargetReview", 0.25);
 		}
 	}
@@ -722,6 +728,7 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		// Instead, the individual target scripts will
 		// have their own logic. Everyone will hear this
 		// timer event and can react as they please.
+		// TODO: (performance) Longer delay.
 		SetOneShotTimer("J4FRadarTargetReview", 0.25);
 	}
 	
@@ -1622,8 +1629,8 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 		// instead. So let's inform any ~FrobProxy reverse
 		// links that we've been touched, so they can flag
 		// themselves as well.
-		// Of course, these ~FrobProxy links may be point to
-		// objects with POI proxies. So we may have to hop
+		// Of course, these ~FrobProxy links may point to
+		// objects with POI proxies. So we *may* have to hop
 		// through two links: the FrobProxy and the POI proxy.
 		local myFrobbers = Link.GetAll("~FrobProxy", PoiTarget());
 		foreach (frobberLink in myFrobbers)
@@ -1671,8 +1678,8 @@ class J4FRadarDeviceTarget extends J4FRadarAbstractTarget
 		// For example, the LC_Lever (object 452) in Thief
 		// Gold miss9.mis can still be seen and picked up.
 		// Plus, it's not really a lever so much as a key-
-		// or-part object. In any case, this physics check
-		// is a good thing, more often than not.
+		// or-part object. Despite that, this physics check
+		// is a good thing more often than not.
 		return Physics.ValidPos(target);
 	}
 }
@@ -2565,7 +2572,7 @@ class J4FRadarUi extends J4FRadarUtilities
 			if (++consecutiveEmptyGroups > MAX_EMPTY_SCAN_GROUPS)
 			{
 				// Now that we're done with the first loop, we've
-				// also done any deep scannig needing in that loop.
+				// also done any deep scanning needing in that loop.
 				SetData("J4FHasDeepScanned", true);
 				
 				// We're done! Break the loop. We'll re-scan all
@@ -3004,6 +3011,8 @@ class J4FRadarOverlayHandlerBase
 			
 			// Only include rendered items (presumably they're visible) and
 			// nearby items.
+			// TODO: (performance) Barring teleports, distance doesn't change that dramatically from frame to frame. Consider whether some slower, timer-based process updates distances in displayTargets so we can just grab that number here without effort. Then, consider moving the below code to somewhere above the GetObjectScreenBounds. That way, we can skip it for some distant, non-rendered entities.
+			// TODO: (performance) *Consider* whether there's value in maintaining a sorted version of displayTargets as well, if we're going to cache distances. Instead of sorting and truncating toDrawThisFrame when there are a lot of POI entities, we could stop processing once we hit the limit and avoid wasted effort examining objects we end up ignoring in the end.
 			local targetDistance = (Object.Position(targetId) - cameraPos).Length();
 			if (!poiMetadata.uncappedDistance && !Object.RenderedThisFrame(targetId) && targetDistance > MAX_DIST)
 				continue;
@@ -3351,7 +3360,9 @@ class J4FRadarOverlayHandlerBase
 		// Since draw order doesn't matter, may as well loop through
 		// backwards. This is marginally more efficient, since we only
 		// have to grab the array length once, and we reference fewer
-		// variable values and more constant/literal values.
+		// variable values and more constant/literal values. Might be
+		// less efficient in modern systems with hardware optimized
+		// for forward-moving memory access (CPU cache management, etc.).
 		for (local i = toDrawCount; --i > -1; )
 		{
 			local drawMetadata = toDrawThisFrame[i];
