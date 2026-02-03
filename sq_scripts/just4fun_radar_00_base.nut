@@ -99,6 +99,7 @@ const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
 const FEATURE_CYBERMODULE = "J4FRadarEnableCyberModule";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
 const FEATURE_DIRECT_SCRIPT = "J4FRadarEnableDirectScript";
+const FEATURE_DIRECT_SCRIPT_VIA_LINKS = "J4FRadarEnableDirectScriptViaLink";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
 const FEATURE_KEYCODE = "J4FRadarEnableCurrentKeycode";
 const FEATURE_LOOT = "J4FRadarEnableLoot";
@@ -131,6 +132,7 @@ const POI_SECRET = "J4FRadarSecretPOI";
 // Objects of this type are spawned to represent tricky items to the
 // radar system instead.
 const POI_PROXY_MARKER = "J4FRadarProxyPOI";
+const SCRIPT_PROXY_MARKER = "J4FRadarScriptProxy";
 // This metaproperty has the script which manages our bless checking timer.
 const POI_CLOCK = "J4FRadarPOITimer";
 
@@ -224,6 +226,7 @@ class J4FRadarUtilities extends SqRootScript
 			|| Object.HasMetaProperty(forItem, POI_INIT_FLAG)
 			// Or it's a proxy to some other item.
 			|| Object.InheritsFrom(forItem, POI_PROXY_MARKER)
+			|| Object.InheritsFrom(forItem, SCRIPT_PROXY_MARKER)
 		)
 		{
 			return false;
@@ -479,6 +482,60 @@ class J4FRadarUtilities extends SqRootScript
 	
 	function AddScriptDirectly(toItem, scriptName)
 	{
+		// NOTE: This is true on NewDark v1.28+
+		local scriptLinksAreAvailable = LinkTools.LinkKindNamed("Script") > 0;
+		
+		// If possible, attach scripts through the Script link and a proxy.
+		// Should be available in NewDark v1.28+
+		// TODO: Investigate this further. Either it's not working for my specific test case or I'm doing this wrong.
+		if (scriptLinksAreAvailable && ObjID(FEATURE_DIRECT_SCRIPT_VIA_LINKS) < 0)
+		{
+			local possibleExistingScriptLinks = Link.GetAll("Script", toItem);
+			foreach (checkLink in possibleExistingScriptLinks)
+			{
+				local linkDestination = LinkDest(checkLink);
+				if (Object.InheritsFrom(linkDestination, SCRIPT_PROXY_MARKER))
+				{
+					local currentScript = Property.Get(linkDestination, "Scripts", "Script 0");
+					if (currentScript == scriptName)
+					{
+						// Script proxy link is in place.
+						return;
+					}
+				}
+			}
+	
+			local scriptProxy = Object.BeginCreate(SCRIPT_PROXY_MARKER);
+			Property.Set(scriptProxy, "Scripts", "Script 0", scriptName);
+			Object.EndCreate(scriptProxy);
+		
+			Link.Create("Script", toItem, scriptProxy);
+			return;
+		}
+		
+		// Otherwise, fall back to a best-effort approach of setting an unused
+		// numbered script slot on the target object. If we can't, we'll give up.
+		
+		// In NewDark v1.28 it seems the behavior of some things changed. For
+		// example, it was possible to set a script in an empty slot, without
+		// affecting other numbered script slots. But now it seems this wipes the
+		// slate clean and sets only the one property, leaving others at defaults.
+		// This detects scenarios where the toItem has no Scripts property of its
+		// own and instead inherits it from some archetype.
+		if (scriptLinksAreAvailable && Property.Possessed(toItem, "Scripts") && !Property.PossessedSimple(toItem, "Scripts"))
+		{
+			// One option might be to copy the archetype. But there are various
+			// dangers here, including the possibility that this is treated by the
+			// engine as adding/attaching an existing script more than once. This
+			// caused no issues in one test scenario involving a combination lock,
+			// but it could still cause issues to people.
+			//Property.CopyFrom(toItem, "Scripts", Object.Archetype(toItem));
+			
+			// Another option is to abort.
+			print(format("J4FRadar: Unable to directly script %s %s %i due to potential property-inheritance issues", Object.GetName(Object.Archetype(toItem)), Object.GetName(toItem), toItem));
+			return;
+		}
+		
 		local firstEmptySlot = -1;
 		
 		// Loop through all slots to see if the script is already
@@ -553,6 +610,7 @@ class J4FRadarUtilities extends SqRootScript
 	{
 		// So far, haven't encountered issues with non-proxy
 		// objects.
+		// TODO: We might want similar for SCRIPT_PROXY_MARKER, but that requires attaching a new script class for similar OnTimer-triggered functionality.
 		if (!Object.InheritsFrom(self, POI_PROXY_MARKER))
 			return true;
 		
