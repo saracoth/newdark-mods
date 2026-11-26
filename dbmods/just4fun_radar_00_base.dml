@@ -284,16 +284,10 @@ CreateArch "Marker" "J4FRadarProxyPOI"
 */
 
 // This non-functional metaproperty is used to flag whether an item has been
-// initialized, whether by proxy or by attaching a script metaproperty directly.
-// In the case of proxies, it's quicker than searching through all its links to
-// see if any of the linked items happens to be a proxy, and speeds up simple
-// "do I have a proxy yet?" checks.
+// handled by item-of-interest scans. More specific cases inherit from this.
 CreateArch "MetaProperty" "J4FRadarPoiInitted"
 
-// A variation on J4FRadarPoiInitted saying that this item needs a proxy.
+// A variation on J4FRadarPoiInitted saying that this item of interest is being
+// represented by a J4FRadarProxyPOI. We expect a PhysAttach link between the
+// actual item of interest and its proxy.
 CreateArch "J4FRadarPoiInitted" "J4FRadarPoiProxyInitted"
-
-// This let us know we've seen our scripts be killed because something was
-// set to Don't Inherit after we intialized it. This allows us to re-initialize
-// it later, and force use of proxies.
-CreateArch "MetaProperty" "J4FRadarPoiNeutered"

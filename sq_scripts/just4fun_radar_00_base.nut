@@ -98,7 +98,6 @@ const FEATURE_CREATURE_GOOD = "J4FRadarEnableCreatureG";
 const FEATURE_CREATURE_NEUTRAL = "J4FRadarEnableCreatureN";
 const FEATURE_CYBERMODULE = "J4FRadarEnableCyberModule";
 const FEATURE_DEVICE = "J4FRadarEnableDevice";
-const FEATURE_DIRECT_SCRIPT = "J4FRadarEnableDirectScript";
 const FEATURE_EQUIP = "J4FRadarEnableEquip";
 const FEATURE_KEYCODE = "J4FRadarEnableCurrentKeycode";
 const FEATURE_LOOT = "J4FRadarEnableLoot";
@@ -138,11 +137,6 @@ const POI_CLOCK = "J4FRadarPOITimer";
 // ignored from now on.
 const POI_INIT_FLAG = "J4FRadarPoiInitted";
 const POI_INIT_WITH_PROXY_FLAG = "J4FRadarPoiProxyInitted";
-
-// This indicates a previously-processed item was ended. If we see it hanging
-// around on the next scan, it probably needs to be re-initialized with a
-// proxy.
-const POI_NEUTERED_FLAG = "J4FRadarPoiNeutered";
 
 // Link flavour used to associate a POI proxy marker with its target.
 const PROXY_ATTACH_METHOD_TO_TARGET = "PhysAttach";
@@ -255,50 +249,43 @@ class J4FRadarUtilities extends SqRootScript
 			Object.RemoveMetaProperty(forItem, POI_INIT_WITH_PROXY_FLAG);
 		}
 		
-		// By default, assume we're going to attach scripts to the
-		// item itself.
-		local scriptWhat = forItem;
-		local proxyNeeded = false;
-		local directScriptNeeded = false;
-		local directScriptEnabled = ObjID(FEATURE_DIRECT_SCRIPT) < 0;
+		// As of v3 of the mod, we will no longer attach scripts to any existing
+		// object. Not through script properties nor through meta-properties. Doing
+		// so will affect scripts already on the object in question. In some cases,
+		// this is harmless, given proper setup and teardown behaviors and so on.
+		// In other cases, this is harmful and side effecting. Launching a script by
+		// adding a meta-property to an existing object with TrapMetaProp from
+		// vkdracul.osm causes a null-pointer-reference error in the vkdracul.osm
+		// binary. Other, subtle breaking changes are also possible. So now, all
+		// scripted behaviors are handled through a proxy marker associated with the
+		// actual point of interest.
+		// 
+		// This also resulted in the removal of other safeguard and sanity-checking
+		// code related to scripts terminating or re-launching, objects turning off
+		// script inheriting in the middle of a level, etc. It's arguably simpler,
+		// but giving everything a proxy comes with its own risks:
+		// 1) This creates more objects. Missions already near a limit can be pushed
+		//	over that limit more easily.
+		// 2) The Links are always visible and can be modified. Technically also
+		//	true of meta-properties, but it's less likely that something will remove
+		//	any and all metaproperties of an object instead of specific ones some
+		//	script or receptron cares about.
 		
-		// Although, for a previously neutered item we're processing
-		// again, we must use a proxy this time.
-		if (Object.HasMetaProperty(forItem, POI_NEUTERED_FLAG))
-		{
-			print(format("J4FRadar: Re-initializing %s %i \"%s\" %i", Object.GetName(Object.Archetype(forItem)), Object.Archetype(forItem), Object.GetName(forItem), forItem));
-			proxyNeeded = false;
-		}
+		// Create a new proxy marker on top of the item it is proxying.
+		// The location shouldn't actually matter, but there's no harm
+		// in setting it.
+		local proxyMarker = Object.BeginCreate(POI_PROXY_MARKER);
+		Object.Teleport(proxyMarker, Object.Position(forItem), Object.Facing(forItem));
+		Object.EndCreate(proxyMarker);
 		
-		if (
-			// If the item is not allowed to inherit scripts, we
-			// should proxy it.
-			Property.Possessed(forItem, "Scripts")
-			&& Property.Get(forItem, "Scripts", "Don't Inherit")
-		)
-		{
-			proxyNeeded = true;
-		}
+		// Link these items together.
+		local proxyAttach = Link.Create(PROXY_ATTACH_METHOD_TO_TARGET, proxyMarker, forItem);
 		
-		// Do we need a proxy marker instead?
-		if (proxyNeeded)
-		{
-			// Create a new proxy marker on top of the item it is proxying.
-			// The location shouldn't actually matter, but there's no harm
-			// in setting it.
-			local proxyMarker = Object.BeginCreate(POI_PROXY_MARKER);
-			Object.Teleport(proxyMarker, Object.Position(forItem), Object.Facing(forItem));
-			Object.EndCreate(proxyMarker);
-			
-			// Link these items together.
-			local proxyAttach = Link.Create(PROXY_ATTACH_METHOD_TO_TARGET, proxyMarker, forItem);
-			
-			// We'll attach the scripts to the proxy instead of the target.
-			scriptWhat = proxyMarker;
-		}
+		// We'll attach the scripts to the proxy instead of the target.
+		local scriptWhat = proxyMarker;
 		
 		// Flag the item as having been set up.
-		Object.AddMetaProperty(forItem, proxyNeeded ? POI_INIT_WITH_PROXY_FLAG : POI_INIT_FLAG);
+		Object.AddMetaProperty(forItem, POI_INIT_WITH_PROXY_FLAG);
 		
 		// Copy the POI metaproperty of the target item, then activate
 		// the appropriate script on the proxy. We could have also
@@ -332,17 +319,10 @@ class J4FRadarUtilities extends SqRootScript
 		
 		if (Object.InheritsFrom(forItem, POI_CYBERTRAP))
 		{
+			// NOTE: In v3 we lost the ability to know when a trap has been triggered,
+			// in order to hide it afterward.
 			Object.AddMetaProperty(scriptWhat, POI_CYBERTRAP + "_S");
 			handledAny = true;
-			
-			// May need direct scripting to know when the trap has been triggered.
-			if (
-				directScriptEnabled
-				&& scriptWhat != forItem
-			)
-			{
-				directScriptNeeded = true;
-			}
 		}
 		
 		if (Object.InheritsFrom(forItem, POI_NANITE))
@@ -385,18 +365,9 @@ class J4FRadarUtilities extends SqRootScript
 		
 		if (Object.InheritsFrom(forItem, POI_DEVICE))
 		{
+			// NOTE: In v3 we lost the ability to know when a device has been used,
+			// in order to hide it afterward.
 			Object.AddMetaProperty(scriptWhat, POI_DEVICE + "_S");
-			
-			// It'd be nice to flag devices as used when frobbed,
-			// even with proxies.
-			if (
-				directScriptEnabled
-				&& scriptWhat != forItem
-			)
-			{
-				directScriptNeeded = true;
-			}
-			
 			handledAny = true;
 		}
 		
@@ -420,18 +391,9 @@ class J4FRadarUtilities extends SqRootScript
 		
 		if (Object.InheritsFrom(forItem, POI_READABLE))
 		{
-			// The read/unread tracking won't work for proxies,
-			// unless direct scripting is enabled.
-			if (scriptWhat == forItem)
-			{
-				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
-			}
-			else if (directScriptEnabled)
-			{
-				Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
-				directScriptNeeded = true;
-			}
-			
+			// NOTE: In v3 we lost the ability to know when a readable has been read,
+			// in order to hide it afterward.
+			Object.AddMetaProperty(scriptWhat, POI_READABLE + "_S");
 			handledAny = true;
 		}
 		else if (Object.InheritsFrom(forItem, POI_READABLE_SIMPLE))
@@ -441,17 +403,10 @@ class J4FRadarUtilities extends SqRootScript
 		}
 		else if (Object.InheritsFrom(forItem, POI_READABLE_TRAP))
 		{
+			// NOTE: In v3 we lost the ability to know when a trap has been triggered,
+			// in order to hide it afterward.
 			Object.AddMetaProperty(scriptWhat, POI_READABLE_TRAP + "_S");
 			handledAny = true;
-			
-			// May need direct scripting to know when the trap has been triggered.
-			if (
-				directScriptEnabled
-				&& scriptWhat != forItem
-			)
-			{
-				directScriptNeeded = true;
-			}
 		}
 		
 		// If no more specific POI type applies, fall back to the generic one.
@@ -466,51 +421,10 @@ class J4FRadarUtilities extends SqRootScript
 			PostMessage(scriptWhat, "J4FSetObjective", objectiveNumber);
 		}
 		
-		if (directScriptEnabled && directScriptNeeded)
-		{
-			AddScriptDirectly(forItem, "J4FPassToProxy");
-		}
-		
 		// With all that stuff out of the way, we can start the timer.
 		Object.AddMetaProperty(scriptWhat, POI_CLOCK);
 		
 		return true;
-	}
-	
-	function AddScriptDirectly(toItem, scriptName)
-	{
-		local firstEmptySlot = -1;
-		
-		// Loop through all slots to see if the script is already
-		// attached, but make note of the first empty slot if any.
-		// This gracefully handles gaps in script slots.
-		for (local i = -1; ++i < 4; )
-		{
-			local currentScript = Property.Get(toItem, "Scripts", "Script " + i);
-			
-			// We already have the script! Abort.
-			if (currentScript == scriptName)
-				return;
-			
-			if (currentScript == null || currentScript == "")
-			{
-				if (firstEmptySlot < 0)
-				{
-					firstEmptySlot = i;
-				}
-			}
-		}
-		
-		// We don't already have the script.
-		// Do we have an empty slot to put it in?
-		if (firstEmptySlot > -1)
-		{
-			Property.Set(toItem, "Scripts", "Script " + firstEmptySlot, scriptName);
-		}
-		else
-		{
-			print(format("J4FRadar: Unable to directly script %s %s %i", Object.GetName(Object.Archetype(toItem)), Object.GetName(toItem), toItem));
-		}
 	}
 	
 	// Returns checkId if it has no POI proxy marker,
@@ -730,80 +644,6 @@ class J4FRadarPOIClock extends J4FRadarUtilities
 		// timer event and can react as they please.
 		// TODO: (performance) Longer delay.
 		SetOneShotTimer("J4FRadarTargetReview", 0.25);
-	}
-	
-	// I've encountered cases where an object contines to exist, but
-	// something kills all the scripts on it. For example, opening a
-	// desk container in SS2's first real game area.
-	// WARNING: OnEndScript fires in at least four cases I've seen.
-	//	1) When ending a game.
-	//	2) When destroying an object with scripts on it. At least,
-	//		I think I've seen that. Granted, I was paying more
-	//		attention to the other cases listed here....
-	//	3) When loading a save game, EndScript will be passed to
-	//		everything before a BeginScript. Just try adding
-	//		Object.Destroy(self) to an OnEndScript and watch things
-	//		disappear when you load your saves. Fun.
-	//	4) When scripts are removed, such as when metaproperty-
-	//		inherited scripts are killed because something turned
-	//		"Don't Inherit" on after the fact.
-	// So many things aren't safe to do during OnEndScript, because
-	// it happens for so many reasons and we can't tell them apart.
-	function OnEndScript()
-	{
-		// If the proxy dies, chances are it's because we're deleting
-		// it or something. We shouldn't need to care.
-		if (Object.InheritsFrom(self, POI_PROXY_MARKER))
-			return;
-		
-		// Someone turned on Don't Inherit? That's a little mean.
-		if (Property.Possessed(self, "Scripts") && Property.Get(self, "Scripts", "Don't Inherit"))
-		{
-			print(format("J4FRadar: Clock neutered %s %i \"%s\" %i", Object.GetName(Object.Archetype(self)), Object.Archetype(self), Object.GetName(self), self));
-			
-			// Make sure the clock stays neutered. We don't want to
-			// end up with both a proxy and a direct POI for the same
-			// thing.
-			Object.RemoveMetaProperty(self, POI_CLOCK);
-			
-			// Make sure we use a proxy next time.
-			Object.AddMetaProperty(self, POI_NEUTERED_FLAG);
-			// Allow us to be re-initialized on the next scan.
-			Object.RemoveMetaProperty(self, POI_INIT_FLAG);
-		}
-	}
-}
-
-// This goes on the original item, but passes certain events to its proxy.
-class J4FPassToProxy extends J4FRadarUtilities
-{
-	function GetProxy()
-	{
-		if (IsDataSet("J4FRadarProxyCache"))
-		{
-			return GetData("J4FRadarProxyCache");
-		}
-		
-		local myProxy = GetObjectOrProxy(self);
-		SetData("J4FRadarProxyCache", myProxy);
-		return myProxy;
-	}
-	
-	function OnFrobWorldEnd()
-	{
-		if (Object.InheritsFrom(message().Frobber, j4fPlayerArchetype))
-			PostMessage(GetProxy(), "J4FPlayerFrob");
-	}
-	
-	function OnFrobInvEnd()
-	{
-		if (Object.InheritsFrom(message().Frobber, j4fPlayerArchetype))
-			PostMessage(GetProxy(), "J4FPlayerFrob");
-	}
-	
-	function OnTurnOn()
-	{
-		PostMessage(GetProxy(), "J4FTurnedOn");
 	}
 }
 
@@ -1145,33 +985,6 @@ class J4FRadarAbstractTarget extends J4FRadarUtilities
 	function OnDestroy()
 	{
 		SendDestroyMessage();
-	}
-	
-	// I've encountered cases where an object contines to exist, but
-	// something kills all the scripts on it. For example, opening a
-	// desk container in SS2's first real game area.
-	// WARNING: OnEndScript fires in at least four cases I've seen.
-	//	1) When ending a game.
-	//	2) When destroying an object with scripts on it. At least,
-	//		I think I've seen that. Granted, I was paying more
-	//		attention to the other cases listed here....
-	//	3) When loading a save game, EndScript will be passed to
-	//		everything before a BeginScript. Just try adding
-	//		Object.Destroy(self) to an OnEndScript and watch things
-	//		disappear when you load your saves. Fun.
-	//	4) When scripts are removed, such as when metaproperty-
-	//		inherited scripts are killed because something turned
-	//		"Don't Inherit" on after the fact.
-	// So many things aren't safe to do during OnEndScript, because
-	// it happens for so many reasons and we can't tell them apart.
-	function OnEndScript()
-	{
-		// Someone turned on Don't Inherit? That's a little mean.
-		if (Property.Possessed(self, "Scripts") && Property.Get(self, "Scripts", "Don't Inherit"))
-		{
-			print(format("J4FRadar: Target neutered %s %i \"%s\" %i", Object.GetName(Object.Archetype(self)), Object.Archetype(self), Object.GetName(self), self));
-			SendDestroyMessage();
-		}
 	}
 	
 	function SendDestroyMessage()
