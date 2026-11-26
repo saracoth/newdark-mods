@@ -277,6 +277,16 @@ CreateArch "MetaProperty" "J4FRadarPOITimer"
 // proxied POI item.
 CreateArch "Marker" "J4FRadarProxyPOI"
 
+// Different topic, related to scripting. In general, we avoid adding scripts
+// directly to an object. However, some are flagged to not inherit scripts,
+// which prevents us from indirectly adding them via metaproperties.
+// It's still possible to search for an unused, numbered script slot and assign
+// a script to it. However, v1.28 added a "Script" link type, as another way of
+// attaching scripts to objects. Since links are between objects (two prototypes
+// or two concrete instances), we'll need some kind of object to make a Script
+// link to. These markers will serve that purpose.
+CreateArch "Marker" "J4FRadarScriptProxy"
+
 /*
 ================================================================================
 == Radar Point-of-interest Flags ===============================================
